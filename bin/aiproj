@@ -1,0 +1,12 @@
+#!/bin/bash
+# aiproj — AI Project Manager CLI entry point
+# Find and execute the Python CLI module.
+
+set -euo pipefail
+
+AIPROJ_INSTALL_DIR="${AIPROJ_INSTALL_DIR:-$HOME/.local/share/ai-project-manager}"
+
+# Ensure the package is importable
+export PYTHONPATH="${AIPROJ_INSTALL_DIR}:${PYTHONPATH:-}"
+
+exec python3 -m ai_project_manager.cli "$@"

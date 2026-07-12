@@ -1,0 +1,20 @@
+{
+  "display_name": "AI 项目工作区管理器",
+  "directory_name": "ai-project-workspace-manager",
+  "summary": "AI 工具链的全局项目管理、启动和维护系统：cc 启动器、AI Project Manager、Projects 定期维护器、自动命名系统",
+  "project_type": "developer-tooling",
+  "name_candidates": [
+    {"name": "ai-project-workspace-manager", "source": "deployed-components", "confidence": 0.9, "reason": "已部署组件: cc-launcher, ai-project-manager, projects-maintainer, systemd-timers"},
+    {"name": "ai-tooling-orchestrator", "source": "context-analysis", "confidence": 0.6, "reason": "综合分析: AI 工具编排系统"},
+    {"name": "cc-launcher-and-project-manager", "source": "source-code", "confidence": 0.5, "reason": "源代码: cc launcher + AI project manager"}
+  ],
+  "selected_name": "ai-project-workspace-manager",
+  "naming_reason": "综合分析已部署组件和项目长期用途：cc-launcher、ai-project-manager、projects-maintainer、systemd-timers 构成完整的 AI 项目工作区管理方案",
+  "confidence": 0.9,
+  "is_placeholder": false,
+  "last_analyzed": "2026-07-13T01:32:00+00:00",
+  "last_updated": "2026-07-13T01:32:00+00:00",
+  "name_history": ["13", "ai-project-managerlauncherconfigworkspac"],
+  "tool": "claude",
+  "status": "active"
+}

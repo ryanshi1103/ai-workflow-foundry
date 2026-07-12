@@ -1,0 +1,12 @@
+[Unit]
+Description=Monthly cc-projects deep maintenance timer
+Documentation=man:cc-projects-maintain(1)
+
+[Timer]
+# Run monthly on the 1st at 03:13 (off-peak, avoids :00/:30)
+OnCalendar=*-*-01 03:13:00
+Persistent=true
+RandomizedDelaySec=1200
+
+[Install]
+WantedBy=timers.target

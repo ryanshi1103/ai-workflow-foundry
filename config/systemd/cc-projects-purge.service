@@ -1,0 +1,20 @@
+[Unit]
+Description=cc-projects quarantine purge
+After=default.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/cc-projects-maintain --purge-quarantine
+Nice=19
+IOSchedulingClass=idle
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cc-projects-purge
+
+# Security hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/Projects %h/.local/state/cc-projects %h/.config/cc-projects
+ReadOnlyPaths=%h/.local/bin %h/.local/share
