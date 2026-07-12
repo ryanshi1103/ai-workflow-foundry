@@ -1,0 +1,15 @@
+# Protected projects — one per line (path or project name)
+# Projects listed here will NOT be auto-deleted, quarantined, or merged.
+# Generated: 2026-07-13
+
+# Core infrastructure
+codex-claude
+claude-switcher-setup
+
+# User projects with real deliverables
+meeting-media-auto
+phone-control
+Hunan-University-Motivation-PPT
+
+# Current workspace
+13

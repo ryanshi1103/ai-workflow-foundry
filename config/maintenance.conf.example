@@ -1,0 +1,10 @@
+# cc-projects maintenance configuration
+# Edit this file to customize behavior.
+
+PROJECTS_ROOT="/home/ryan/Projects"
+QUARANTINE_DAYS=14
+AUTO_RENAME_PLACEHOLDERS=true
+AUTO_MERGE_DUPLICATES=true
+AUTO_QUARANTINE_LOW_VALUE=true
+AUTO_PURGE_AFTER_RETENTION=true
+DRY_RUN=false
