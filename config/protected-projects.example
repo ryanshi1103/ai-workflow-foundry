@@ -1,15 +1,22 @@
-# Protected projects — one per line (path or project name)
+# Protected projects — one per line
+# Format: PATH_OR_NAME | TYPE | REASON
+# The TYPE and REASON fields are optional annotations.
 # Projects listed here will NOT be auto-deleted, quarantined, or merged.
-# Generated: 2026-07-13
+# Updated: 2026-08-01 project portfolio review
 
 # Core infrastructure
-codex-claude
-claude-switcher-setup
+ai-project-workspace-manager | infrastructure | cc、AI Project Manager 与维护器源码真源
+codex-claude | legacy-review | 早期 AI Project Manager 构建，合并核验前保留
+claude-switcher-setup | legacy-review | Codex 接入会话，归档核验前保留
 
 # User projects with real deliverables
-meeting-media-auto
-phone-control
-Hunan-University-Motivation-PPT
-
-# Current workspace
-13
+meeting-media-auto | user-project | 会映 Linux/Web 研发工作台
+meeting-media-desktop | user-project | 会映桌面与移动发行仓库
+phone-control | user-project | OPPO 手机控制与优化
+PhotoTransform | user-project | OPPO 手机照片安全归档
+Hunan-University-Motivation-PPT | user-project | 湖南四校文化动员演示
+A | user-project | 研学营印刷物料，待拆分子项目后改名
+System | user-project | Minimal Focus GRUB 主题，待收平目录层级
+VPN | user-project | Shadowrocket VPN 部署工具
+social-negative-monitor | user-project | 反馈分析系统
+taobao-auto-shop | user-project | 虚拟商品库存与自动发货原型候选

@@ -1,9 +1,9 @@
 #!/bin/bash
-# Claude Code Unified Launcher — project-agnostic
-# Supports Anthropic native and DeepSeek models with selectable permission modes.
+# Claude / DeepSeek / Codex Unified Launcher — project-agnostic
+# Supports Anthropic Claude, DeepSeek V4 Pro, and OpenAI Codex GPT-5.6 Sol.
 # Works with any project; no hard-coded default project bias.
 #
-# Version: 2.0 — Fixed project creation conflict
+# Version: 3.1 — Added SSH/mobile remote-session safety
 # CC_ACTIVE_PROJECT is the single source of truth for the project directory.
 
 set -euo pipefail
@@ -77,6 +77,148 @@ add_to_recent() {
 # ─── Global variable for selected project ──────────────────────────────────
 PROJECT_DIR=""
 CC_PROJECT_MODE="existing"  # current, existing, new, manual
+
+# SSH and Tailscale SSH both export one or both of these variables.  The
+# launcher keeps every mode available remotely, but high-risk modes require a
+# second, remote-specific acknowledgement.
+CC_REMOTE_SESSION=false
+if [[ -n "${SSH_CONNECTION:-}" ]] || [[ -n "${SSH_TTY:-}" ]]; then
+    CC_REMOTE_SESSION=true
+fi
+
+show_remote_session_banner() {
+    [[ "$CC_REMOTE_SESSION" == true ]] || return 0
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════╗"
+    echo "║  📱 SSH 远程会话                                        ║"
+    echo "╠══════════════════════════════════════════════════════════╣"
+    echo "║  当前操作来自远程终端；全部启动器选项保持可用。         ║"
+    echo "║  完全访问模式需要额外输入 remote-yes。                  ║"
+    echo "╚══════════════════════════════════════════════════════════╝"
+}
+
+confirm_remote_high_risk() {
+    local mode_name="$1"
+    local remote_confirm=""
+    [[ "$CC_REMOTE_SESSION" == true ]] || return 0
+
+    echo ""
+    echo "远程高权限确认: ${mode_name}"
+    if ! read -r -p "请输入 'remote-yes' 继续: " remote_confirm; then
+        echo "输入已关闭，已取消。"
+        return 1
+    fi
+    if [[ "$remote_confirm" != "remote-yes" ]]; then
+        echo "远程高权限确认失败，已取消。"
+        return 1
+    fi
+}
+
+# ─── Codex preflight check ──────────────────────────────────────────────────
+CODEX_PREFLIGHT_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/cc-launcher"
+CODEX_PREFLIGHT_FILE="${CODEX_PREFLIGHT_DIR}/codex-preflight"
+
+codex_api_reachable() {
+    # An HTTP response from the OpenAI API proves that DNS, TCP, and TLS all
+    # work.  Do not use curl -f here: an unauthenticated 4xx response is still
+    # a successful reachability check and this function must never read auth.
+    if command -v curl >/dev/null 2>&1; then
+        curl --silent --show-error --output /dev/null \
+            --connect-timeout 5 --max-time 8 \
+            https://api.openai.com/
+        return $?
+    fi
+
+    # Minimal fallback for systems without curl.  This still checks DNS and
+    # TCP reachability to the service actually used by Codex.
+    timeout 5 bash -c 'exec 3<>/dev/tcp/api.openai.com/443' 2>/dev/null
+}
+
+codex_preflight_check() {
+    local profile_name="$1"
+    local profile_file="$HOME/.codex/${profile_name}.config.toml"
+
+    # 1. Binary check (always run)
+    local codex_bin
+    codex_bin="$(type -P codex 2>/dev/null)" || {
+        echo ""
+        echo "错误: Codex CLI 未安装或不在 PATH 中。" >&2
+        echo "请运行: npm install -g @openai/codex" >&2
+        return 1
+    }
+
+    # 2. Version check (always run)
+    local codex_version
+    codex_version="$("$codex_bin" --version 2>/dev/null)" || {
+        echo ""
+        echo "错误: 无法获取 Codex 版本。" >&2
+        return 1
+    }
+    # Parse version number: strip "codex-cli " prefix
+    local version_num="${codex_version#codex-cli }"
+    # Compare: need >= 0.144.0
+    local major minor patch
+    IFS='.' read -r major minor patch <<< "$version_num"
+    if [[ -z "$major" ]] || (( major < 0 )) || (( major == 0 && minor < 144 )); then
+        echo ""
+        echo "错误: Codex 版本过低。当前: ${codex_version}，需要: >= 0.144.0" >&2
+        echo "请运行: npm install -g @openai/codex" >&2
+        return 1
+    fi
+
+    # 3. Project directory check (always run)
+    if [[ ! -d "$PROJECT_DIR" ]]; then
+        echo ""
+        echo "错误: 项目目录不存在: $PROJECT_DIR" >&2
+        return 1
+    fi
+
+    # 4. Profile file check (always run)
+    if [[ ! -f "$profile_file" ]]; then
+        echo ""
+        echo "错误: Codex profile 文件不存在: $profile_file" >&2
+        return 1
+    fi
+
+    # 5. Basic TOML validity check
+    if ! grep -q 'model.*gpt-5.6-sol' "$profile_file" 2>/dev/null; then
+        echo ""
+        echo "错误: profile 文件缺少 model = \"gpt-5.6-sol\": $profile_file" >&2
+        return 1
+    fi
+
+    # 6. OpenAI API reachability check (cached: max once per 24h)
+    mkdir -p "$CODEX_PREFLIGHT_DIR" 2>/dev/null
+    local now
+    now="$(date +%s)"
+    local last_check=0
+    if [[ -f "$CODEX_PREFLIGHT_FILE" ]]; then
+        IFS= read -r last_check < "$CODEX_PREFLIGHT_FILE" || last_check=0
+        # Arithmetic expansion treats bare words as variable names.  Reject a
+        # corrupt/legacy cache value (including the former literal "EOF")
+        # before using it under `set -u`.
+        if [[ ! "$last_check" =~ ^[0-9]+$ ]]; then
+            last_check=0
+        fi
+    fi
+    local check_age=$(( now - last_check ))
+    if (( check_age > 86400 )) || [[ ! -f "$CODEX_PREFLIGHT_FILE" ]]; then
+        if ! codex_api_reachable; then
+            # Reachability problems do not block launch because Codex may
+            # still recover after a transient network or VPN change.
+            echo ""
+            echo "警告: 无法连接 OpenAI API；请检查 DNS、VPN 或网络出口。" >&2
+        fi
+        # Update preflight file
+        printf '%s\n' \
+            "$now" \
+            "$codex_bin" \
+            "$codex_version" \
+            "$profile_name" > "$CODEX_PREFLIGHT_FILE"
+    fi
+
+    return 0
+}
 
 # ─── Helper: project status indicators ─────────────────────────────────────
 has_git() {
@@ -446,7 +588,7 @@ determine_project() {
     while true; do
         echo ""
         echo "╔══════════════════════════════════════════╗"
-        echo "║  Claude / DeepSeek 全局项目启动器        ║"
+        echo "║  Claude / DeepSeek / Codex 项目启动器    ║"
         echo "╠══════════════════════════════════════════╣"
         echo "║                                          ║"
         echo "║  当前目录不是 Git 仓库。请选择项目:      ║"
@@ -504,6 +646,8 @@ determine_project() {
 # Step 0: Determine project
 determine_project
 
+show_remote_session_banner
+
 # Record to recent projects (skip here-mode shortcut)
 if [[ "${_CC_HERE_MODE:-}" != "1" ]]; then
     add_to_recent "$PROJECT_DIR"
@@ -526,19 +670,20 @@ fi
 # ─── Step 1: Choose provider ────────────────────────────────────────────
 echo ""
 echo "╔══════════════════════════════════════════╗"
-echo "║  Claude / DeepSeek 全局项目启动器        ║"
+echo "║  Claude / DeepSeek / Codex 项目启动器    ║"
 echo "╠══════════════════════════════════════════╣"
 echo "║                                          ║"
 echo "║  项目: ${PROJECT_DIR}"
 echo "║                                          ║"
-echo "║  选择模型:                               ║"
-echo "║  c   Claude (Anthropic 原生)             ║"
+echo "║  选择工具:                               ║"
+echo "║  c   Claude（Anthropic 原生）            ║"
 echo "║  d   DeepSeek V4 Pro                     ║"
+echo "║  o   OpenAI Codex（GPT-5.6 Sol）         ║"
 echo "║  q   退出                                ║"
 echo "║                                          ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
-read -r -p "请选择 (c/d/q): " PROVIDER_CHOICE
+read -r -p "请选择 (c/d/o/q): " PROVIDER_CHOICE
 
 case "$PROVIDER_CHOICE" in
     c|C)
@@ -551,6 +696,10 @@ case "$PROVIDER_CHOICE" in
         PROVIDER_NAME="DeepSeek V4 Pro"
         CONFIG_DIR="$HOME/.claude-deepseek"
         ;;
+    o|O)
+        PROVIDER="codex"
+        PROVIDER_NAME="OpenAI Codex (GPT-5.6 Sol)"
+        ;;
     q|Q)
         echo "已取消。"
         exit 0
@@ -562,6 +711,150 @@ case "$PROVIDER_CHOICE" in
 esac
 
 # ─── Step 2: Choose permission mode ─────────────────────────────────────
+if [[ "$PROVIDER" == "codex" ]]; then
+    # ─── Codex permission menu ──────────────────────────────────────────
+    echo ""
+    echo "╔══════════════════════════════════════════╗"
+    echo "║  OpenAI Codex — GPT-5.6 Sol             ║"
+    echo "╠══════════════════════════════════════════╣"
+    echo "║                                          ║"
+    echo "║  m   手动确认                            ║"
+    echo "║      workspace-write + on-request        ║"
+    echo "║                                          ║"
+    echo "║  p   只读规划                            ║"
+    echo "║      read-only + never                   ║"
+    echo "║                                          ║"
+    echo "║  a   项目内自动执行                      ║"
+    echo "║      workspace-write + never             ║"
+    echo "║                                          ║"
+    echo "║  b   完全访问 ⚠                         ║"
+    echo "║      danger-full-access + never          ║"
+    echo "║                                          ║"
+    echo "║  q   返回                                ║"
+    echo "║                                          ║"
+    echo "╚══════════════════════════════════════════╝"
+    echo ""
+    read -r -p "请选择 (m/p/a/b/q): " CODEX_MODE_CHOICE
+
+    case "$CODEX_MODE_CHOICE" in
+        m|M)
+            CODEX_PROFILE="gpt56-sol-manual"
+            CODEX_MODE_NAME="手动确认 (workspace-write + on-request)"
+            ;;
+        p|P)
+            CODEX_PROFILE="gpt56-sol-readonly"
+            CODEX_MODE_NAME="只读规划 (read-only + never)"
+            ;;
+        a|A)
+            CODEX_PROFILE="gpt56-sol-auto"
+            CODEX_MODE_NAME="项目内自动执行 (workspace-write + never)"
+            ;;
+        b|B)
+            CODEX_PROFILE="gpt56-sol-full"
+            CODEX_MODE_NAME="完全访问 ⚠️ (danger-full-access + never)"
+            ;;
+        q|Q)
+            # Restart to tool selection
+            export _CC_PRESET_PROJECT="$PROJECT_DIR"
+            export _CC_HERE_MODE="${_CC_HERE_MODE:-}"
+            exec "$0"
+            ;;
+        *)
+            echo "无效选择，已取消。"
+            exit 1
+            ;;
+    esac
+
+    # ─── Warning for full access ────────────────────────────────────────
+    if [[ "$CODEX_PROFILE" == "gpt56-sol-full" ]]; then
+        echo ""
+        echo "╔══════════════════════════════════════════════════════════╗"
+        echo "║  ⚠️  警告: danger-full-access                           ║"
+        echo "╠══════════════════════════════════════════════════════════╣"
+        echo "║  danger-full-access 将跳过所有沙箱限制。               ║"
+        echo "║  Codex 可以修改系统中当前用户能访问的任何文件。        ║"
+        echo "║  请确认你信任即将进行的操作。                           ║"
+        echo "╚══════════════════════════════════════════════════════════╝"
+        echo ""
+        if ! confirm_remote_high_risk "Codex danger-full-access"; then
+            exit 1
+        fi
+    fi
+
+    # ─── Confirm launch ─────────────────────────────────────────────────
+    echo "╔══════════════════════════════════════════╗"
+    echo "║  确认启动                                ║"
+    echo "╠══════════════════════════════════════════╣"
+    echo "║  项目: ${PROJECT_DIR}"
+    echo "║  工具: ${PROVIDER_NAME}"
+    echo "║  权限: ${CODEX_MODE_NAME}"
+    echo "╚══════════════════════════════════════════╝"
+    echo ""
+    CONFIRM=""
+    if ! read -r -p "请输入 'yes' 确认启动: " CONFIRM; then
+        echo "输入已关闭，已取消。"
+        exit 1
+    fi
+    if [[ "$CONFIRM" != "yes" ]]; then
+        echo "已取消。"
+        exit 1
+    fi
+
+    # ─── Codex preflight check ──────────────────────────────────────────
+    if ! codex_preflight_check "$CODEX_PROFILE"; then
+        echo ""
+        echo "╔══════════════════════════════════════════════════════════╗"
+        echo "║  Codex 启动前检查失败                                   ║"
+        echo "╠══════════════════════════════════════════════════════════╣"
+        echo "║                                                        ║"
+        echo "║  请检查:                                               ║"
+        echo "║  1. Codex CLI 是否安装且 >= 0.144.0                    ║"
+        echo "║  2. 是否已运行 codex login 完成认证                    ║"
+        echo "║  3. 项目目录是否存在                                   ║"
+        echo "║                                                        ║"
+        echo "║  1  返回工具菜单                                       ║"
+        echo "║  q  退出                                               ║"
+        echo "║                                                        ║"
+        echo "╚══════════════════════════════════════════════════════════╝"
+        echo ""
+        read -r -p "请选择 (1/q): " CODEX_ERR_CHOICE
+        case "$CODEX_ERR_CHOICE" in
+            1)
+                export _CC_PRESET_PROJECT="$PROJECT_DIR"
+                export _CC_HERE_MODE="${_CC_HERE_MODE:-}"
+                exec "$0"
+                ;;
+            *)
+                echo "已取消。"
+                exit 1
+                ;;
+        esac
+    fi
+
+    # ─── Launch Codex ───────────────────────────────────────────────────
+    export CC_ACTIVE_PROJECT="$PROJECT_DIR"
+    export CC_PROJECT_MODE
+
+    cd -- "$PROJECT_DIR" || {
+        echo "错误: 无法切换到项目目录: $PROJECT_DIR" >&2
+        exit 1
+    }
+
+    if [[ "$PWD" != "$PROJECT_DIR" ]]; then
+        echo "错误: 工作目录切换失败。期望: $PROJECT_DIR, 实际: $PWD" >&2
+        exit 1
+    fi
+
+    CODEX_BIN="$(type -P codex || true)"
+if [[ -z "$CODEX_BIN" || ! -x "$CODEX_BIN" ]]; then
+    echo "错误：找不到可执行的 OpenAI Codex CLI。"
+    exit 1
+fi
+exec "$CODEX_BIN" --profile "$CODEX_PROFILE"
+
+else
+    # ─── Claude / DeepSeek permission menu ──────────────────────────────
+
 echo ""
 echo "╔══════════════════════════════════════════╗"
 echo "║  Claude / DeepSeek 全局项目启动器        ║"
@@ -633,6 +926,9 @@ if [[ "$BYPASS_START" == true ]]; then
     echo "║  媒体目录和沙箱限制仍然保留。                           ║"
     echo "╚══════════════════════════════════════════════════════════╝"
     echo ""
+    if ! confirm_remote_high_risk "Claude/DeepSeek bypassPermissions"; then
+        exit 1
+    fi
 fi
 
 # ─── Confirm launch ─────────────────────────────────────────────────────
@@ -647,7 +943,11 @@ if [[ "$BYPASS_START" != true ]]; then
 fi
 echo "╚══════════════════════════════════════════╝"
 echo ""
-read -r -p "请输入 'yes' 确认启动: " CONFIRM
+CONFIRM=""
+if ! read -r -p "请输入 'yes' 确认启动: " CONFIRM; then
+    echo "输入已关闭，已取消。"
+    exit 1
+fi
 if [[ "$CONFIRM" != "yes" ]]; then
     echo "已取消。"
     exit 1
@@ -692,3 +992,4 @@ exec aiproj launch-here --tool claude \
     --provider "${PROVIDER}" \
     --permission-mode "${PERM_MODE}" \
     -- "${CMD_ARGS[@]}"
+fi
