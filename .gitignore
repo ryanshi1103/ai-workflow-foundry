@@ -1,0 +1,23 @@
+# AI Project Manager — private session data (NOT committed)
+.ai-session/private/
+.ai-session/*.lock
+.ai-session/**/*.lock
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Secrets (NEVER commit)
+.env
+.env.*
+*.pem
+*.key
+secrets/
+credentials.*
+auth.json
+*.token

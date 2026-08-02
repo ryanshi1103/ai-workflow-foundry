@@ -1,0 +1,11 @@
+# Codex GPT-5.6 Sol — Full access profile ⚠️
+# Approval: never (no prompts)
+# Sandbox: danger-full-access (full filesystem access)
+# WARNING: Use with extreme caution
+
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+model_reasoning_summary = "auto"
+model_verbosity = "medium"
+approval_policy = "never"
+sandbox_mode = "danger-full-access"

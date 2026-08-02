@@ -3,7 +3,15 @@
 # Tests from requirement section 八
 # Non-interactive — tests structure, functions, and logic only
 
-SCRIPT=/home/ryan/Projects/20260712-144206-claude-18bf18/cc
+set -uo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPT="$PROJECT_ROOT/bin/cc"
+TEST_ROOT="$(mktemp -d)"
+TEST_HOME="$TEST_ROOT/home"
+TEST_PROJECTS_ROOT="$TEST_HOME/Projects"
+trap 'rm -rf "$TEST_ROOT"' EXIT
+
 FAILED=0
 PASSED=0
 
@@ -44,16 +52,17 @@ echo ""
 echo "=== 4. Recent Projects Menu ==="
 grep -q 'recent_projects_menu()' "$SCRIPT" && pass "recent_projects_menu function exists" || fail "recent_projects_menu function MISSING"
 grep -q '暂无最近项目' "$SCRIPT" && pass "shows '暂无最近项目' when empty" || fail "missing '暂无最近项目'"
-grep -A55 '^recent_projects_menu()' "$SCRIPT" | grep -q 'basename' && pass "shows project name via basename" || fail "missing basename display"
-grep -A55 '^recent_projects_menu()' "$SCRIPT" | grep -q 'entries\[$i\]' && pass "shows full path (entries array)" || fail "missing full path display"
-grep -A50 '^recent_projects_menu()' "$SCRIPT" | grep -q '返回主菜单' && pass "'b' back option present" || fail "'b' back option MISSING"
-grep -A50 '^recent_projects_menu()' "$SCRIPT" | grep -q 'q.*退出\|Q.*退出\|已取消' && pass "'q' exit option present" || fail "'q' exit option MISSING"
+recent_menu_body="$(sed -n '/^recent_projects_menu()/,/^}/p' "$SCRIPT")"
+grep -q 'basename' <<< "$recent_menu_body" && pass "shows project name via basename" || fail "missing basename display"
+grep -q 'entries\[$i\]' <<< "$recent_menu_body" && pass "shows full path (entries array)" || fail "missing full path display"
+grep -q '返回主菜单' <<< "$recent_menu_body" && pass "'b' back option present" || fail "'b' back option MISSING"
+grep -q 'q.*退出\|Q.*退出\|已取消' <<< "$recent_menu_body" && pass "'q' exit option present" || fail "'q' exit option MISSING"
 
 # Test the function logic directly
-TEST_DIR="$TMPDIR/cc-test-recent"
-rm -rf "$TEST_DIR"
+TEST_DIR="$TEST_PROJECTS_ROOT"
 mkdir -p "$TEST_DIR"
-export RECENT_STATE_DIR="$TEST_DIR/state/cc-launcher"
+export HOME="$TEST_HOME"
+export RECENT_STATE_DIR="$TEST_ROOT/state/cc-launcher"
 export RECENT_FILE="${RECENT_STATE_DIR}/recent-projects"
 mkdir -p "$RECENT_STATE_DIR"
 # Create test projects
@@ -62,6 +71,8 @@ mkdir -p "$TEST_DIR/proj-b"
 mkdir -p "$TEST_DIR/proj with spaces"
 
 # Source add_to_recent
+eval "$(grep '^TIMESTAMP_PATTERN=' "$SCRIPT")"
+eval "$(sed -n '/^is_timestamp_session_dir()/,/^}/p' "$SCRIPT")"
 eval "$(sed -n '/^add_to_recent()/,/^}/p' "$SCRIPT")"
 
 # Test recording
@@ -96,7 +107,6 @@ done
 line_count=$(wc -l < "$RECENT_FILE" 2>/dev/null || echo 0)
 [[ "$line_count" -le 20 ]] && pass "add_to_recent: caps at 20 (has $line_count)" || fail "add_to_recent: exceeds 20 (has $line_count)"
 
-rm -rf "$TEST_DIR"
 echo ""
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -106,14 +116,14 @@ grep -q '请输入项目名称' "$SCRIPT" && pass "prompts for project name" || 
 grep -q '路径分隔符\|特殊字符' "$SCRIPT" && pass "path traversal check" || fail "missing path traversal check"
 grep -q '项目已存在' "$SCRIPT" && pass "existing project dialog" || fail "missing existing dialog"
 grep -q '项目创建成功' "$SCRIPT" && pass "success message" || fail "missing success message"
-grep -q '直接打开现有项目' "$SCRIPT" && pass "reopen existing option" || fail "missing reopen option"
+grep -q '直接打开已有项目' "$SCRIPT" && pass "reopen existing option" || fail "missing reopen option"
 grep -q '重新输入名称' "$SCRIPT" && pass "rename option" || fail "missing rename option"
 echo ""
 
 # ─────────────────────────────────────────────────────────────────────────
 echo "=== 6. Browse Projects Display ==="
 grep -A20 '~/Projects 中的项目' "$SCRIPT" | grep -q 'd_clean' && pass "strips trailing slash" || fail "missing slash strip"
-grep -A20 '~/Projects 中的项目' "$SCRIPT" | grep -q '\[Git\]' && pass "Git indicator" || fail "missing Git indicator"
+grep -A20 '~/Projects 中的项目' "$SCRIPT" | grep -q 'project_indicators' && pass "Git/AI indicators" || fail "missing project indicators"
 grep -A20 '~/Projects 中的项目' "$SCRIPT" | grep -q 'printf.*d_clean' && pass "shows full path" || fail "missing full path"
 echo ""
 
@@ -161,17 +171,6 @@ echo ""
 echo "=== 10. Safety Checks ==="
 grep -q 'eval' "$SCRIPT" && fail "uses 'eval'" || pass "no eval usage"
 grep -qE 'rm[[:space:]]+-rf[[:space:]]+/' "$SCRIPT" && fail "potentially dangerous rm -rf" || pass "no dangerous rm -rf"
-echo ""
-
-# ─────────────────────────────────────────────────────────────────────────
-echo "=== 11. meeting-media-auto Project Integrity ==="
-MEETING_DIR="/home/ryan/Projects/meeting-media-auto"
-if [[ -d "$MEETING_DIR" ]]; then
-    recent_changes=$(find "$MEETING_DIR" -newer "$SCRIPT" -type f 2>/dev/null | wc -l)
-    [[ "$recent_changes" -eq 0 ]] && pass "meeting-media-auto: untouched" || echo "  ℹ️  $recent_changes files newer than script (pre-existing)"
-else
-    echo "  ⚠️  meeting-media-auto not found"
-fi
 echo ""
 
 # ─────────────────────────────────────────────────────────────────────────

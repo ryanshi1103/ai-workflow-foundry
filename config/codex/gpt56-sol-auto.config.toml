@@ -1,0 +1,10 @@
+# Codex GPT-5.6 Sol — Auto profile
+# Approval: never (auto-execute)
+# Sandbox: workspace-write (project dir writable)
+
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+model_reasoning_summary = "auto"
+model_verbosity = "medium"
+approval_policy = "never"
+sandbox_mode = "workspace-write"

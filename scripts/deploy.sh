@@ -1,201 +1,301 @@
 #!/bin/bash
 # ============================================================================
-# cc-launcher v2.0 — Deployment & Cleanup Script
+# cc-launcher v3.1 — Deployment Script (Claude + DeepSeek + Codex + SSH remote safety)
 # ============================================================================
-# Run this ONCE after the session to deploy the fix and clean up.
+# Deploys cc launcher, Codex profiles, AGENTS.md, and systemd units.
 # Usage: bash deploy.sh
 # ============================================================================
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+BACKUP_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/cc-projects/backups/${TIMESTAMP}-cc-v31"
+
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║  cc-launcher v2.0 — Deployment & Cleanup             ║"
+echo "║  cc-launcher v3.1 — Deployment (Claude/DeepSeek/Codex) ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""
 
-# ─── 1. Verify modified files are in place ────────────────────────────────
+# ─── 0. Create backup ────────────────────────────────────────────────────────
+echo "0. Creating backup..."
+mkdir -p "$BACKUP_DIR"
 
-echo "1. Verifying modified files..."
-
-verify_file() {
-    local path="$1"
-    local desc="$2"
-    if [[ -f "$path" ]]; then
-        echo "   ✓ $desc: $path"
-    else
-        echo "   ✗ MISSING: $path — $desc"
+backup_if_exists() {
+    local src="$1"
+    if [[ -f "$src" ]]; then
+        cp -v "$src" "$BACKUP_DIR/" 2>&1 | sed 's/^/   /'
     fi
 }
 
-verify_file "$HOME/.local/bin/cc"                        "cc launcher (main fix)"
-verify_file "$HOME/.claude/CLAUDE.md"                     "Global CLAUDE.md (user-wide rules)"
-verify_file "$HOME/.claude-native/CLAUDE.md"              "Claude native CLAUDE.md"
-verify_file "$HOME/.claude-deepseek/CLAUDE.md"            "DeepSeek CLAUDE.md"
-verify_file "$HOME/.local/share/ai-project-manager/ai_project_manager/launcher.py" "AI PM launcher (CC_ACTIVE_PROJECT)"
-verify_file "$HOME/.local/share/ai-project-manager/ai_project_manager/hooks.py"    "AI PM hooks (CC_ACTIVE_PROJECT)"
+backup_if_exists "$HOME/.local/bin/cc"
+backup_if_exists "$HOME/.codex/config.toml"
+backup_if_exists "$HOME/.codex/AGENTS.md"
+backup_if_exists "${XDG_STATE_HOME:-$HOME/.local/state}/cc-launcher/recent-projects"
 
-echo ""
-
-# ─── 2. Clean recent projects file ────────────────────────────────────────
-
-RECENT_FILE="$HOME/.local/state/cc-launcher/recent-projects"
-
-echo "2. Cleaning recent projects..."
-
-if [[ -f "$RECENT_FILE" ]]; then
-    # Timestamp pattern: YYYYMMDD-HHMMSS-tool-shortid
-    TIMESTAMP_PATTERN='^[0-9]{8}-[0-9]{6}-[a-z]+-[a-f0-9]{6}$'
-
-    CLEANED=()
-    while IFS= read -r line; do
-        [[ -n "$line" ]] || continue
-        [[ -d "$line" ]] || continue
-
-        name="$(basename "$line")"
-
-        # Filter timestamp session dirs
-        if [[ "$name" =~ $TIMESTAMP_PATTERN ]]; then
-            echo "   Removing timestamp dir: $line"
-            continue
-        fi
-
-        # Filter session subdirs
-        if [[ "$line" == *"/.ai/sessions/"* ]] || [[ "$line" == *"/.ai-session/sessions/"* ]]; then
-            echo "   Removing session subdir: $line"
-            continue
-        fi
-
-        CLEANED+=("$line")
-    done < "$RECENT_FILE"
-
-    # Write back (max 20)
-    if [[ ${#CLEANED[@]} -gt 0 ]]; then
-        printf '%s\n' "${CLEANED[@]}" | head -20 > "$RECENT_FILE"
-    fi
-
-    echo "   Recent projects cleaned. Entries: ${#CLEANED[@]}"
-    echo ""
-    echo "   Current entries:"
-    cat "$RECENT_FILE" | while IFS= read -r l; do echo "     $l"; done
-else
-    echo "   No recent projects file found."
-fi
-
-echo ""
-
-# ─── 3. Handle timestamp projects in ~/Projects ───────────────────────────
-
-PROJECTS_DIR="$HOME/Projects"
-TIMESTAMP_PATTERN='^[0-9]{8}-[0-9]{6}-[a-z]+-[a-f0-9]{6}$'
-RECOVERY_DIR="$PROJECTS_DIR/_recovery-review"
-
-echo "3. Scanning for timestamp session directories..."
-FOUND_TS=()
-
-for d in "$PROJECTS_DIR"/*/; do
-    [[ -d "$d" ]] || continue
-    name="$(basename "$d")"
-    if [[ "$name" =~ $TIMESTAMP_PATTERN ]]; then
-        FOUND_TS+=("${d%/}")
-        echo "   Found: $d"
-    fi
+# Backup existing Codex profiles if they exist
+for profile in gpt56-sol-manual gpt56-sol-readonly gpt56-sol-auto gpt56-sol-full; do
+    backup_if_exists "$HOME/.codex/${profile}.config.toml"
 done
 
-if [[ ${#FOUND_TS[@]} -eq 0 ]]; then
-    echo "   No timestamp directories found. Clean!"
-else
-    echo ""
-    echo "   Found ${#FOUND_TS[@]} timestamp directories."
-    echo ""
+# Generate SHA256SUMS for all backed-up files
+( cd "$BACKUP_DIR" && sha256sum ./* 2>/dev/null > SHA256SUMS )
 
-    for ts_dir in "${FOUND_TS[@]}"; do
-        echo "   --- $ts_dir ---"
+# Generate MANIFEST
+cat > "$BACKUP_DIR/MANIFEST.txt" << MANIFEST
+cc Launcher v3.1 Deployment — Backup
+========================================
+Date: $(date -Iseconds)
+Source project: $PROJECT_ROOT
 
-        # Check contents
-        has_git=false
-        git -C "$ts_dir" rev-parse --show-toplevel &>/dev/null 2>&1 && has_git=true
+Files backed up:
+$(cd "$BACKUP_DIR" && ls -1 * 2>/dev/null | grep -v SHA256SUMS | grep -v MANIFEST | sed 's/^/  - /')
 
-        file_count=$(find "$ts_dir" -type f -not -path '*/.git/*' 2>/dev/null | wc -l)
-        has_ai_session=false
-        [[ -d "$ts_dir/.ai-session" ]] && has_ai_session=true
+To rollback: bash $BACKUP_DIR/rollback.sh
+MANIFEST
 
-        echo "   Git: $has_git  Files: $file_count  AI session: $has_ai_session"
+# Generate rollback.sh
+cat > "$BACKUP_DIR/rollback.sh" << ROLLBACK
+#!/bin/bash
+# Rollback cc launcher v3.1 deployment
+# Generated: $(date -Iseconds)
+set -euo pipefail
+echo "Rolling back cc launcher v3.1 deployment..."
 
-        # If it's just a skeleton (only .ai-session and template files), safe to delete
-        if [[ "$has_git" == "false" ]] && [[ $file_count -le 10 ]] && [[ "$has_ai_session" == "true" ]]; then
-            echo "   → Skeleton only. Moving to recovery..."
-            mkdir -p "$RECOVERY_DIR"
-            mv "$ts_dir" "$RECOVERY_DIR/$(basename "$ts_dir")" 2>/dev/null || \
-                echo "   WARNING: Could not move $ts_dir (may be current working dir)"
-        elif [[ "$has_git" == "true" ]] && [[ $file_count -gt 10 ]]; then
-            echo "   → Has real content. KEEP and review manually."
-        else
-            echo "   → Uncertain. Moving to recovery for review."
-            mkdir -p "$RECOVERY_DIR"
-            mv "$ts_dir" "$RECOVERY_DIR/$(basename "$ts_dir")" 2>/dev/null || \
-                echo "   WARNING: Could not move $ts_dir (may be current working dir)"
-        fi
-    done
+RESTORE_DIR="$BACKUP_DIR"
 
-    echo ""
-    echo "   Recovery dir: $RECOVERY_DIR"
-    echo "   Review contents, merge valuable work back to real projects, then delete."
+if [[ -f "\$RESTORE_DIR/cc" ]]; then
+    cp -v "\$RESTORE_DIR/cc" "\$HOME/.local/bin/cc"
+    chmod +x "\$HOME/.local/bin/cc"
+    echo "   ✓ cc restored"
 fi
 
-echo ""
-
-# ─── 4. Verify CC_ACTIVE_PROJECT in cc ────────────────────────────────────
-
-echo "4. Verifying CC_ACTIVE_PROJECT integration..."
-if grep -q "CC_ACTIVE_PROJECT" "$HOME/.local/bin/cc"; then
-    echo "   ✓ cc exports CC_ACTIVE_PROJECT"
-else
-    echo "   ✗ CC_ACTIVE_PROJECT NOT found in cc"
+if [[ -f "\$RESTORE_DIR/config.toml" ]]; then
+    cp -v "\$RESTORE_DIR/config.toml" "\$HOME/.codex/config.toml"
+    echo "   ✓ config.toml restored"
 fi
 
-if grep -q "launch-here" "$HOME/.local/bin/cc" && ! grep -q "aiproj launch-new" "$HOME/.local/bin/cc"; then
-    echo "   ✓ cc uses launch-here (not launch-new)"
-else
-    echo "   ✗ cc may still use launch-new"
+if [[ -f "\$RESTORE_DIR/AGENTS.md" ]]; then
+    cp -v "\$RESTORE_DIR/AGENTS.md" "\$HOME/.codex/AGENTS.md"
+    echo "   ✓ AGENTS.md restored"
 fi
 
-echo ""
-
-# ─── 5. Verify global CLAUDE.md ───────────────────────────────────────────
-
-echo "5. Verifying CLAUDE.md files..."
-for f in "$HOME/.claude/CLAUDE.md" "$HOME/.claude-native/CLAUDE.md" "$HOME/.claude-deepseek/CLAUDE.md"; do
-    if [[ -f "$f" ]]; then
-        if grep -q "项目整理" "$f" 2>/dev/null; then
-            echo "   ✓ $f — has hygiene rules"
-        else
-            echo "   ~ $f — exists but no hygiene rules"
-        fi
+# Restore profiles that existed before
+for profile in gpt56-sol-manual gpt56-sol-readonly gpt56-sol-auto gpt56-sol-full; do
+    if [[ -f "\$RESTORE_DIR/\${profile}.config.toml" ]]; then
+        cp -v "\$RESTORE_DIR/\${profile}.config.toml" "\$HOME/.codex/\${profile}.config.toml"
+        echo "   ✓ \${profile} restored"
     else
-        echo "   ✗ $f — MISSING"
+        # Remove if newly created (not in backup)
+        rm -f "\$HOME/.codex/\${profile}.config.toml"
+        echo "   ~ \${profile} removed (was new)"
     fi
 done
 
 echo ""
+echo "Rollback complete."
+echo "Note: auth.json was never touched by deploy or rollback."
+ROLLBACK
+chmod +x "$BACKUP_DIR/rollback.sh"
 
-# ─── 6. Test cc syntax ────────────────────────────────────────────────────
+echo "   Backup: $BACKUP_DIR"
+echo "   Rollback: $BACKUP_DIR/rollback.sh"
+echo ""
 
-echo "6. Running final syntax checks..."
-bash -n "$HOME/.local/bin/cc" && echo "   ✓ cc: bash syntax OK" || echo "   ✗ cc: bash syntax ERROR"
+# ─── 1. Deploy cc launcher ───────────────────────────────────────────────────
+echo "1. Deploying cc launcher..."
+cp -v "$PROJECT_ROOT/bin/cc" "$HOME/.local/bin/cc"
+chmod +x "$HOME/.local/bin/cc"
+echo "   ✓ cc deployed"
+echo ""
 
-python3 -c "import ast; ast.parse(open('$HOME/.local/share/ai-project-manager/ai_project_manager/launcher.py').read()); print('   ✓ launcher.py: OK')" 2>/dev/null || echo "   ✗ launcher.py: ERROR"
-python3 -c "import ast; ast.parse(open('$HOME/.local/share/ai-project-manager/ai_project_manager/hooks.py').read()); print('   ✓ hooks.py: OK')" 2>/dev/null || echo "   ✗ hooks.py: ERROR"
+# ─── 2. Deploy Codex profiles ────────────────────────────────────────────────
+echo "2. Deploying Codex profiles..."
+
+extract_codex_project_sections() {
+    local profile_file="$1"
+    awk '
+        /^\[/ {
+            in_projects = ($0 ~ /^\[projects([.\]]|$)/)
+        }
+        in_projects { print }
+    ' "$profile_file"
+}
+
+for profile in gpt56-sol-manual gpt56-sol-readonly gpt56-sol-auto gpt56-sol-full; do
+    src="$PROJECT_ROOT/config/codex/${profile}.config.toml"
+    dst="$HOME/.codex/${profile}.config.toml"
+
+    tmp_profile="$(mktemp)"
+    cat "$src" > "$tmp_profile"
+
+    if [[ -f "$dst" ]]; then
+        preserved_projects="$(extract_codex_project_sections "$dst")"
+        if [[ -n "$preserved_projects" ]]; then
+            printf '\n%s\n' "$preserved_projects" >> "$tmp_profile"
+            echo "   ~ ${profile}: preserving local [projects] trust entries"
+        else
+            echo "   ~ ${profile}: no local [projects] entries to preserve"
+        fi
+    fi
+
+    install -m 0600 "$tmp_profile" "$dst"
+    rm -f "$tmp_profile"
+    echo "   ✓ ${profile} deployed (mode 600)"
+done
+echo "   ✓ All 4 Codex profiles deployed"
+echo ""
+
+# ─── 3. Deploy/merge Codex AGENTS.md ─────────────────────────────────────────
+echo "3. Deploying Codex AGENTS.md..."
+CODEX_AGENTS_SRC="$PROJECT_ROOT/config/codex/AGENTS.md"
+CODEX_AGENTS_DST="$HOME/.codex/AGENTS.md"
+
+if [[ -f "$CODEX_AGENTS_DST" ]]; then
+    # Merge: keep existing content, append new rules not already present
+    echo "   Existing AGENTS.md found — merging..."
+    tmp_merged="$(mktemp)"
+
+    # Copy existing content first
+    cat "$CODEX_AGENTS_DST" > "$tmp_merged"
+
+    # Append new rules from source that aren't in destination
+    while IFS= read -r line; do
+        if ! grep -qF "$line" "$CODEX_AGENTS_DST" 2>/dev/null; then
+            echo "$line" >> "$tmp_merged"
+        fi
+    done < "$CODEX_AGENTS_SRC"
+
+    mv "$tmp_merged" "$CODEX_AGENTS_DST"
+    echo "   ✓ AGENTS.md merged"
+else
+    cp -v "$CODEX_AGENTS_SRC" "$CODEX_AGENTS_DST"
+    echo "   ✓ AGENTS.md deployed (new)"
+fi
+echo ""
+
+# ─── 4. Deploy ai-project-manager Python package ─────────────────────────────
+echo "4. Deploying ai-project-manager Python package..."
+PM_DST="$HOME/.local/share/ai-project-manager/ai_project_manager"
+mkdir -p "$PM_DST"
+if [[ -d "$PROJECT_ROOT/src/ai_project_manager" ]]; then
+    cp -v "$PROJECT_ROOT/src/ai_project_manager/"*.py "$PM_DST/" 2>&1 | sed 's/^/   /'
+    echo "   ✓ Python package deployed"
+else
+    echo "   ~ Python source not found, skipping (may be deployed separately)"
+fi
+echo ""
+
+# ─── 5. Deploy systemd units ─────────────────────────────────────────────────
+echo "5. Deploying systemd units..."
+SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
+if [[ -d "$PROJECT_ROOT/config/systemd" ]]; then
+    mkdir -p "$SYSTEMD_USER_DIR"
+    cp -v "$PROJECT_ROOT/config/systemd/"*.service "$SYSTEMD_USER_DIR/" 2>/dev/null || true
+    cp -v "$PROJECT_ROOT/config/systemd/"*.timer "$SYSTEMD_USER_DIR/" 2>/dev/null || true
+    echo "   ✓ systemd units deployed"
+else
+    echo "   ~ No systemd configs found, skipping"
+fi
+echo ""
+
+# ─── 6. Verification ─────────────────────────────────────────────────────────
+echo "6. Running verification..."
+
+VERIFY_OK=0
+VERIFY_FAIL=0
+
+verify_pass() { echo "   ✓ $1"; VERIFY_OK=$((VERIFY_OK+1)); }
+verify_fail() { echo "   ✗ $1"; VERIFY_FAIL=$((VERIFY_FAIL+1)); }
+
+# bash -n on deployed cc
+bash -n "$HOME/.local/bin/cc" 2>/dev/null && verify_pass "cc bash syntax OK" || verify_fail "cc bash syntax ERROR"
+
+# Codex menu present
+grep -q 'o   OpenAI Codex' "$HOME/.local/bin/cc" && verify_pass "Codex menu entry present" || verify_fail "Codex menu entry MISSING"
+
+# Claude preserved
+grep -q 'PROVIDER="claude"' "$HOME/.local/bin/cc" && verify_pass "Claude mode preserved" || verify_fail "Claude mode MISSING"
+
+# DeepSeek preserved
+grep -q 'PROVIDER="deepseek"' "$HOME/.local/bin/cc" && verify_pass "DeepSeek mode preserved" || verify_fail "DeepSeek mode MISSING"
+
+# Codex profiles deployed
+for profile in gpt56-sol-manual gpt56-sol-readonly gpt56-sol-auto gpt56-sol-full; do
+    if [[ -f "$HOME/.codex/${profile}.config.toml" ]]; then
+        verify_pass "Profile ${profile} deployed"
+    else
+        verify_fail "Profile ${profile} MISSING"
+    fi
+done
+
+# Profile TOML validity
+for profile in gpt56-sol-manual gpt56-sol-readonly gpt56-sol-auto gpt56-sol-full; do
+    if grep -q 'model.*gpt-5.6-sol' "$HOME/.codex/${profile}.config.toml" 2>/dev/null; then
+        verify_pass "Profile ${profile}: model = gpt-5.6-sol ✓"
+    else
+        verify_fail "Profile ${profile}: model = gpt-5.6-sol MISSING"
+    fi
+
+    profile_mode="$(stat -c '%a' "$HOME/.codex/${profile}.config.toml" 2>/dev/null || true)"
+    if [[ "$profile_mode" == "600" ]]; then
+        verify_pass "Profile ${profile}: permissions = 600"
+    else
+        verify_fail "Profile ${profile}: permissions are ${profile_mode:-unknown}, expected 600"
+    fi
+done
+
+# AGENTS.md deployed
+[[ -f "$HOME/.codex/AGENTS.md" ]] && verify_pass "AGENTS.md deployed" || verify_fail "AGENTS.md MISSING"
+
+# CC_ACTIVE_PROJECT preserved
+grep -q 'CC_ACTIVE_PROJECT' "$HOME/.local/bin/cc" && verify_pass "CC_ACTIVE_PROJECT preserved" || verify_fail "CC_ACTIVE_PROJECT MISSING"
+
+# Codex launch path (resolved binary preserves the native Codex TUI)
+grep -q 'exec "$CODEX_BIN" --profile "$CODEX_PROFILE"' "$HOME/.local/bin/cc" && verify_pass "native Codex exec launch path" || verify_fail "native Codex exec MISSING"
+
+# No Claude env in Codex path (CLAUDE_CONFIG_DIR should exist but only for Claude/DeepSeek)
+CLAUDE_CONFIG_COUNT=$(grep -c 'CLAUDE_CONFIG_DIR' "$HOME/.local/bin/cc" || true)
+if [[ "$CLAUDE_CONFIG_COUNT" -le 2 ]]; then
+    verify_pass "CLAUDE_CONFIG_DIR only in Claude/DeepSeek path"
+else
+    verify_fail "CLAUDE_CONFIG_DIR may leak into Codex path"
+fi
+
+# Exclude documentation/verification lines, then reject any file operation that
+# targets auth.json.  The deploy must never read, copy, overwrite, or remove it.
+if awk '!/auth[.]json/' "$PROJECT_ROOT/scripts/deploy.sh" | grep -Eq '(cp|mv|rm|install|chmod|chown|cat|sed)[[:space:]].*auth[.]json'; then
+    verify_fail "auth.json file operation found in deploy"
+else
+    verify_pass "auth.json untouched by deploy"
+fi
 
 echo ""
+echo "   Verification: ${VERIFY_OK} passed, ${VERIFY_FAIL} failed"
+echo ""
+
+# ─── 7. Summary ──────────────────────────────────────────────────────────────
 echo "╔══════════════════════════════════════════════════════╗"
 echo "║  DEPLOYMENT COMPLETE                                 ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""
-echo "Backup: $PWD/.ai-session/backups/20260712-231748/"
-echo "Rollback: bash $PWD/.ai-session/backups/20260712-231748/rollback.sh"
+echo "Deployed:"
+echo "  ~/.local/bin/cc                  — unified launcher v3.1"
+echo "  ~/.codex/gpt56-sol-manual.config.toml"
+echo "  ~/.codex/gpt56-sol-readonly.config.toml"
+echo "  ~/.codex/gpt56-sol-auto.config.toml"
+echo "  ~/.codex/gpt56-sol-full.config.toml"
+echo "  ~/.codex/AGENTS.md               — Codex global rules"
 echo ""
-echo "Next steps:"
-echo "  1. Review $RECOVERY_DIR if it exists"
-echo "  2. Run 'cc' and select an existing project to test"
-echo "  3. Verify Claude opens in the selected project dir"
+echo "Backup: $BACKUP_DIR"
+echo "Rollback: bash $BACKUP_DIR/rollback.sh"
 echo ""
-echo "If any issues: bash $PWD/.ai-session/backups/20260712-231748/rollback.sh"
+echo "Codex start commands:"
+echo "  codex --profile gpt56-sol-manual    (手动确认)"
+echo "  codex --profile gpt56-sol-readonly  (只读)"
+echo "  codex --profile gpt56-sol-auto      (自动执行)"
+echo "  codex --profile gpt56-sol-full      (完全访问)"
+echo ""
+
+# Return non-zero if verification failed
+[[ $VERIFY_FAIL -eq 0 ]]

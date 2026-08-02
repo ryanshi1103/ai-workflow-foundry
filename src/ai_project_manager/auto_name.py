@@ -84,10 +84,29 @@ def _read_file(path: Path, max_lines: int = 50) -> str:
         return ""
 
 
+def _find_primary_readme(project_dir: Path) -> Optional[Path]:
+    """Find the root README or the sole README in a direct child project."""
+    root_readme = project_dir / "README.md"
+    if root_readme.is_file():
+        return root_readme
+
+    try:
+        candidates = [
+            child / "README.md"
+            for child in project_dir.iterdir()
+            if child.is_dir() and not child.name.startswith('.')
+            and (child / "README.md").is_file()
+        ]
+    except OSError:
+        return None
+
+    return candidates[0] if len(candidates) == 1 else None
+
+
 def _get_readme_title(project_dir: Path) -> Optional[str]:
-    """Extract title from README.md."""
-    readme = project_dir / "README.md"
-    if not readme.exists():
+    """Extract a title from the primary README."""
+    readme = _find_primary_readme(project_dir)
+    if readme is None:
         return None
     content = _read_file(readme, 30)
     # Try markdown heading
@@ -101,6 +120,73 @@ def _get_readme_title(project_dir: Path) -> Optional[str]:
     return None
 
 
+def _get_readme_summary(project_dir: Path) -> Optional[str]:
+    """Extract the first prose paragraph after the primary README title."""
+    readme = _find_primary_readme(project_dir)
+    if readme is None:
+        return None
+
+    content = _read_file(readme, 100)
+    lines = content.splitlines()
+    title_seen = False
+    paragraph = []
+    in_fence = False
+
+    for raw_line in lines:
+        line = raw_line.strip()
+        if line.startswith('```'):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if not title_seen:
+            if re.match(r'^#\s+', line):
+                title_seen = True
+            continue
+        if not line:
+            if paragraph:
+                break
+            continue
+        if line.startswith(('<!--', '#', '-', '*', '|', '>')):
+            if paragraph:
+                break
+            continue
+        paragraph.append(line)
+
+    if not paragraph:
+        return None
+    return ' '.join(paragraph)[:300]
+
+
+def _get_markdown_section_paragraph(content: str, headings: tuple[str, ...]) -> Optional[str]:
+    """Return the first prose paragraph below one of the requested H2 headings."""
+    heading_pattern = '|'.join(re.escape(heading) for heading in headings)
+    match = re.search(
+        rf'^##\s*(?:{heading_pattern})\s*$',
+        content,
+        re.MULTILINE | re.IGNORECASE,
+    )
+    if not match:
+        return None
+
+    paragraph = []
+    for raw_line in content[match.end():].splitlines():
+        line = raw_line.strip()
+        if line.startswith('#'):
+            break
+        if not line:
+            if paragraph:
+                break
+            continue
+        if line.startswith(('<!--', '-', '*', '|', '```')):
+            if paragraph:
+                break
+            continue
+        paragraph.append(line.strip('> ').replace('**', ''))
+
+    return ' '.join(paragraph)[:300] if paragraph else None
+
+
 def _get_project_state_summary(project_dir: Path) -> Optional[str]:
     """Extract project description from PROJECT_STATE.md."""
     for state_file in [project_dir / ".ai" / "PROJECT_STATE.md",
@@ -108,14 +194,13 @@ def _get_project_state_summary(project_dir: Path) -> Optional[str]:
         if not state_file.exists():
             continue
         content = _read_file(state_file, 60)
-        # Look for project description section
-        for pattern in [r'##\s*项目(?:描述|概述|简介|目标)[：:]\s*(.+?)(?:\n|$)',
-                         r'##\s*Project\s+Description[：:]\s*(.+?)(?:\n|$)',
-                         r'##\s*What\s+is\s+this\?[：:]\s*(.+?)(?:\n|$)',
-                         r'^#\s+(.+)$']:
-            m = re.search(pattern, content, re.MULTILINE | re.IGNORECASE)
-            if m:
-                return m.group(1).strip()[:200]
+        summary = _get_markdown_section_paragraph(
+            content,
+            ('项目描述', '项目概述', '项目简介', '项目目标',
+             'Project Description', 'What is this?'),
+        )
+        if summary:
+            return summary
     return None
 
 
@@ -273,6 +358,10 @@ def analyze_project(project_dir: Path) -> dict:
         result["display_name"] = readme_title
         result["naming_reason"] = f"根据 README.md 标题: {readme_title}"
 
+    readme_summary = _get_readme_summary(project_dir)
+    if readme_summary:
+        result["summary"] = readme_summary
+
     # Priority 2: PROJECT_STATE
     state_summary = _get_project_state_summary(project_dir)
     if state_summary:
@@ -284,10 +373,11 @@ def analyze_project(project_dir: Path) -> dict:
     # Priority 3: project.json
     pj = _get_project_json_info(project_dir)
     if pj:
-        tool = pj.get("tool", "")
         status = pj.get("status", "")
-        if tool:
-            result["project_type"] = _classify_project_type(project_dir, pj)
+        result["status"] = status or "unknown"
+    else:
+        result["status"] = "unknown"
+    result["project_type"] = _classify_project_type(project_dir, pj)
 
     # Priority 4: Source code
     src_clues = _get_source_code_clues(project_dir)
@@ -357,12 +447,29 @@ def _classify_project_type(project_dir: Path, pj: dict) -> str:
         return "developer-tooling"
 
     # Check file patterns
-    has_py = any(project_dir.glob("*.py")) or (project_dir / "src").exists()
-    has_sh = any(project_dir.glob("*.sh"))
-    has_web = (project_dir / "package.json").exists() or (project_dir / "index.html").exists()
-    has_ppt = any(project_dir.glob("*.pptx")) or any(project_dir.glob("*.ppt"))
+    has_py = (any(project_dir.glob("*.py"))
+              or (project_dir / "src").exists()
+              or (project_dir / "backend").exists()
+              or (project_dir / "mediaflow").exists()
+              or any(project_dir.glob("scripts/*.py")))
+    has_sh = any(project_dir.glob("*.sh")) or any(project_dir.glob("scripts/*.sh"))
+    has_web = ((project_dir / "package.json").exists()
+               or (project_dir / "index.html").exists()
+               or (project_dir / "backend" / "templates").exists())
+    has_ppt = (any(project_dir.glob("*.pptx"))
+               or any(project_dir.glob("*.ppt"))
+               or any(project_dir.glob("deliverables/*.pptx"))
+               or any(project_dir.glob("deliverables/*.ppt")))
     has_docs = (project_dir / "docs").exists()
+    has_theme = ((project_dir / "theme").exists()
+                 or any(project_dir.glob("*/theme")))
+    has_desktop_packaging = ((project_dir / "packaging").exists()
+                             or (project_dir / "android").exists())
 
+    if has_desktop_packaging:
+        return "desktop-application"
+    if has_theme:
+        return "system-theme"
     if has_ppt:
         return "presentation"
     if has_web:
@@ -791,8 +898,12 @@ def safe_rename_project(project_dir: Path, new_name: str,
             if git_result.returncode != 0:
                 result["error"] = f"Git status check failed"
                 return result
+            if git_result.stdout.strip():
+                result["error"] = "Git worktree has uncommitted changes"
+                return result
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-            pass
+            result["error"] = "Git status check could not be completed"
+            return result
 
     # Execute rename
     if dry_run:

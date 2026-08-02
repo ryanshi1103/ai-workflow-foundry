@@ -78,14 +78,21 @@ def load_config() -> dict:
 
 
 def load_protected() -> set:
-    """Load protected projects list."""
+    """Load protected project paths or names.
+
+    Both the original one-value-per-line format and the annotated
+    ``PATH | TYPE | REASON`` format used by deployed configurations are
+    accepted.  Only the first field participates in protection checks.
+    """
     protected = set()
     if PROTECTED_LIST.exists():
         try:
             for line in PROTECTED_LIST.read_text(encoding='utf-8').split('\n'):
                 line = line.strip()
                 if line and not line.startswith('#'):
-                    protected.add(line)
+                    entry = line.split('|', 1)[0].strip()
+                    if entry:
+                        protected.add(entry)
         except OSError:
             pass
     return protected
@@ -134,14 +141,14 @@ def classify_project(project_dir: Path) -> str:
 
     # A: Core infrastructure (NOT timestamp dirs)
     infra_keywords = ['claude-switcher', 'codex-claude',
-                       'ai-project-manager', 'cc-launcher',
+                       'ai-project-manager', 'ai-project-workspace', 'cc-launcher',
                        'global-rules', 'shell-integration']
     # Only classify as A if the name IS the project (not a session copy)
     if not is_timestamp_dir:
         if any(kw in name for kw in infra_keywords):
             has_config = ((project_dir / "CLAUDE.md").exists() or
                            (project_dir / ".claude").exists())
-            has_code = bool(list(project_dir.glob("*.py")) or list(project_dir.glob("*.sh")))
+            has_code = _has_source_content(project_dir)
             if has_config or has_code:
                 return "A"
 
@@ -151,23 +158,20 @@ def classify_project(project_dir: Path) -> str:
             return "A"
 
     # Check for real deliverables (not just AI skeleton)
-    has_source = bool(list(project_dir.glob("*.py")) or
-                       list(project_dir.glob("*.sh")) or
-                       list(project_dir.glob("*.js")) or
-                       list(project_dir.glob("*.rs")) or
-                       list(project_dir.glob("*.go")) or
-                       (project_dir / "src").exists())
-    has_docs = bool(list(project_dir.glob("*.pptx")) or
-                     list(project_dir.glob("*.ppt")) or
-                     list(project_dir.glob("*.pdf")) or
-                     list(project_dir.glob("*.docx")))
-    has_data = bool(list(project_dir.glob("*.csv")) or
-                     list(project_dir.glob("*.json")) or
-                     list(project_dir.glob("*.xlsx")))
-    has_media = bool(list(project_dir.glob("*.jpg")) or
-                      list(project_dir.glob("*.png")) or
-                      list(project_dir.glob("*.mp4")) or
-                      list(project_dir.glob("*.mp3")))
+    has_source = _has_source_content(project_dir)
+    has_docs = _has_bounded_content(
+        project_dir, {'.pptx', '.ppt', '.pdf', '.docx', '.odt', '.odp'},
+        {'deliverables', 'artifacts', 'output', 'outputs'},
+    )
+    has_data = _has_bounded_content(
+        project_dir, {'.csv', '.json', '.xlsx', '.parquet'},
+        {'data', 'reports', 'output', 'outputs'},
+    )
+    has_media = _has_bounded_content(
+        project_dir, {'.jpg', '.jpeg', '.png', '.mp4', '.mp3', '.wav'},
+        {'assets', 'deliverables', 'images', 'media', 'output', 'outputs'},
+    )
+    has_nested_project = _has_nested_project(project_dir)
 
     # Check if project has ONLY AI session content
     is_session_only = _is_session_only_project(project_dir)
@@ -191,7 +195,7 @@ def classify_project(project_dir: Path) -> str:
                 return "D"
             return "E"
 
-        if has_docs or has_data or has_media:
+        if has_docs or has_data or has_media or has_nested_project:
             return "B"  # Has real user deliverables
 
         if is_session_only:
@@ -200,7 +204,7 @@ def classify_project(project_dir: Path) -> str:
         return "E"
 
     # Non-timestamp dirs
-    if has_source or has_docs or has_data or has_media:
+    if has_source or has_docs or has_data or has_media or has_nested_project:
         return "B"
 
     if is_session_only:
@@ -217,6 +221,67 @@ def classify_project(project_dir: Path) -> str:
         pass
 
     return "E"
+
+
+def _has_source_content(project_dir: Path) -> bool:
+    """Detect source without recursively traversing caches or vendored trees."""
+    source_suffixes = {'.py', '.sh', '.js', '.ts', '.rs', '.go', '.java', '.kt'}
+    try:
+        if any(p.is_file() and p.suffix.lower() in source_suffixes
+               for p in project_dir.iterdir()):
+            return True
+    except OSError:
+        return False
+
+    source_dirs = {
+        'app', 'backend', 'bin', 'frontend', 'mediaflow', 'package',
+        'packages', 'scripts', 'src',
+    }
+    return any((project_dir / name).is_dir() for name in source_dirs)
+
+
+def _has_bounded_content(project_dir: Path, suffixes: set[str],
+                         content_dirs: set[str]) -> bool:
+    """Find deliverables at the root or one level inside known content dirs."""
+    try:
+        if any(p.is_file() and p.suffix.lower() in suffixes
+               for p in project_dir.iterdir()):
+            return True
+    except OSError:
+        return False
+
+    for name in content_dirs:
+        directory = project_dir / name
+        if not directory.is_dir():
+            continue
+        try:
+            if any(p.is_file() and p.suffix.lower() in suffixes
+                   for p in directory.iterdir()):
+                return True
+        except OSError:
+            continue
+    return False
+
+
+def _has_nested_project(project_dir: Path) -> bool:
+    """Recognize a single real project nested below a generic container."""
+    ignored = {'.ai', '.ai-session', '.git', '.venv', 'node_modules', 'venv'}
+    try:
+        children = [p for p in project_dir.iterdir()
+                    if p.is_dir() and p.name not in ignored
+                    and not p.name.startswith('.')]
+    except OSError:
+        return False
+
+    for child in children:
+        if not (child / 'README.md').is_file():
+            continue
+        if (_has_source_content(child)
+                or any((child / marker).exists()
+                       for marker in ('pyproject.toml', 'package.json', 'Cargo.toml',
+                                      'go.mod', 'Makefile', 'theme'))):
+            return True
+    return False
 
 
 def _is_session_only_project(project_dir: Path) -> bool:
