@@ -11,6 +11,66 @@ from ai_project_manager import auto_name, maintain
 
 
 class ProjectMaintenanceTests(unittest.TestCase):
+    def test_managed_project_policy_parses_safe_direct_children(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            policy = Path(tmp) / "managed-projects"
+            policy.write_text(
+                "mirror | managed | true | public mirror\n"
+                "legacy | archive | false | old workspace\n"
+                "../escape | managed | true | invalid\n",
+                encoding="utf-8",
+            )
+            with patch.object(maintain, "MANAGED_PROJECTS_LIST", policy):
+                self.assertEqual(
+                    maintain.load_managed_projects(),
+                    [
+                        {"name": "mirror", "group": "managed", "auto_update": True, "reason": "public mirror"},
+                        {"name": "legacy", "group": "archive", "auto_update": False, "reason": "old workspace"},
+                    ],
+                )
+
+    def test_managed_project_sync_only_fast_forwards_clean_clone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "Projects"
+            remote = Path(tmp) / "remote.git"
+            seed = Path(tmp) / "seed"
+            managed = root / "managed-copy"
+            root.mkdir()
+            subprocess.run(["git", "init", "--bare", "-q", str(remote)], check=True)
+            subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+            subprocess.run(["git", "-C", str(seed), "config", "user.name", "Test User"], check=True)
+            subprocess.run(["git", "-C", str(seed), "config", "user.email", "test@example.invalid"], check=True)
+            (seed / "version.txt").write_text("one\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(seed), "add", "version.txt"], check=True)
+            subprocess.run(["git", "-C", str(seed), "commit", "-qm", "initial"], check=True)
+            subprocess.run(["git", "-C", str(seed), "remote", "add", "origin", str(remote)], check=True)
+            subprocess.run(["git", "-C", str(seed), "push", "-qu", "origin", "main"], check=True)
+            subprocess.run(["git", "--git-dir", str(remote), "symbolic-ref", "HEAD", "refs/heads/main"], check=True)
+            subprocess.run(["git", "clone", "-q", str(remote), str(managed)], check=True)
+
+            (seed / "version.txt").write_text("two\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(seed), "commit", "-qam", "update"], check=True)
+            subprocess.run(["git", "-C", str(seed), "push", "-q"], check=True)
+            policy = Path(tmp) / "managed-projects"
+            policy.write_text("managed-copy | managed | true | test\n", encoding="utf-8")
+
+            with (
+                patch.object(maintain, "PROJECTS_ROOT", root),
+                patch.object(maintain, "MANAGED_PROJECTS_LIST", policy),
+            ):
+                result = maintain.sync_managed_projects()
+            self.assertEqual(result[0]["status"], "updated")
+            self.assertEqual((managed / "version.txt").read_text(encoding="utf-8"), "two\n")
+
+            (managed / "local.txt").write_text("keep\n", encoding="utf-8")
+            with (
+                patch.object(maintain, "PROJECTS_ROOT", root),
+                patch.object(maintain, "MANAGED_PROJECTS_LIST", policy),
+            ):
+                dirty_result = maintain.sync_managed_projects()
+            self.assertEqual(dirty_result[0]["status"], "dirty")
+            self.assertTrue((managed / "local.txt").exists())
+
     def test_annotated_protected_list_uses_first_field(self):
         with tempfile.TemporaryDirectory() as tmp:
             protected_file = Path(tmp) / "protected-projects"
@@ -32,6 +92,12 @@ class ProjectMaintenanceTests(unittest.TestCase):
             (project / "src").mkdir(parents=True)
             (project / "CLAUDE.md").write_text("rules", encoding="utf-8")
             self.assertEqual(maintain.classify_project(project), "A")
+
+    def test_flowfoundry_has_core_protection_reason(self):
+        self.assertEqual(
+            maintain._protection_reason("ai-workflow-foundry", True),
+            "核心基础设施",
+        )
 
     def test_nested_deliverables_are_real_project_content(self):
         with tempfile.TemporaryDirectory() as tmp:
