@@ -1,0 +1,12 @@
+[Unit]
+Description=Weekly cc-projects quarantine purge timer
+Documentation=man:cc-projects-maintain(1)
+
+[Timer]
+# Run weekly on Wednesday at 03:23 (off-peak, avoids :00/:30)
+OnCalendar=Wed *-*-* 03:23:00
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target
