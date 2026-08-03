@@ -73,13 +73,18 @@
 | `confera-media-skills` | 公开 | 10 个媒体 AI Skill；候选输出、人工审核、禁止越权执行，3 项契约测试 |
 | `print-ready-nameplate-generator` | 公开 | CSV 到可编辑 A4 姓名牌 PPTX；虚构示例、路径安全与真实 LibreOffice 验证 |
 | `ai-workspace-manager` | 公开 | 核心工具的可移植脱敏快照；统一启动、项目维护、会话恢复与 108 项回归检查 |
-| `ai-project-workspace-manager` | 私有 | 核心工具；待脱敏本机路径和运维文档后再评估公开 |
+| `ai-project-workspace-manager` | 私有 | 含本机运维资料的完整源仓库；继续作为私有真源，公开版本独立为 `ai-workspace-manager` |
 | `hunan-four-universities-presentation` | 私有 | 演示设计；已上传，待补全逐图许可记录后再评估公开 |
 | `huiying-media-workbench` | 私有 | 会映 Linux/Web 研发仓库；496 项严格测试通过后上传 |
 | `huiying-desktop-release` | 私有 | 会映 Windows/Android 商业发行候选；保留产品与基线分支 |
 | `taobao-auto-shop` | 私有 | 未验证原型，不进入公开作品集 |
 
 公开主页文案的源文件为 [GitHub Portfolio](GITHUB-PORTFOLIO.md)。
+
+`PhotoTransform` 与 `A` 的原始工作区分别含设备运行记录和真实人员名单，未直接
+上传；其通用技术成果已通过干净根提交发布为 `oppo-photo-archive` 与
+`print-ready-nameplate-generator`。用户明确要求不处理 `VPN`，因此该项目没有
+修改、上传或进入作品集。遗留会话项目也不作为作品冒充发布。
 
 GitHub 账号 `ryanshi1103` 的公开简介已设置为：
 “Building local-first software, safety-conscious automation, and practical system tools.”
