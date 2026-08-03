@@ -1,92 +1,93 @@
 # Hi, I'm Ryan Shi
 
-I build local-first software, practical automation, and safety-conscious system
-tools. I care about reversible operations, clear documentation, and tests that
-exercise real behavior.
+I build local-first AI workflow foundations, human-reviewable automation, and
+resilient software products. I care about clear product boundaries, reversible
+operations, honest maturity labels, and tests that exercise real behavior.
 
-我专注于本地优先的软件、实用自动化和可恢复的系统工具。
+我专注于本地优先的 AI 工作流、可人工复核的自动化，以及安全可恢复的软件产品。
 
 <p align="center">
-  <a href="https://github.com/ryanshi1103/ai-workspace-manager"><img src="https://raw.githubusercontent.com/ryanshi1103/ai-workspace-manager/main/branding/logo.png" width="76" alt="AI Workspace Manager"></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/ryanshi1103/grub-minimal-focus-theme"><img src="https://raw.githubusercontent.com/ryanshi1103/grub-minimal-focus-theme/main/branding/logo.png" width="76" alt="Minimal Focus"></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/ryanshi1103/feedback-analysis-system"><img src="https://raw.githubusercontent.com/ryanshi1103/feedback-analysis-system/main/branding/logo.png" width="76" alt="Feedback Analysis System"></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/ryanshi1103/oppo-phone-control"><img src="https://raw.githubusercontent.com/ryanshi1103/oppo-phone-control/main/branding/logo.png" width="76" alt="OPPO Phone Control"></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/ryanshi1103/oppo-photo-archive"><img src="https://raw.githubusercontent.com/ryanshi1103/oppo-photo-archive/main/branding/logo.png" width="76" alt="OPPO Photo Archive"></a>
+  <a href="https://github.com/ryanshi1103/ai-workflow-foundry"><img src="https://raw.githubusercontent.com/ryanshi1103/ai-workflow-foundry/main/branding/logo.png" width="104" alt="FlowFoundry AI"></a>
   &nbsp;&nbsp;&nbsp;
   <a href="https://github.com/ryanshi1103/confera-media-skills"><img src="https://raw.githubusercontent.com/ryanshi1103/confera-media-skills/main/branding/logo.png" width="76" alt="Confera Media Skills"></a>
   &nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/ryanshi1103/feedback-analysis-system"><img src="https://raw.githubusercontent.com/ryanshi1103/feedback-analysis-system/main/branding/logo.png" width="76" alt="Feedback Analysis System"></a>
+  &nbsp;&nbsp;&nbsp;
   <a href="https://github.com/ryanshi1103/print-ready-nameplate-generator"><img src="https://raw.githubusercontent.com/ryanshi1103/print-ready-nameplate-generator/main/branding/logo.png" width="76" alt="Print-ready Nameplate Generator"></a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/ryanshi1103/grub-minimal-focus-theme"><img src="https://raw.githubusercontent.com/ryanshi1103/grub-minimal-focus-theme/main/branding/logo.png" width="76" alt="Minimal Focus"></a>
 </p>
 
-## Selected work
+## Flagship platform
+
+### [FlowFoundry AI](https://github.com/ryanshi1103/ai-workflow-foundry)
+
+[![tests](https://github.com/ryanshi1103/ai-workflow-foundry/actions/workflows/tests.yml/badge.svg)](https://github.com/ryanshi1103/ai-workflow-foundry/actions/workflows/tests.yml)
+
+A local-first foundation for AI work that stays reviewable, recoverable, and
+reusable. It combines a real multi-tool workspace runtime with a validated
+component catalog and a product architecture for bounded skills, human review,
+explicit approval, and auditable artifacts.
+
+The current foundation release is intentionally honest: the workspace runtime
+is bundled, while media skills, feedback intelligence, and document automation
+are labeled as independently versioned extensions or reference products—not
+pretended to be one universal executable.
+
+`Python` `Shell` `AI workflows` `Human-in-the-loop` `Local-first` `AI safety`
+
+## AI product lines
 
 ### [AI Workspace Manager](https://github.com/ryanshi1103/ai-workspace-manager)
 
-A local-first launcher and project maintenance system for Claude, DeepSeek, and
-Codex. It keeps one authoritative project root, exposes explicit permission
-modes, supports recoverable sessions, and ships with 108 shell/Python regression
-checks in its portable public snapshot.
-
-`Python` `Shell` `Codex` `Claude Code` `Project management` `Local-first`
-
-### [Minimal Focus GRUB Theme](https://github.com/ryanshi1103/grub-minimal-focus-theme)
-
-[![Minimal Focus GRUB preview](https://raw.githubusercontent.com/ryanshi1103/grub-minimal-focus-theme/main/preview/minimal-focus-1080p.png)](https://github.com/ryanshi1103/grub-minimal-focus-theme)
-
-A reproducible Fedora GRUB theme with five display profiles, safe install and
-rollback scripts, third-party attribution, and standalone EFI validation.
-
-`Shell` `GRUB` `Fedora` `Reproducible assets` `GPL-3.0`
-
-### [Feedback Analysis System](https://github.com/ryanshi1103/feedback-analysis-system)
-
-A local Streamlit application for classifying public feedback, tracking issues,
-reviewing AI suggestions, and exporting audited results. The public snapshot is
-credential-free and backed by 90 automated tests.
-
-`Python` `Streamlit` `SQLite` `Human-in-the-loop` `Data analysis`
-
-### [OPPO Phone Control](https://github.com/ryanshi1103/oppo-phone-control)
-
-Small, reversible ADB utilities for applying and restoring a verified OPPO
-Reno9 Pro+ configuration. The scripts refuse unexpected devices and document
-the operational boundary clearly.
-
-`Android` `ADB` `Bash` `Defensive automation`
-
-### [OPPO Photo Archive](https://github.com/ryanshi1103/oppo-photo-archive)
-
-A transactional Android photo archiver that copies to `.partial`, flushes and
-verifies SHA-256, atomically installs the target, and re-verifies both sides
-before an explicit per-file source deletion. Personal media and device reports
-are excluded from the public snapshot.
-
-`Python` `Android` `SHA-256` `Data integrity` `Local-first`
+The bundled FlowFoundry runtime for Claude, DeepSeek, and Codex: one
+authoritative project root, explicit permission modes, recoverable sessions,
+retention-aware maintenance, backup-first deployment, and 108 regression
+checks.
 
 ### [Confera Media Skills](https://github.com/ryanshi1103/confera-media-skills)
 
-Ten portable, safety-bounded AI skills for media inspection, photo and audio
-recommendations, captions, storyboards, timelines, narration, render planning,
-quality review, and consented manual exchange. Models can propose candidates;
-the application and a human retain execution and approval authority.
+Ten safety-bounded skills for media inspection, photo and audio recommendations,
+captions, storyboards, timelines, narration, render planning, and quality
+review. Models propose schema-valid candidates; trusted application code and a
+human retain execution and export authority.
 
-`AI agents` `Codex Skills` `Human-in-the-loop` `Media workflows` `AI safety`
+### [Feedback Analysis System](https://github.com/ryanshi1103/feedback-analysis-system)
+
+A local Streamlit product for importing authorized feedback, classifying issues
+and experiences, preserving original AI results, recording human review, and
+exporting audited data. Mock mode works without credentials; 90 tests cover the
+public snapshot.
+
+## Selected applied systems
 
 ### [Print-ready Nameplate Generator](https://github.com/ryanshi1103/print-ready-nameplate-generator)
 
-A LibreOffice PyUNO tool that turns a CSV name list into editable one-up and
-two-up A4 PowerPoint decks for foldable desk nameplates. The public example is
-fictional and the output filename is path-sanitized.
+A deterministic LibreOffice/PyUNO workflow that turns fictional CSV input into
+editable, physically accurate A4 PowerPoint nameplates. It demonstrates safe
+filenames, content/layout separation, and real target-application acceptance.
 
-`Python` `LibreOffice` `PyUNO` `PowerPoint` `Print automation`
+### [Minimal Focus GRUB Theme](https://github.com/ryanshi1103/grub-minimal-focus-theme)
+
+A reproducible Fedora GRUB visual system with five display profiles, previews,
+safe install/uninstall and rollback scripts, third-party attribution, and
+standalone EFI validation.
+
+## Focused utilities
+
+- [OPPO Photo Archive](https://github.com/ryanshi1103/oppo-photo-archive) —
+  transactional Android photo copies with SHA-256, atomic promotion, and an
+  explicit source-deletion gate.
+- [OPPO Phone Control](https://github.com/ryanshi1103/oppo-phone-control) —
+  small plan/apply/restore ADB utilities with device-bound safety checks.
+
+These are useful device tools, but they are intentionally not the headline or
+the boundary of the wider product portfolio.
 
 ## Engineering priorities
 
 - Local-first and privacy-aware behavior
-- Explicit safety checks and reversible changes
+- AI candidates separated from trusted execution
+- Explicit review, approval, rollback, and audit paths
 - Honest project status and documented limitations
 - Reproducible validation over unsupported claims

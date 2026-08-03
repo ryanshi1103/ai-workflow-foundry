@@ -87,6 +87,11 @@ ai-project-workspace-manager/
 公开 GitHub 作品集的个人主页源文件见
 [GitHub Portfolio](docs/GITHUB-PORTFOLIO.md)。
 
+跨项目的共享能力已整理为公开旗舰
+[FlowFoundry AI](https://github.com/ryanshi1103/ai-workflow-foundry)：只将真实共享的
+Workspace Manager 底座物理纳入，Confera、反馈分析和文档自动化通过明确契约关联，
+Android、GRUB、演示与实验项目继续保持独立边界。
+
 ## 许可证
 
 MIT License — 参见 LICENSE 文件。

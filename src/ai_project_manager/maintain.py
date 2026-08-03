@@ -990,8 +990,24 @@ def _protection_reason(name: str, is_protected: bool) -> str:
     """Explain why a project is protected."""
     if not is_protected:
         return ""
-    infra = {'codex-claude', 'claude-switcher-setup', 'ai-project-workspace-manager'}
-    user_projects = {'meeting-media-auto', 'phone-control', 'Hunan-University-Motivation-PPT'}
+    infra = {
+        'codex-claude',
+        'claude-switcher-setup',
+        'ai-project-workspace-manager',
+        'ai-workflow-foundry',
+        'ai-workspace-manager',
+    }
+    user_projects = {
+        'meeting-media-auto',
+        'meeting-media-desktop',
+        'phone-control',
+        'PhotoTransform',
+        'Hunan-University-Motivation-PPT',
+        'confera-media-skills',
+        'feedback-analysis-system',
+        'print-ready-nameplate-generator',
+        'ryanshi1103',
+    }
     if name in infra:
         return "核心基础设施"
     if name in user_projects:
@@ -1127,8 +1143,10 @@ def _write_default_protected_list() -> None:
             # Auto-protect core infrastructure
             if any(kw in name.lower() for kw in [
                 'claude-switcher', 'codex-claude',
+                'ai-workflow-foundry', 'ai-workspace-manager',
                 'meeting-media-auto', 'phone-control',
-                'hunan-university',
+                'hunan-university', 'confera-media-skills',
+                'feedback-analysis-system', 'print-ready-nameplate-generator',
             ]):
                 protected.append(name)
 

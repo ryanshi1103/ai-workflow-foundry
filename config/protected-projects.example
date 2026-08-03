@@ -6,6 +6,8 @@
 
 # Core infrastructure
 ai-project-workspace-manager | infrastructure | cc、AI Project Manager 与维护器源码真源
+ai-workflow-foundry | infrastructure | AI 工作流旗舰平台与跨产品契约
+ai-workspace-manager | public-core | Workspace Manager 公开可移植快照
 codex-claude | legacy-review | 早期 AI Project Manager 构建，合并核验前保留
 claude-switcher-setup | legacy-review | Codex 接入会话，归档核验前保留
 
@@ -20,3 +22,7 @@ System | user-project | Minimal Focus GRUB 主题，待收平目录层级
 VPN | user-project | Shadowrocket VPN 部署工具
 social-negative-monitor | user-project | 反馈分析系统
 taobao-auto-shop | user-project | 虚拟商品库存与自动发货原型候选
+confera-media-skills | public-extension | 会映媒体 AI Skill 公开扩展包
+feedback-analysis-system | public-product | 反馈分析公开规范快照
+print-ready-nameplate-generator | public-workflow | 文档自动化公开参考工作流
+ryanshi1103 | portfolio | GitHub 个人主页仓库本地同步
