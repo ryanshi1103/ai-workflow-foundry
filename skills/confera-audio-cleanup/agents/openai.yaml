@@ -1,0 +1,4 @@
+interface:
+  display_name: "Confera Audio Cleanup"
+  short_description: "Plan safe local audio cleanup"
+  default_prompt: "Use $confera-audio-cleanup to propose a non-destructive denoise plan for this approved media evidence."

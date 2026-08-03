@@ -1,0 +1,4 @@
+interface:
+  display_name: "Confera Media Inspector"
+  short_description: "Plan evidence-bound media inspection"
+  default_prompt: "Use $confera-media-inspector to plan a safe metadata inspection from these controlled artifact references."
