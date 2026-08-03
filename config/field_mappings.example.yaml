@@ -1,0 +1,23 @@
+# Apify Actor field mapping configuration
+# Map Actor output fields to FeedbackItem fields.
+# Left side: FeedbackItem field name
+# Right side: Actor output field name (dot-separated for nested fields)
+
+mappings:
+  platform: platform          # required
+  content: content            # required
+  source_url: url
+  external_id: id
+  author_display_name: author.name
+  published_at: published_at
+  engagement_count: engagement_count
+  brand: brand
+  product: product
+  search_keyword: search_keyword
+  language: language
+
+# Default platform name if not found in Actor output
+default_platform: "apify_import"
+
+# Maximum items to import per run
+max_items: 100
