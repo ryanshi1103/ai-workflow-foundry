@@ -1,0 +1,12 @@
+[Unit]
+Description=Weekly cc-projects quick maintenance timer
+Documentation=man:cc-projects-maintain(1)
+
+[Timer]
+# Run weekly on Sunday at 03:07 (off-peak, avoids :00/:30)
+OnCalendar=Sun *-*-* 03:07:00
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

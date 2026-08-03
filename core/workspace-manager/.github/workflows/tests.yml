@@ -1,0 +1,23 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: ./tests/test-cc.sh
+      - run: ./tests/test-cc-eof-fix.sh
+      - run: ./tests/test-deploy-profile-preservation.sh
+      - run: PYTHONPATH=src python -m unittest discover -s tests -p 'test_*.py' -v
+      - run: python -m compileall -q src tests
+      - run: bash -n bin/cc bin/aiproj bin/cc-projects-maintain scripts/*.sh

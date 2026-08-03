@@ -1,0 +1,135 @@
+#!/bin/bash
+# cc-projects-maintain — Periodic maintenance system for ~/Projects
+#
+# Usage:
+#   cc-projects-maintain --quick           Weekly quick maintenance
+#   cc-projects-maintain --deep            Monthly deep maintenance
+#   cc-projects-maintain --report          Generate projects index
+#   cc-projects-maintain --purge-quarantine Process quarantine retention
+#   cc-projects-maintain --dry-run [--quick|--deep|--purge-quarantine]
+#
+# All operations are scoped to PROJECTS_ROOT (~/Projects by default).
+
+set -euo pipefail
+
+PROJECTS_ROOT="${PROJECTS_ROOT:-$HOME/Projects}"
+AIPROJ_INSTALL_DIR="${AIPROJ_INSTALL_DIR:-$HOME/.local/share/ai-project-manager}"
+CONFIG_DIR="$HOME/.config/cc-projects"
+
+# ─── Parse arguments ───────────────────────────────────────────────────────
+
+MODE=""
+DRY_RUN=False
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --quick)   MODE="quick" ;;
+        --deep)    MODE="deep" ;;
+        --report)  MODE="report" ;;
+        --purge-quarantine) MODE="purge-quarantine" ;;
+        --dry-run) DRY_RUN=true ;;
+        --help|-h)
+            echo "cc-projects-maintain — ~/Projects maintenance system"
+            echo ""
+            echo "Usage:"
+            echo "  cc-projects-maintain --quick            Weekly quick maintenance"
+            echo "  cc-projects-maintain --deep             Monthly deep maintenance"
+            echo "  cc-projects-maintain --report           Generate projects index"
+            echo "  cc-projects-maintain --purge-quarantine  Process quarantine"
+            echo "  cc-projects-maintain --dry-run [--quick|--deep|--purge-quarantine]"
+            echo ""
+            echo "Config: $CONFIG_DIR/maintenance.conf"
+            echo "Protected: $CONFIG_DIR/protected-projects"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: cc-projects-maintain [--quick|--deep|--report|--purge-quarantine] [--dry-run]"
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+if [[ -z "$MODE" ]]; then
+    echo "Error: No mode specified. Use --quick, --deep, --report, or --purge-quarantine."
+    echo "Try --help for usage."
+    exit 1
+fi
+
+# ─── Validate scope ────────────────────────────────────────────────────────
+
+if [[ ! -d "$PROJECTS_ROOT" ]]; then
+    echo "Error: PROJECTS_ROOT does not exist: $PROJECTS_ROOT" >&2
+    exit 1
+fi
+
+# ─── Ensure config exists ──────────────────────────────────────────────────
+
+mkdir -p "$CONFIG_DIR"
+
+# ─── Run maintenance via Python ────────────────────────────────────────────
+
+export PYTHONPATH="${AIPROJ_INSTALL_DIR}:${PYTHONPATH:-}"
+
+DRY_RUN_FLAG=""
+if [[ "$DRY_RUN" == "true" ]]; then
+    DRY_RUN_FLAG="--dry-run"
+fi
+
+python3 -c "
+import sys, json
+sys.path.insert(0, '${AIPROJ_INSTALL_DIR}')
+from ai_project_manager.maintain import run_maintenance
+
+report = run_maintenance('${MODE}', dry_run=('${DRY_RUN}'.lower() == 'true'))
+
+if 'error' in report:
+    print(f\"Error: {report['error']}\", file=sys.stderr)
+    sys.exit(1)
+
+# Pretty print
+if '${MODE}' == 'report':
+    print(f\"Projects index generated.\")
+    print(f\"  JSON: ~/.local/state/cc-projects/projects-index.json\")
+    print(f\"  Markdown: ~/Projects/PROJECTS_INDEX.md\")
+    print(f\"  Projects: {report.get('project_count', 0)}\")
+    cats = report.get('categories', {})
+    if cats:
+        print(f\"  Categories:\")
+        cat_names = {'A': '核心基础设施', 'B': '真实成果', 'C': '重复/旧版', 'D': '纯会话', 'E': '待审核'}
+        for cat in ['A','B','C','D','E']:
+            if cat in cats:
+                print(f\"    {cat} ({cat_names.get(cat, cat)}): {cats[cat]}\")
+elif '${MODE}' == 'quick':
+    s = report.get('name_suggestions', [])
+    print(f\"Quick maintenance complete.\")
+    print(f\"  Dry run: ${DRY_RUN}\")
+    print(f\"  Cleaned recent projects: {report.get('cleaned_recent_projects', 0)}\")
+    print(f\"  New timestamp dirs: {len(report.get('new_timestamp_dirs', []))}\")
+    print(f\"  Empty dirs: {len(report.get('empty_dirs', []))}\")
+    print(f\"  Name suggestions: {len(s)}\")
+    for ns in s[:10]:
+        print(f\"    {ns['current_name']} → {ns['suggested_name']}\")
+elif '${MODE}' == 'deep':
+    print(f\"Deep maintenance complete.\")
+    print(f\"  Dry run: ${DRY_RUN}\")
+    print(f\"  Classification: {report.get('classification', {})}\")
+    print(f\"  Duplicates found: {len(report.get('duplicates', []))}\")
+    print(f\"  Rename candidates: {len(report.get('rename_candidates', []))}\")
+    for rc in report.get('rename_candidates', [])[:10]:
+        print(f\"    {rc['old_name']} → {rc['new_name']}\")
+    print(f\"  Quarantine candidates: {len(report.get('quarantine_candidates', []))}\")
+    for qc in report.get('quarantine_candidates', [])[:10]:
+        print(f\"    {qc.get('name', qc.get('path', '?'))}: {qc.get('reason', '')}\")
+    print(f\"  Protected: {len(report.get('protected', []))}\")
+elif '${MODE}' == 'purge-quarantine':
+    purged = report.get('purged', [])
+    print(f\"Quarantine purge complete.\")
+    print(f\"  Dry run: ${DRY_RUN}\")
+    print(f\"  Items: {len(purged)}\")
+    for p in purged[:20]:
+        print(f\"    {p['action']}: {p['path']}\")
+else:
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+"
