@@ -5,8 +5,9 @@
 #   cc-projects-maintain --quick           Weekly quick maintenance
 #   cc-projects-maintain --deep            Monthly deep maintenance
 #   cc-projects-maintain --report          Generate projects index
+#   cc-projects-maintain --sync-managed    Safely fast-forward managed repos
 #   cc-projects-maintain --purge-quarantine Process quarantine retention
-#   cc-projects-maintain --dry-run [--quick|--deep|--purge-quarantine]
+#   cc-projects-maintain --dry-run [--quick|--deep|--sync-managed|--purge-quarantine]
 #
 # All operations are scoped to /home/ryan/Projects only.
 
@@ -26,6 +27,7 @@ while [[ $# -gt 0 ]]; do
         --quick)   MODE="quick" ;;
         --deep)    MODE="deep" ;;
         --report)  MODE="report" ;;
+        --sync-managed) MODE="sync-managed" ;;
         --purge-quarantine) MODE="purge-quarantine" ;;
         --dry-run) DRY_RUN=true ;;
         --help|-h)
@@ -35,8 +37,9 @@ while [[ $# -gt 0 ]]; do
             echo "  cc-projects-maintain --quick            Weekly quick maintenance"
             echo "  cc-projects-maintain --deep             Monthly deep maintenance"
             echo "  cc-projects-maintain --report           Generate projects index"
+            echo "  cc-projects-maintain --sync-managed     Safely fast-forward managed repos"
             echo "  cc-projects-maintain --purge-quarantine  Process quarantine"
-            echo "  cc-projects-maintain --dry-run [--quick|--deep|--purge-quarantine]"
+            echo "  cc-projects-maintain --dry-run [--quick|--deep|--sync-managed|--purge-quarantine]"
             echo ""
             echo "Config: $CONFIG_DIR/maintenance.conf"
             echo "Protected: $CONFIG_DIR/protected-projects"
@@ -44,7 +47,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: cc-projects-maintain [--quick|--deep|--report|--purge-quarantine] [--dry-run]"
+            echo "Usage: cc-projects-maintain [--quick|--deep|--report|--sync-managed|--purge-quarantine] [--dry-run]"
             exit 1
             ;;
     esac
@@ -52,7 +55,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$MODE" ]]; then
-    echo "Error: No mode specified. Use --quick, --deep, --report, or --purge-quarantine."
+    echo "Error: No mode specified. Use --quick, --deep, --report, --sync-managed, or --purge-quarantine."
     echo "Try --help for usage."
     exit 1
 fi
@@ -111,6 +114,17 @@ elif '${MODE}' == 'quick':
     print(f\"  Name suggestions: {len(s)}\")
     for ns in s[:10]:
         print(f\"    {ns['current_name']} → {ns['suggested_name']}\")
+    sync = report.get('managed_sync', [])
+    print(f\"  Managed repositories checked: {len(sync)}\")
+    for item in sync:
+        print(f\"    {item['name']}: {item['status']}\")
+elif '${MODE}' == 'sync-managed':
+    sync = report.get('managed_sync', [])
+    print(f\"Managed repository sync complete.\")
+    print(f\"  Dry run: ${DRY_RUN}\")
+    print(f\"  Repositories checked: {len(sync)}\")
+    for item in sync:
+        print(f\"    {item['name']}: {item['status']}\")
 elif '${MODE}' == 'deep':
     print(f\"Deep maintenance complete.\")
     print(f\"  Dry run: ${DRY_RUN}\")
