@@ -1,6 +1,7 @@
 [Unit]
 Description=cc-projects weekly quick maintenance
-After=default.target
+Wants=network-online.target
+After=default.target network-online.target
 
 [Service]
 Type=oneshot

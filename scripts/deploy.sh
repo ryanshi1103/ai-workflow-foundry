@@ -29,9 +29,11 @@ backup_if_exists() {
 }
 
 backup_if_exists "$HOME/.local/bin/cc"
+backup_if_exists "$HOME/.local/bin/cc-projects-maintain"
 backup_if_exists "$HOME/.codex/config.toml"
 backup_if_exists "$HOME/.codex/AGENTS.md"
 backup_if_exists "${XDG_STATE_HOME:-$HOME/.local/state}/cc-launcher/recent-projects"
+backup_if_exists "$HOME/.config/cc-projects/managed-projects"
 
 # Backup existing Codex profiles if they exist
 for profile in gpt56-sol-manual gpt56-sol-readonly gpt56-sol-auto gpt56-sol-full; do
@@ -68,6 +70,18 @@ if [[ -f "\$RESTORE_DIR/cc" ]]; then
     cp -v "\$RESTORE_DIR/cc" "\$HOME/.local/bin/cc"
     chmod +x "\$HOME/.local/bin/cc"
     echo "   ✓ cc restored"
+fi
+
+if [[ -f "\$RESTORE_DIR/cc-projects-maintain" ]]; then
+    cp -v "\$RESTORE_DIR/cc-projects-maintain" "\$HOME/.local/bin/cc-projects-maintain"
+    chmod +x "\$HOME/.local/bin/cc-projects-maintain"
+    echo "   ✓ cc-projects-maintain restored"
+fi
+
+if [[ -f "\$RESTORE_DIR/managed-projects" ]]; then
+    mkdir -p "\$HOME/.config/cc-projects"
+    cp -v "\$RESTORE_DIR/managed-projects" "\$HOME/.config/cc-projects/managed-projects"
+    echo "   ✓ managed project policy restored"
 fi
 
 if [[ -f "\$RESTORE_DIR/config.toml" ]]; then
@@ -107,6 +121,17 @@ echo "1. Deploying cc launcher..."
 cp -v "$PROJECT_ROOT/bin/cc" "$HOME/.local/bin/cc"
 chmod +x "$HOME/.local/bin/cc"
 echo "   ✓ cc deployed"
+cp -v "$PROJECT_ROOT/bin/cc-projects-maintain" "$HOME/.local/bin/cc-projects-maintain"
+chmod +x "$HOME/.local/bin/cc-projects-maintain"
+echo "   ✓ cc-projects-maintain deployed"
+
+mkdir -p "$HOME/.config/cc-projects"
+if [[ ! -f "$HOME/.config/cc-projects/managed-projects" ]]; then
+    cp -v "$PROJECT_ROOT/config/managed-projects.example" "$HOME/.config/cc-projects/managed-projects"
+    echo "   ✓ managed project policy installed"
+else
+    echo "   ~ managed project policy preserved"
+fi
 echo ""
 
 # ─── 2. Deploy Codex profiles ────────────────────────────────────────────────
@@ -193,6 +218,7 @@ if [[ -d "$PROJECT_ROOT/config/systemd" ]]; then
     mkdir -p "$SYSTEMD_USER_DIR"
     cp -v "$PROJECT_ROOT/config/systemd/"*.service "$SYSTEMD_USER_DIR/" 2>/dev/null || true
     cp -v "$PROJECT_ROOT/config/systemd/"*.timer "$SYSTEMD_USER_DIR/" 2>/dev/null || true
+    systemctl --user daemon-reload
     echo "   ✓ systemd units deployed"
 else
     echo "   ~ No systemd configs found, skipping"
@@ -210,6 +236,11 @@ verify_fail() { echo "   ✗ $1"; VERIFY_FAIL=$((VERIFY_FAIL+1)); }
 
 # bash -n on deployed cc
 bash -n "$HOME/.local/bin/cc" 2>/dev/null && verify_pass "cc bash syntax OK" || verify_fail "cc bash syntax ERROR"
+bash -n "$HOME/.local/bin/cc-projects-maintain" 2>/dev/null && verify_pass "maintenance bash syntax OK" || verify_fail "maintenance bash syntax ERROR"
+
+grep -q 'ai-workspace-manager.*managed.*true' "$HOME/.config/cc-projects/managed-projects" \
+    && verify_pass "managed project policy deployed" \
+    || verify_fail "managed project policy missing"
 
 # Codex menu present
 grep -q 'o   OpenAI Codex' "$HOME/.local/bin/cc" && verify_pass "Codex menu entry present" || verify_fail "Codex menu entry MISSING"
