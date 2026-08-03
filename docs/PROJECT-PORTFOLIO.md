@@ -69,6 +69,9 @@
 | `grub-minimal-focus-theme` | 公开 | 视觉系统工具；GPL-3.0、预览、回滚和 EFI 验证完整 |
 | `feedback-analysis-system` | 公开 | Python/Streamlit 数据应用；干净发布快照、90 项测试 |
 | `oppo-phone-control` | 公开 | Android/ADB 防御性自动化工具 |
+| `oppo-photo-archive` | 公开 | Android 照片事务式归档；SHA-256、原子安装、显式删除门与 4 项测试 |
+| `confera-media-skills` | 公开 | 10 个媒体 AI Skill；候选输出、人工审核、禁止越权执行，3 项契约测试 |
+| `print-ready-nameplate-generator` | 公开 | CSV 到可编辑 A4 姓名牌 PPTX；虚构示例、路径安全与真实 LibreOffice 验证 |
 | `ai-project-workspace-manager` | 私有 | 核心工具；待脱敏本机路径和运维文档后再评估公开 |
 | `hunan-four-universities-presentation` | 私有 | 演示设计；已上传，待补全逐图许可记录后再评估公开 |
 | `huiying-media-workbench` | 私有 | 会映 Linux/Web 研发仓库；496 项严格测试通过后上传 |
@@ -79,7 +82,8 @@
 
 GitHub 账号 `ryanshi1103` 的公开简介已设置为：
 “Building local-first software, safety-conscious automation, and practical system tools.”
-三个精选公开仓库均已采用小写 `kebab-case` 命名，具备仓库简介、README 与
-`branding/logo.png`。GitHub 的 `Projects` 标签是项目看板，不是代码仓库列表；
+六个原创公开作品仓库均已采用小写 `kebab-case` 命名，具备仓库简介、README 与
+`branding/logo.png`。其中 `confera-media-skills` 将会映项目的 10 个原创 Skill
+整理为独立作品；官方/第三方 Skill 不计为个人原创。GitHub 的 `Projects` 标签是项目看板，不是代码仓库列表；
 作品应从 `Repositories` 查看。个人主页置顶仓库需要在 GitHub 网页端通过
 `Customize your pins` 设置，公开 API 不提供该写操作。
