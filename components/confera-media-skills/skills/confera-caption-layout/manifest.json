@@ -1,0 +1,31 @@
+{
+  "name": "confera-caption-layout",
+  "purpose": "Recommend readable caption layout",
+  "version": "1.0.0",
+  "model": "configured-fast",
+  "effort": "low",
+  "context": "fork",
+  "agent": "confera-caption-reviewer",
+  "capability": "CAPTION_LAYOUT",
+  "allowed_tools": [],
+  "forbidden_tools": [
+    "Bash",
+    "Shell",
+    "Write",
+    "Edit",
+    "ArtifactFinalizer",
+    "ExportApproval"
+  ],
+  "input_schema": "confera.skill-input.v1",
+  "output_schema": "CaptionRecommendation",
+  "maximum_runtime": 90,
+  "network_policy": "CONSENT_REQUIRED",
+  "privacy_policy": "TRANSCRIPT_CONSENT_REQUIRED",
+  "provenance": {
+    "source": "ryanshi1103/huiying-media-workbench",
+    "license": "MIT",
+    "local_modifications": "portable public contract snapshot"
+  },
+  "human_review_required": true,
+  "audit_status": "TRUSTED"
+}

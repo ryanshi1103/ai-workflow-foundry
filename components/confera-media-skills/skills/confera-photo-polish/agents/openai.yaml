@@ -1,0 +1,4 @@
+interface:
+  display_name: "Confera Photo Polish"
+  short_description: "Suggest non-destructive photo polish"
+  default_prompt: "Use $confera-photo-polish to suggest conservative photo corrections from these approved metrics or keyframes."

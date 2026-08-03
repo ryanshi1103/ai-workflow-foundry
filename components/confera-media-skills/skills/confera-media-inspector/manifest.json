@@ -1,0 +1,33 @@
+{
+  "name": "confera-media-inspector",
+  "purpose": "Inspect media metadata safely",
+  "version": "1.0.0",
+  "model": "configured-fast",
+  "effort": "low",
+  "context": "fork",
+  "agent": "confera-fast-analyzer",
+  "capability": "MEDIA_INSPECTION",
+  "allowed_tools": [
+    "ffprobe"
+  ],
+  "forbidden_tools": [
+    "Bash",
+    "Shell",
+    "Write",
+    "Edit",
+    "ArtifactFinalizer",
+    "ExportApproval"
+  ],
+  "input_schema": "confera.skill-input.v1",
+  "output_schema": "EnhancementPlan",
+  "maximum_runtime": 90,
+  "network_policy": "LOCAL_ONLY",
+  "privacy_policy": "NO_ORIGINAL_MEDIA_UPLOAD",
+  "provenance": {
+    "source": "ryanshi1103/huiying-media-workbench",
+    "license": "MIT",
+    "local_modifications": "portable public contract snapshot"
+  },
+  "human_review_required": true,
+  "audit_status": "TRUSTED"
+}

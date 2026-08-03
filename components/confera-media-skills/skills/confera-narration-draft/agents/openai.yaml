@@ -1,0 +1,4 @@
+interface:
+  display_name: "Confera Narration Draft"
+  short_description: "Draft evidence-linked narration"
+  default_prompt: "Use $confera-narration-draft to draft narration linked only to these reviewed evidence excerpts."

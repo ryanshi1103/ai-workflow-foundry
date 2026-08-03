@@ -1,0 +1,4 @@
+interface:
+  display_name: "Confera Quality Review"
+  short_description: "Create a read-only quality report"
+  default_prompt: "Use $confera-quality-review to produce a read-only quality report from this controlled proxy evidence."

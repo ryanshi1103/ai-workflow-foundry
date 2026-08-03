@@ -1,0 +1,35 @@
+{
+  "name": "confera-ffmpeg-render",
+  "purpose": "Wrap audited FFmpeg planning knowledge",
+  "version": "1.0.0",
+  "model": "configured-fast",
+  "effort": "low",
+  "context": "fork",
+  "agent": "confera-tool-auditor",
+  "capability": "FFMPEG_RENDER_PLAN",
+  "allowed_tools": [
+    "ffmpeg",
+    "ffprobe"
+  ],
+  "forbidden_tools": [
+    "Bash",
+    "Shell",
+    "Write",
+    "Edit",
+    "ArtifactFinalizer",
+    "ExportApproval"
+  ],
+  "input_schema": "confera.skill-input.v1",
+  "output_schema": "EnhancementPlan",
+  "maximum_runtime": 120,
+  "network_policy": "LOCAL_ONLY",
+  "privacy_policy": "NO_MEDIA_UPLOAD",
+  "provenance": {
+    "source": "ychoi-kr/claude-ffmpeg-skill",
+    "commit": "b88cb5ce08337ab55c66c67674100b8de29cf232",
+    "license": "MIT",
+    "local_modifications": "non-executable Confera wrapper"
+  },
+  "human_review_required": true,
+  "audit_status": "TRUSTED"
+}
