@@ -15,4 +15,3 @@ ai-project-workspace-manager | managed | false | private deployment source for t
 social-negative-monitor | managed | false | private feedback source and data workspace
 ryanshi1103 | managed | true | GitHub profile repository
 claude-switcher-setup | archive | false | legacy Codex integration workspace pending archive review
-codex-claude | archive | false | legacy AI Project Manager build pending archive review
