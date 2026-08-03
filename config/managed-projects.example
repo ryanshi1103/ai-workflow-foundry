@@ -1,0 +1,17 @@
+# cc project views and safe local update policy
+# Format: PROJECT_NAME | PICKER_GROUP | AUTO_UPDATE | REASON
+#
+# PICKER_GROUP:
+#   primary  — shown in the main cc project picker
+#   managed  — kept locally for publishing/integration, shown in a secondary picker
+#   archive  — legacy review workspace, shown in the same secondary picker
+#
+# AUTO_UPDATE only performs a clean, fast-forward update from the configured
+# Git upstream. Dirty, ahead, diverged, missing, and non-Git directories are
+# reported and left untouched.
+
+ai-workflow-foundry | primary | true | AI workflow flagship
+ai-workspace-manager | managed | true | portable public snapshot of the private source project
+confera-media-skills | managed | true | separately versioned public extension pack
+feedback-analysis-system | managed | true | public product snapshot
+print-ready-nameplate-generator | managed | true | public reference workflow
