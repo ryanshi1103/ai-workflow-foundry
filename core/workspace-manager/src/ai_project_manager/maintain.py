@@ -35,6 +35,7 @@ from .auto_name import (
 CONFIG_DIR = Path.home() / ".config" / "cc-projects"
 MAINTENANCE_CONF = CONFIG_DIR / "maintenance.conf"
 PROTECTED_LIST = CONFIG_DIR / "protected-projects"
+MANAGED_PROJECTS_LIST = CONFIG_DIR / "managed-projects"
 STATE_DIR = Path.home() / ".local" / "state" / "cc-projects"
 QUARANTINE_DIR = PROJECTS_ROOT / "_trash-review"
 QUARANTINE_INDEX = STATE_DIR / "quarantine-index.jsonl"
@@ -52,6 +53,7 @@ DEFAULT_CONFIG = {
     "AUTO_MERGE_DUPLICATES": "true",
     "AUTO_QUARANTINE_LOW_VALUE": "true",
     "AUTO_PURGE_AFTER_RETENTION": "true",
+    "AUTO_SYNC_MANAGED": "true",
     "DRY_RUN": "false",
     "QUICK_CRON": "weekly",
     "DEEP_CRON": "monthly",
@@ -96,6 +98,130 @@ def load_protected() -> set:
         except OSError:
             pass
     return protected
+
+
+def load_managed_projects() -> list[dict]:
+    """Load cc picker groups and safe local update policy.
+
+    Lines use ``NAME | GROUP | AUTO_UPDATE | REASON``. Invalid project names
+    are ignored so configuration can never escape the direct Projects root.
+    """
+    projects = []
+    if not MANAGED_PROJECTS_LIST.exists():
+        return projects
+    try:
+        lines = MANAGED_PROJECTS_LIST.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return projects
+
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        fields = [field.strip() for field in line.split("|", 3)]
+        if len(fields) < 3:
+            continue
+        name, group, auto_update = fields[:3]
+        reason = fields[3] if len(fields) == 4 else ""
+        if not name or name in {".", ".."} or "/" in name or "\\" in name:
+            continue
+        if group not in {"primary", "managed", "archive"}:
+            group = "primary"
+        projects.append({
+            "name": name,
+            "group": group,
+            "auto_update": auto_update.lower() in {"1", "true", "yes", "on"},
+            "reason": reason,
+        })
+    return projects
+
+
+def _run_git(project_dir: Path, args: list[str], timeout: int = 60) -> subprocess.CompletedProcess:
+    """Run Git without prompts so timers cannot hang waiting for credentials."""
+    env = {
+        **os.environ,
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_TERMINAL_PROMPT": "0",
+    }
+    return subprocess.run(
+        ["git", "-C", str(project_dir), *args],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        env=env,
+    )
+
+
+def sync_managed_projects(dry_run: bool = False) -> list[dict]:
+    """Safely fast-forward configured local Git repositories.
+
+    No dirty, ahead, detached, untracked-upstream, or diverged repository is
+    modified. A dry run does not fetch and only reports the currently known
+    upstream relationship.
+    """
+    results = []
+    root = PROJECTS_ROOT.resolve()
+    for entry in load_managed_projects():
+        if not entry["auto_update"]:
+            continue
+        project_dir = (root / entry["name"]).resolve()
+        result = {"name": entry["name"], "group": entry["group"]}
+        if project_dir.parent != root or not project_dir.is_dir():
+            results.append({**result, "status": "missing"})
+            continue
+        if not (project_dir / ".git").exists():
+            results.append({**result, "status": "not-git"})
+            continue
+
+        try:
+            dirty = _run_git(project_dir, ["status", "--porcelain"])
+            if dirty.returncode != 0:
+                results.append({**result, "status": "error", "detail": dirty.stderr.strip()})
+                continue
+            if dirty.stdout.strip():
+                results.append({**result, "status": "dirty"})
+                continue
+
+            branch = _run_git(project_dir, ["symbolic-ref", "--quiet", "--short", "HEAD"])
+            if branch.returncode != 0:
+                results.append({**result, "status": "detached"})
+                continue
+            upstream = _run_git(project_dir, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"])
+            if upstream.returncode != 0:
+                results.append({**result, "status": "no-upstream"})
+                continue
+
+            if not dry_run:
+                fetched = _run_git(project_dir, ["fetch", "--prune"], timeout=120)
+                if fetched.returncode != 0:
+                    results.append({**result, "status": "fetch-error", "detail": fetched.stderr.strip()})
+                    continue
+
+            counts = _run_git(project_dir, ["rev-list", "--left-right", "--count", "HEAD...@{upstream}"])
+            if counts.returncode != 0:
+                results.append({**result, "status": "error", "detail": counts.stderr.strip()})
+                continue
+            ahead_text, behind_text = counts.stdout.split()
+            ahead, behind = int(ahead_text), int(behind_text)
+            if ahead:
+                status = "diverged" if behind else "ahead"
+                results.append({**result, "status": status, "ahead": ahead, "behind": behind})
+                continue
+            if not behind:
+                results.append({**result, "status": "up-to-date"})
+                continue
+            if dry_run:
+                results.append({**result, "status": "would-update", "behind": behind})
+                continue
+
+            merged = _run_git(project_dir, ["merge", "--ff-only", "@{upstream}"])
+            if merged.returncode == 0:
+                results.append({**result, "status": "updated", "behind": behind})
+            else:
+                results.append({**result, "status": "merge-error", "detail": merged.stderr.strip()})
+        except (OSError, subprocess.SubprocessError, ValueError) as exc:
+            results.append({**result, "status": "error", "detail": str(exc)})
+    return results
 
 
 def is_protected(project_path: Path, protected: set) -> bool:
@@ -632,6 +758,7 @@ def quick_maintenance(dry_run: bool = False) -> dict:
         "duplicate_logs": [],
         "name_suggestions": [],
         "active_sessions": [],
+        "managed_sync": [],
     }
 
     # 1. Clean recent projects (remove non-existent)
@@ -698,7 +825,12 @@ def quick_maintenance(dry_run: bool = False) -> dict:
             for f in entry.glob(pattern):
                 report["test_residuals"].append(str(f))
 
-    # 6. Generate projects index
+    # 6. Safely fast-forward managed publishing/integration repositories.
+    config = load_config()
+    if config.get("AUTO_SYNC_MANAGED", "true").lower() == "true":
+        report["managed_sync"] = sync_managed_projects(dry_run=dry_run)
+
+    # 7. Generate projects index
     if not dry_run:
         generate_projects_index()
 
@@ -990,8 +1122,24 @@ def _protection_reason(name: str, is_protected: bool) -> str:
     """Explain why a project is protected."""
     if not is_protected:
         return ""
-    infra = {'codex-claude', 'claude-switcher-setup', 'ai-project-workspace-manager'}
-    user_projects = {'meeting-media-auto', 'phone-control', 'Hunan-University-Motivation-PPT'}
+    infra = {
+        'codex-claude',
+        'claude-switcher-setup',
+        'ai-project-workspace-manager',
+        'ai-workflow-foundry',
+        'ai-workspace-manager',
+    }
+    user_projects = {
+        'meeting-media-auto',
+        'meeting-media-desktop',
+        'phone-control',
+        'PhotoTransform',
+        'Hunan-University-Motivation-PPT',
+        'confera-media-skills',
+        'feedback-analysis-system',
+        'print-ready-nameplate-generator',
+        'ryanshi1103',
+    }
     if name in infra:
         return "核心基础设施"
     if name in user_projects:
@@ -1079,6 +1227,8 @@ def run_maintenance(mode: str, dry_run: bool = False) -> dict:
         return deep_maintenance(dry_run=dry_run)
     elif mode == "report":
         return generate_projects_index()
+    elif mode == "sync-managed":
+        return {"managed_sync": sync_managed_projects(dry_run=dry_run)}
     elif mode == "purge-quarantine":
         config = load_config()
         if config.get("AUTO_PURGE_AFTER_RETENTION", "true").lower() != "true" and not dry_run:
@@ -1091,15 +1241,16 @@ def run_maintenance(mode: str, dry_run: bool = False) -> dict:
 def _write_default_config() -> None:
     """Write default maintenance.conf."""
     ensure_dir(CONFIG_DIR)
-    content = f"""# cc-projects maintenance configuration
+    content = """# cc-projects maintenance configuration
 # Edit this file to customize behavior.
 
-PROJECTS_ROOT="{Path.home() / 'Projects'}"
+PROJECTS_ROOT="$HOME/Projects"
 QUARANTINE_DAYS=14
 AUTO_RENAME_PLACEHOLDERS=true
 AUTO_MERGE_DUPLICATES=true
 AUTO_QUARANTINE_LOW_VALUE=true
 AUTO_PURGE_AFTER_RETENTION=true
+AUTO_SYNC_MANAGED=true
 DRY_RUN=false
 """
     try:
@@ -1127,8 +1278,10 @@ def _write_default_protected_list() -> None:
             # Auto-protect core infrastructure
             if any(kw in name.lower() for kw in [
                 'claude-switcher', 'codex-claude',
+                'ai-workflow-foundry', 'ai-workspace-manager',
                 'meeting-media-auto', 'phone-control',
-                'hunan-university',
+                'hunan-university', 'confera-media-skills',
+                'feedback-analysis-system', 'print-ready-nameplate-generator',
             ]):
                 protected.append(name)
 
