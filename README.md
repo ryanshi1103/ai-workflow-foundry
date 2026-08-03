@@ -12,6 +12,14 @@ model—keeps control of files, commands, approvals, finalization, and export.
 核心不是“让 AI 自动剪片”，而是把 AI 限制为“提出有证据的候选方案”；原素材、
 工具执行、审核和导出仍由受信任程序及人工控制。
 
+## FlowFoundry AI relationship
+
+This pack is cataloged by
+[FlowFoundry AI](https://github.com/ryanshi1103/ai-workflow-foundry) as a
+compatible media workflow extension. It stays independently versioned and does
+not claim that copying a skill installs the FlowFoundry runtime or the full
+Confera application.
+
 ## The core idea
 
 ```text
