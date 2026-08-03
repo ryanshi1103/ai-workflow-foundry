@@ -7,6 +7,8 @@ exercise real behavior.
 我专注于本地优先的软件、实用自动化和可恢复的系统工具。
 
 <p align="center">
+  <a href="https://github.com/ryanshi1103/ai-workspace-manager"><img src="https://raw.githubusercontent.com/ryanshi1103/ai-workspace-manager/main/branding/logo.png" width="76" alt="AI Workspace Manager"></a>
+  &nbsp;&nbsp;&nbsp;
   <a href="https://github.com/ryanshi1103/grub-minimal-focus-theme"><img src="https://raw.githubusercontent.com/ryanshi1103/grub-minimal-focus-theme/main/branding/logo.png" width="76" alt="Minimal Focus"></a>
   &nbsp;&nbsp;&nbsp;
   <a href="https://github.com/ryanshi1103/feedback-analysis-system"><img src="https://raw.githubusercontent.com/ryanshi1103/feedback-analysis-system/main/branding/logo.png" width="76" alt="Feedback Analysis System"></a>
@@ -21,6 +23,15 @@ exercise real behavior.
 </p>
 
 ## Selected work
+
+### [AI Workspace Manager](https://github.com/ryanshi1103/ai-workspace-manager)
+
+A local-first launcher and project maintenance system for Claude, DeepSeek, and
+Codex. It keeps one authoritative project root, exposes explicit permission
+modes, supports recoverable sessions, and ships with 108 shell/Python regression
+checks in its portable public snapshot.
+
+`Python` `Shell` `Codex` `Claude Code` `Project management` `Local-first`
 
 ### [Minimal Focus GRUB Theme](https://github.com/ryanshi1103/grub-minimal-focus-theme)
 
