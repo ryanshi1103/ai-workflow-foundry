@@ -70,7 +70,9 @@
 | `feedback-analysis-system` | 公开 | Python/Streamlit 数据应用；干净发布快照、90 项测试 |
 | `oppo-phone-control` | 公开 | Android/ADB 防御性自动化工具 |
 | `ai-project-workspace-manager` | 私有 | 核心工具；待脱敏本机路径和运维文档后再评估公开 |
-| `hunan-four-universities-presentation` | 私有、待重试推送 | 演示设计；待补全逐图许可记录 |
+| `hunan-four-universities-presentation` | 私有 | 演示设计；已上传，待补全逐图许可记录后再评估公开 |
+| `huiying-media-workbench` | 私有 | 会映 Linux/Web 研发仓库；496 项严格测试通过后上传 |
+| `huiying-desktop-release` | 私有 | 会映 Windows/Android 商业发行候选；保留产品与基线分支 |
 | `taobao-auto-shop` | 私有 | 未验证原型，不进入公开作品集 |
 
 公开主页文案的源文件为 [GitHub Portfolio](GITHUB-PORTFOLIO.md)。
