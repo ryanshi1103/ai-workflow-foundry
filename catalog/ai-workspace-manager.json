@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "id": "ai-workspace-manager",
+  "display_name": "AI Workspace Manager",
+  "summary": "Local project, permission, session recovery, and workspace maintenance runtime for multiple AI coding tools.",
+  "kind": "core-runtime",
+  "maturity": "beta",
+  "source": {
+    "url": "https://github.com/ryanshi1103/ai-workspace-manager",
+    "license": "MIT"
+  },
+  "integration": {
+    "mode": "bundled",
+    "bundled_path": "core/workspace-manager"
+  },
+  "capabilities": [
+    "project lifecycle",
+    "explicit permission modes",
+    "recoverable AI sessions",
+    "retention-aware workspace maintenance"
+  ],
+  "design_patterns": [
+    "authoritative project root",
+    "explicit confirmation for elevated actions",
+    "backup-first deployment",
+    "redacted session records"
+  ],
+  "lifecycle": {
+    "stages": ["select project", "select tool", "confirm permission", "run session", "finalize or recover"],
+    "approvals": ["full-access confirmation"]
+  },
+  "safety": {
+    "local_first": true,
+    "preserves_originals": true,
+    "review_before_side_effects": true,
+    "secrets": "local-user-config",
+    "network": "Only the selected AI provider and explicitly configured integrations may use the network."
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ryanshi1103/ai-workflow-foundry/schemas/workflow-component.schema.json",
+  "title": "FlowFoundry Component Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "display_name", "summary", "kind", "maturity", "source", "integration", "capabilities", "design_patterns", "lifecycle", "safety"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "display_name": {"type": "string", "minLength": 1},
+    "summary": {"type": "string", "minLength": 1},
+    "kind": {"enum": ["core-runtime", "workflow-pack", "reference-application", "reference-workflow"]},
+    "maturity": {"enum": ["experimental", "alpha", "beta", "stable"]},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "license"],
+      "properties": {
+        "url": {"type": "string", "pattern": "^https://github\\.com/"},
+        "license": {"type": "string", "minLength": 1}
+      }
+    },
+    "integration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["bundled", "compatible-extension", "reference-application", "reference-workflow"]},
+        "bundled_path": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"}
+      }
+    },
+    "capabilities": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "design_patterns": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stages", "approvals"],
+      "properties": {
+        "stages": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "approvals": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["local_first", "preserves_originals", "review_before_side_effects", "secrets", "network"],
+      "properties": {
+        "local_first": {"type": "boolean"},
+        "preserves_originals": {"type": "boolean"},
+        "review_before_side_effects": {"type": "boolean"},
+        "secrets": {"enum": ["none", "environment", "local-user-config"]},
+        "network": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

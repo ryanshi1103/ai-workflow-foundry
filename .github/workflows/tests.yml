@@ -1,0 +1,36 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate catalog
+        run: PYTHONPATH=src python3 -m flowfoundry validate
+      - name: Run foundation tests
+        run: PYTHONPATH=src python3 -m unittest discover -s tests -v
+
+  workspace-runtime:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: core/workspace-manager
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: ./tests/test-cc.sh
+      - run: ./tests/test-cc-eof-fix.sh
+      - run: ./tests/test-deploy-profile-preservation.sh
+      - run: PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v
