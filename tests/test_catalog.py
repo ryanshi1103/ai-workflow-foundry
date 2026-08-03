@@ -28,10 +28,22 @@ class CatalogTests(unittest.TestCase):
         ids = [component["id"] for component in components]
         self.assertEqual(len(ids), len(set(ids)))
 
-    def test_only_workspace_runtime_is_bundled(self) -> None:
+    def test_all_cataloged_components_are_physically_bundled(self) -> None:
         components = load_catalog()
-        bundled = [item["id"] for item in components if item["integration"]["mode"] == "bundled"]
-        self.assertEqual(bundled, ["ai-workspace-manager"])
+        bundled = {
+            item["id"]: item["integration"].get("bundled_path")
+            for item in components
+            if item["integration"]["mode"] == "bundled"
+        }
+        self.assertEqual(
+            bundled,
+            {
+                "ai-workspace-manager": "core/workspace-manager",
+                "confera-media-skills": "components/confera-media-skills",
+                "feedback-analysis-system": "applications/feedback-analysis-system",
+                "print-ready-nameplate-generator": "workflows/print-ready-nameplate-generator",
+            },
+        )
 
     def test_get_known_component(self) -> None:
         component = get_component("feedback-analysis-system")
@@ -55,6 +67,7 @@ class CatalogTests(unittest.TestCase):
 
     def test_external_component_cannot_claim_bundled_path(self) -> None:
         component = copy.deepcopy(get_component("confera-media-skills"))
+        component["integration"]["mode"] = "compatible-extension"
         component["integration"]["bundled_path"] = "packs/media"
         with self.assertRaisesRegex(CatalogError, "only bundled"):
             validate_component(component)

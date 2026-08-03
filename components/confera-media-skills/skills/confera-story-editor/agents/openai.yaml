@@ -1,0 +1,4 @@
+interface:
+  display_name: "Confera Story Editor"
+  short_description: "Propose an evidence-bound storyboard"
+  default_prompt: "Use $confera-story-editor to propose a new storyboard candidate from these reviewed excerpts and metadata."

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Print-ready Nameplate Generator</title>
+  <desc id="desc">A folded desk nameplate on a printable sheet</desc>
+  <rect width="512" height="512" rx="112" fill="#3c1020"/>
+  <rect x="92" y="72" width="328" height="368" rx="28" fill="#fffaf0"/>
+  <path d="M132 146h248M132 366h248" stroke="#d5b06c" stroke-width="14" stroke-linecap="round"/>
+  <path d="M142 316l114-156 114 156z" fill="#8b1936"/>
+  <path d="M142 316h228l-114 60z" fill="#be8d49"/>
+  <rect x="210" y="224" width="92" height="18" rx="9" fill="#fffaf0"/>
+  <rect x="190" y="258" width="132" height="13" rx="6.5" fill="#f0d7a3"/>
+</svg>
