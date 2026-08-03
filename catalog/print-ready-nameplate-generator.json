@@ -10,7 +10,8 @@
     "license": "MIT"
   },
   "integration": {
-    "mode": "reference-workflow"
+    "mode": "bundled",
+    "bundled_path": "workflows/print-ready-nameplate-generator"
   },
   "capabilities": [
     "validated tabular input",

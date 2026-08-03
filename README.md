@@ -5,9 +5,10 @@
 <h1 align="center">FlowFoundry AI</h1>
 <p align="center"><strong>Local-first foundations for AI work that stays reviewable, recoverable, and reusable.</strong></p>
 
-FlowFoundry AI is an open foundation for designing and operating bounded AI
-workflows. It combines a real project/workspace runtime with a small, validated
-catalog contract for workflow packs and reference applications. The product is
+FlowFoundry AI is an open, integrated foundation for designing and operating
+bounded AI workflows. It combines a real project/workspace runtime with media
+skills, a feedback-intelligence application, deterministic document automation,
+and a validated component contract in one repository. The product is
 broader than one phone, one model, or one content type: it focuses on the
 lifecycle shared by useful AI work.
 
@@ -19,16 +20,17 @@ lifecycle shared by useful AI work.
 
 - A bundled, tested workspace runtime for Claude, DeepSeek, and Codex under
   [`core/workspace-manager`](core/workspace-manager/README.md).
-- A dependency-free catalog validator and CLI for describing related workflow
-  packs, applications, their maturity, and safety boundaries.
-- Four cataloged components with explicit integration modes instead of claims
-  that unrelated repositories are one executable.
+- Three physically integrated workflow components with their original Git
+  histories: Confera Media Skills, Feedback Analysis System, and the
+  Print-ready Nameplate Generator.
+- A dependency-free catalog validator and CLI that verifies all four bundled
+  component paths, maturity declarations, and safety boundaries.
 - A generic component schema, product architecture, project-pattern audit, and
   staged roadmap toward a reusable workflow runner.
 
-This is a foundation release, not yet a universal workflow executor or a single
-graphical application. The catalog distinguishes bundled code, compatible
-extensions, reference applications, and reference workflows.
+This is an integrated monorepo, not a claim that every component shares one UI
+or dependency environment. Components retain explicit boundaries and can still
+be released independently from their monorepo paths.
 
 ## Product architecture
 
@@ -54,12 +56,13 @@ real project + controlled inputs
 | Layer | Component | Relationship |
 |---|---|---|
 | Core runtime | [AI Workspace Manager](core/workspace-manager/README.md) | Bundled with preserved Git history |
-| Media workflow pack | [Confera Media Skills](https://github.com/ryanshi1103/confera-media-skills) | Compatible extension; independently versioned |
-| Customer intelligence | [Feedback Analysis System](https://github.com/ryanshi1103/feedback-analysis-system) | Reference application; independently deployable |
-| Document automation | [Print-ready Nameplate Generator](https://github.com/ryanshi1103/print-ready-nameplate-generator) | Reference workflow; independently deployable |
+| Media workflow pack | [Confera Media Skills](components/confera-media-skills/README.md) | Bundled under `components/` with preserved history |
+| Customer intelligence | [Feedback Analysis System](applications/feedback-analysis-system/README.md) | Bundled under `applications/`; independently runnable |
+| Document automation | [Print-ready Nameplate Generator](workflows/print-ready-nameplate-generator/README.md) | Bundled under `workflows/`; independently runnable |
 
-These projects are connected by contracts and design principles. They remain
-separate where their users, release cycles, dependencies, or licensing differ.
+The monorepo is the canonical integration point. Component boundaries remain
+because users, dependencies, licensing, and release artifacts differ—not
+because the code lives in unrelated local projects.
 
 ## Try the catalog
 
@@ -106,10 +109,22 @@ cd core/workspace-manager
 ./tests/test-cc-eof-fix.sh
 ./tests/test-deploy-profile-preservation.sh
 PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v
+
+# From the repository root: bundled component contract tests
+python3 -m unittest discover -s components/confera-media-skills/tests -v
+python3 -m unittest discover -s workflows/print-ready-nameplate-generator/tests -v
+
+# Feedback application (after installing its dev dependencies)
+python3 -m pip install -e "applications/feedback-analysis-system[dev]"
+ruff check applications/feedback-analysis-system/src \
+  applications/feedback-analysis-system/tests \
+  applications/feedback-analysis-system/app.py \
+  applications/feedback-analysis-system/pages
+pytest applications/feedback-analysis-system/tests -q
 ```
 
 ## License
 
 FlowFoundry AI is MIT licensed. Bundled components retain their own license
-files. External catalog entries are links and are governed by their respective
-repositories.
+files and notices; the Feedback Analysis component keeps its more restrictive
+learning/internal-use terms.
