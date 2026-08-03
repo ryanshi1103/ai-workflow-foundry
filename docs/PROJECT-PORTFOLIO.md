@@ -32,7 +32,7 @@ AI 工作流的公开、脱敏、可复用代码统一进入 FlowFoundry monorep
 | 组合 | 项目 | 结论 |
 |---|---|---|
 | AI 工具基础设施 | `ai-project-workspace-manager` | 唯一源码与部署真源，继续保留 |
-| AI 工具遗留工作区 | `claude-switcher-setup`、`codex-claude` | 内容已进入主项目或属于早期构建，核验后归档 |
+| AI 工具遗留工作区 | `claude-switcher-setup` | 含独有网络修复记录与本机配置，继续隔离于主线但暂不删除 |
 | 会映产品线 | `meeting-media-auto`、`meeting-media-desktop` | 前者为 Linux/Web 研发工作台，后者为 Windows/Android 发行仓库，两者不是重复项目 |
 | 设备与数据 | `PhotoTransform`、`phone-control` | 分别负责照片安全归档和 OPPO 手机优化 |
 | 内容与视觉交付 | `A`、`Hunan-University-Motivation-PPT`、`System` | 分别为营地印刷物料、湖南四校演示、GRUB 主题 |
@@ -51,7 +51,6 @@ AI 工作流的公开、脱敏、可复用代码统一进入 FlowFoundry monorep
 | `VPN` | Shadowrocket VPN 部署工具 | `shadowrocket-vpn-deployment` | 建议改名；现名过泛 |
 | `ai-project-workspace-manager` | AI Project Workspace Manager | `ai-project-workspace-manager` | 保持不变；设为核心基础设施 |
 | `claude-switcher-setup` | Codex 接入会话归档 | `codex-integration-session-archive` | 不建议先改名；确认主项目已完整吸收后进入隔离区 |
-| `codex-claude` | AI Project Manager 早期构建 | `ai-project-manager-legacy` | 先核对未合并文件，再归档或按此名保留 |
 | `meeting-media-auto` | 会映 Linux/Web 工作台 | `huiying-media-workbench` | 产品品牌稳定后改名；注意同步部署路径与文档 |
 | `meeting-media-desktop` | 会映桌面发行项目 | `huiying-desktop-release` | 与工作台分开保留；包含 Windows 和 Android 发行工作 |
 | `phone-control` | OPPO 手机控制与优化 | `oppo-phone-control` | 建议改名；README 中残留的 `phone-cleaner` 结构说明需同步修订 |
@@ -63,8 +62,8 @@ AI 工作流的公开、脱敏、可复用代码统一进入 FlowFoundry monorep
 1. `A` 中的 `taobao-auto-shop` 已无损拆为独立顶层项目；剩余印刷物料仓库应在
    未提交工作得到保全后命名为 `camp-print-materials`。
 2. 再处理三个泛化或失真的目录名：`PhotoTransform`、`System`、`VPN`。
-3. 核验 `claude-switcher-setup` 和 `codex-claude` 相对
-   `ai-project-workspace-manager` 的唯一文件；只在确认合并完成后归档。
+3. `codex-claude` 已核验为 AI Project Manager 的早期构建：源码没有当前项目缺失项，
+   2026-08-04 已移入隔离区。`claude-switcher-setup` 仍含独有网络修复资料，继续保留。
 4. 最后统一产品线名称。会映两个仓库存在部署脚本、数据路径和文档引用，改名应在
    工作区干净并完成引用搜索后进行。
 5. 每次只改一个项目；改名前提交或备份未提交工作，改后同步 README、项目元数据、
@@ -75,10 +74,20 @@ AI 工作流的公开、脱敏、可复用代码统一进入 FlowFoundry monorep
 - 多数项目存在未提交或未跟踪文件；本次盘点不执行目录移动或重命名。
 - `A` 的项目边界混杂已解除，但仓库仍有大量未提交交付物，暂不改根目录名。
 - `System` 外层没有 README，真实 GRUB 项目多嵌套一层，容易被维护器误判。
-- `claude-switcher-setup` 和 `codex-claude` 的 README 仍是自动生成占位内容，
-  不应继续作为活跃基础设施入口。
+- `claude-switcher-setup` 的 README 仍是自动生成占位内容，但目录内有独有网络修复
+  资料和本机配置；不作为活跃基础设施入口，也不在未经复核时删除。
 - `_trash-review/20260801/phone-photo-archive` 是照片归档会话残留；真实成果在
   `PhotoTransform`，当前隔离方向合理，但不应在未复核保留期前删除。
+
+## 无价值副本清理（2026-08-04）
+
+- 永久清除 `_trash-review/20260713-round2`：其中三个旧工程已在 Round 2 完成归并。
+- 永久清除 `_trash-review/20260803/integrated-flowfoundry`：四个干净克隆的提交历史
+  已进入 FlowFoundry，且远端仓库仍可重新获取。
+- `codex-claude` 的 3 个同名源码文件与当前项目一致，其余 10 个为旧版本，当前源码
+  没有缺失文件；由于该旧目录无 Git 提交，先移动到
+  `_trash-review/20260804/codex-claude-legacy`，保留恢复窗口。
+- 保留 `_trash-review/20260801/phone-photo-archive`，避免提前销毁照片相关材料。
 
 ## GitHub 作品集状态
 
