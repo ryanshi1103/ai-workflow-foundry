@@ -8,7 +8,6 @@
 ai-project-workspace-manager | infrastructure | cc、AI Project Manager 与维护器源码真源
 ai-workflow-foundry | infrastructure | AI 工作流旗舰平台与跨产品契约
 ai-workspace-manager | public-core | Workspace Manager 公开可移植快照
-codex-claude | legacy-review | 早期 AI Project Manager 构建，合并核验前保留
 claude-switcher-setup | legacy-review | Codex 接入会话，归档核验前保留
 
 # User projects with real deliverables
