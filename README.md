@@ -13,6 +13,14 @@ maintenance of a `~/Projects` workspace.
 Codex 使用同一个真实项目目录，提供清晰的权限选择、会话恢复、自动命名、项目
 盘点和定期维护，并把危险操作限制在明确的项目根目录内。
 
+## FlowFoundry AI relationship
+
+This repository is the bundled core runtime of
+[FlowFoundry AI](https://github.com/ryanshi1103/ai-workflow-foundry). It remains
+independently installable and versioned; FlowFoundry adds a broader component
+catalog and workflow architecture around its project, permission, and recovery
+foundation.
+
 ## Components
 
 - `cc`: interactive project/tool/permission launcher.
