@@ -234,9 +234,12 @@ verify_fail() { echo "   ✗ $1"; VERIFY_FAIL=$((VERIFY_FAIL+1)); }
 bash -n "$HOME/.local/bin/cc" 2>/dev/null && verify_pass "cc bash syntax OK" || verify_fail "cc bash syntax ERROR"
 bash -n "$HOME/.local/bin/cc-projects-maintain" 2>/dev/null && verify_pass "maintenance bash syntax OK" || verify_fail "maintenance bash syntax ERROR"
 
-grep -q 'ai-workspace-manager.*managed.*true' "$HOME/.config/cc-projects/managed-projects" \
-    && verify_pass "managed project policy deployed" \
-    || verify_fail "managed project policy missing"
+if grep -q 'ai-workflow-foundry.*primary.*true' "$HOME/.config/cc-projects/managed-projects" \
+    && grep -q 'ai-project-workspace-manager.*managed.*false' "$HOME/.config/cc-projects/managed-projects"; then
+    verify_pass "integrated project policy deployed"
+else
+    verify_fail "integrated project policy missing"
+fi
 
 # Codex menu present
 grep -q 'o   OpenAI Codex' "$HOME/.local/bin/cc" && verify_pass "Codex menu entry present" || verify_fail "Codex menu entry MISSING"
