@@ -76,3 +76,10 @@
 | `taobao-auto-shop` | 私有 | 未验证原型，不进入公开作品集 |
 
 公开主页文案的源文件为 [GitHub Portfolio](GITHUB-PORTFOLIO.md)。
+
+GitHub 账号 `ryanshi1103` 的公开简介已设置为：
+“Building local-first software, safety-conscious automation, and practical system tools.”
+三个精选公开仓库均已采用小写 `kebab-case` 命名，具备仓库简介、README 与
+`branding/logo.png`。GitHub 的 `Projects` 标签是项目看板，不是代码仓库列表；
+作品应从 `Repositories` 查看。个人主页置顶仓库需要在 GitHub 网页端通过
+`Customize your pins` 设置，公开 API 不提供该写操作。
