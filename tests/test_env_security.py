@@ -8,14 +8,14 @@ class TestEnvSecurity:
 
     def test_api_key_not_in_config_str(self):
         """API key should not appear in config string representations."""
-        os.environ["DEEPSEEK_API_KEY"] = "sk-super-secret-test-key-12345"
+        os.environ["DEEPSEEK_API_KEY"] = "deepseek-test-key-not-a-secret"
         import importlib
 
         import src.config
 
         importlib.reload(src.config)
 
-        assert src.config.DEEPSEEK_API_KEY == "sk-super-secret-test-key-12345"
+        assert src.config.DEEPSEEK_API_KEY == "deepseek-test-key-not-a-secret"
         # But ensure we don't accidentally log it — the config module
         # itself doesn't have a __str__, but let's verify values are correct
 
