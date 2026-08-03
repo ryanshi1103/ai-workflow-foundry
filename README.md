@@ -12,6 +12,14 @@ two-cards-per-page print files while preserving editable text and vector shapes.
 同时提供单个版和两拼版。公开仓库只包含通用程序和虚构示例，不包含真实学生
 名单、手写照片或交付文件。
 
+## FlowFoundry AI relationship
+
+This project is cataloged by
+[FlowFoundry AI](https://github.com/ryanshi1103/ai-workflow-foundry) as an
+independent reference workflow. Its deterministic geometry, input validation,
+safe filenames, and real LibreOffice acceptance process are reusable patterns;
+the generator remains a focused product with its own release cycle.
+
 ## What it solves
 
 - Avoids manually copying dozens of names into a slide template.
