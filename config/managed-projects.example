@@ -11,10 +11,8 @@
 # reported and left untouched.
 
 ai-workflow-foundry | primary | true | AI workflow flagship
-ai-workspace-manager | managed | true | portable public snapshot of the private source project
-confera-media-skills | managed | true | separately versioned public extension pack
-feedback-analysis-system | managed | true | public product snapshot
-print-ready-nameplate-generator | managed | true | public reference workflow
+ai-project-workspace-manager | managed | false | private deployment source for the bundled workspace runtime
+social-negative-monitor | managed | false | private feedback source and data workspace
 ryanshi1103 | managed | true | GitHub profile repository
 claude-switcher-setup | archive | false | legacy Codex integration workspace pending archive review
 codex-claude | archive | false | legacy AI Project Manager build pending archive review
