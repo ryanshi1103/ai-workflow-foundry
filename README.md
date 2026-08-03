@@ -101,8 +101,9 @@ ai-project-workspace-manager/
 
 跨项目的共享能力已整理为公开旗舰
 [FlowFoundry AI](https://github.com/ryanshi1103/ai-workflow-foundry)：只将真实共享的
-Workspace Manager 底座物理纳入，Confera、反馈分析和文档自动化通过明确契约关联，
-Android、GRUB、演示与实验项目继续保持独立边界。
+Workspace Manager、Confera Media Skills、反馈分析应用和姓名牌文档工作流均已连同
+原始 Git 历史物理纳入统一 monorepo。私有会映产品、真实数据工作区、Android、
+GRUB、演示与实验项目继续保持独立边界。
 
 ## 许可证
 

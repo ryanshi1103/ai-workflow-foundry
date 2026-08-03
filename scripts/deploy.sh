@@ -126,12 +126,8 @@ chmod +x "$HOME/.local/bin/cc-projects-maintain"
 echo "   ✓ cc-projects-maintain deployed"
 
 mkdir -p "$HOME/.config/cc-projects"
-if [[ ! -f "$HOME/.config/cc-projects/managed-projects" ]]; then
-    cp -v "$PROJECT_ROOT/config/managed-projects.example" "$HOME/.config/cc-projects/managed-projects"
-    echo "   ✓ managed project policy installed"
-else
-    echo "   ~ managed project policy preserved"
-fi
+cp -v "$PROJECT_ROOT/config/managed-projects.example" "$HOME/.config/cc-projects/managed-projects"
+echo "   ✓ source-managed project policy deployed (previous version is in the deployment backup)"
 echo ""
 
 # ─── 2. Deploy Codex profiles ────────────────────────────────────────────────
