@@ -243,9 +243,38 @@ project_indicators() {
     echo "$indicators"
 }
 
+# Project view policy. Publishing mirrors and legacy review workspaces stay
+# available without crowding the primary project picker.
+MANAGED_PROJECTS_FILE="${CC_MANAGED_PROJECTS_FILE:-$HOME/.config/cc-projects/managed-projects}"
+
+project_picker_group() {
+    local project_name="$1"
+    local configured_name configured_group _rest
+
+    if [[ -f "$MANAGED_PROJECTS_FILE" ]]; then
+        while IFS='|' read -r configured_name configured_group _rest; do
+            configured_name="${configured_name#"${configured_name%%[![:space:]]*}"}"
+            configured_name="${configured_name%"${configured_name##*[![:space:]]}"}"
+            [[ -n "$configured_name" && "$configured_name" != \#* ]] || continue
+            configured_group="${configured_group#"${configured_group%%[![:space:]]*}"}"
+            configured_group="${configured_group%"${configured_group##*[![:space:]]}"}"
+            if [[ "$configured_name" == "$project_name" ]]; then
+                case "$configured_group" in
+                    managed|archive) echo "managed" ;;
+                    *) echo "primary" ;;
+                esac
+                return 0
+            fi
+        done < "$MANAGED_PROJECTS_FILE"
+    fi
+
+    echo "primary"
+}
+
 # ─── Helper: browse ~/Projects subdirectories ──────────────────────────────
 browse_projects_dir() {
     local projects_dir="$HOME/Projects"
+    local requested_group="${1:-primary}"
 
     if [[ ! -d "$projects_dir" ]]; then
         echo ""
@@ -256,17 +285,29 @@ browse_projects_dir() {
     # Collect subdirectories: git repos first, then others, filter timestamp session dirs
     local git_dirs=()
     local normal_dirs=()
-    local d name
+    local d name picker_group
+    local managed_count=0
 
     for d in "$projects_dir"/*/; do
         [[ -d "$d" ]] || continue
         name="$(basename "$d")"
+        # Infrastructure/quarantine directories are never launchable projects.
+        if [[ "$name" == _* || "$name" == .* ]]; then
+            continue
+        fi
         # Skip timestamp session directories
         if is_timestamp_session_dir "$name"; then
             continue
         fi
         # Skip recovery directory
         if [[ "$name" == "_recovery-review" ]]; then
+            continue
+        fi
+        picker_group="$(project_picker_group "$name")"
+        if [[ "$picker_group" == "managed" ]]; then
+            managed_count=$((managed_count + 1))
+        fi
+        if [[ "$picker_group" != "$requested_group" ]]; then
             continue
         fi
         if has_git "$d"; then
@@ -285,7 +326,11 @@ browse_projects_dir() {
     fi
 
     echo ""
-    echo "~/Projects 中的项目 (Git 仓库优先):"
+    if [[ "$requested_group" == "managed" ]]; then
+        echo "托管发布与归档目录 (Git 仓库优先):"
+    else
+        echo "~/Projects 中的主项目 (Git 仓库优先):"
+    fi
     echo ""
     local i=1
     for d in "${all_dirs[@]}"; do
@@ -297,6 +342,9 @@ browse_projects_dir() {
         printf "      %s\n" "$d_clean"
         ((i++))
     done
+    if [[ "$requested_group" == "primary" && "$managed_count" -gt 0 ]]; then
+        echo "   m  托管发布/归档目录 (${managed_count})"
+    fi
     echo "   b  返回上一级"
     echo ""
 
@@ -304,6 +352,11 @@ browse_projects_dir() {
 
     if [[ "$NUM" == "b" || "$NUM" == "B" ]]; then
         return 1
+    fi
+
+    if [[ "$requested_group" == "primary" && ( "$NUM" == "m" || "$NUM" == "M" ) ]]; then
+        browse_projects_dir "managed"
+        return $?
     fi
 
     if [[ "$NUM" =~ ^[0-9]+$ ]] && (( NUM >= 1 && NUM <= ${#all_dirs[@]} )); then

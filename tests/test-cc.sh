@@ -122,9 +122,22 @@ echo ""
 
 # ─────────────────────────────────────────────────────────────────────────
 echo "=== 6. Browse Projects Display ==="
-grep -A20 '~/Projects 中的项目' "$SCRIPT" | grep -q 'd_clean' && pass "strips trailing slash" || fail "missing slash strip"
-grep -A20 '~/Projects 中的项目' "$SCRIPT" | grep -q 'project_indicators' && pass "Git/AI indicators" || fail "missing project indicators"
-grep -A20 '~/Projects 中的项目' "$SCRIPT" | grep -q 'printf.*d_clean' && pass "shows full path" || fail "missing full path"
+browse_menu_body="$(sed -n '/^browse_projects_dir()/,/^}/p' "$SCRIPT")"
+grep -q 'd_clean' <<< "$browse_menu_body" && pass "strips trailing slash" || fail "missing slash strip"
+grep -q 'project_indicators' <<< "$browse_menu_body" && pass "Git/AI indicators" || fail "missing project indicators"
+grep -q 'printf.*d_clean' <<< "$browse_menu_body" && pass "shows full path" || fail "missing full path"
+grep -q 'project_picker_group()' "$SCRIPT" && pass "project grouping function exists" || fail "project grouping function missing"
+grep -q '托管发布/归档目录' "$SCRIPT" && pass "managed project submenu exists" || fail "managed project submenu missing"
+eval "$(sed -n '/^project_picker_group()/,/^}/p' "$SCRIPT")"
+MANAGED_PROJECTS_FILE="$TEST_ROOT/managed-projects"
+printf '%s\n' \
+    'public-copy | managed | true | publishing mirror' \
+    'old-workspace | archive | false | legacy review' \
+    'flagship | primary | true | main project' > "$MANAGED_PROJECTS_FILE"
+[[ "$(project_picker_group public-copy)" == "managed" ]] && pass "managed mirror leaves primary picker" || fail "managed mirror grouping failed"
+[[ "$(project_picker_group old-workspace)" == "managed" ]] && pass "archive leaves primary picker" || fail "archive grouping failed"
+[[ "$(project_picker_group flagship)" == "primary" ]] && pass "flagship remains primary" || fail "primary grouping failed"
+[[ "$(project_picker_group unknown-project)" == "primary" ]] && pass "unknown projects remain visible" || fail "unknown project fallback failed"
 echo ""
 
 # ─────────────────────────────────────────────────────────────────────────
