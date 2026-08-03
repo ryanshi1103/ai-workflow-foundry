@@ -2,9 +2,24 @@
 
 盘点日期：2026-08-01
 
-本清单基于 `~/Projects` 下 13 个活跃顶层目录的 README、交付物、
-源码结构、Git 状态和现有项目索引整理。目录名统一建议使用小写
-`kebab-case`；产品显示名可以保留中文。隔离区不是活跃项目，不计入 13 个项目。
+本清单最初基于 `~/Projects` 下 13 个活跃顶层目录的 README、交付物、
+源码结构、Git 状态和现有项目索引整理；2026-08-03 又复核了全部活跃项目，并
+增加旗舰及公开快照的规范本地克隆。目录名统一建议使用小写 `kebab-case`；产品
+显示名可以保留中文。隔离区不计入活跃项目。
+
+## 产品线重组（2026-08-03）
+
+| 产品线 | 项目 | 关系 |
+|---|---|---|
+| AI 工作流旗舰 | `ai-workflow-foundry` | 平台入口；工作区底座、组件契约、目录验证与路线图 |
+| AI 工作区底座 | `ai-workspace-manager` | 旗舰唯一物理纳入的公开核心运行时，保留原提交历史 |
+| 媒体 AI | `confera-media-skills`、私有会映仓库 | 公开扩展包 + 私有完整产品，独立版本化 |
+| 客户反馈智能 | `feedback-analysis-system` | 独立参考应用，不虚构即插即用集成 |
+| 文档自动化 | `print-ready-nameplate-generator` | 独立参考工作流，复用确定性与验收模式 |
+| 设备、数据、系统 | Android 工具、GRUB 主题 | 专项产品；不用于定义 AI 旗舰边界 |
+
+跨类别项目只提炼经验证的优秀模式，例如人工审核、不可变修订、哈希与原子写、
+plan/apply/restore、备份与回滚、素材来源清单；不为了减少仓库数量而硬合并代码。
 
 ## 组合概览
 
@@ -66,6 +81,7 @@
 
 | GitHub 仓库 | 可见性 | 作品集角色 |
 |---|---|---|
+| `ai-workflow-foundry` | 公开 | 旗舰平台；组件目录/验证 CLI、通用契约、产品架构与 Workspace Manager 历史 |
 | `grub-minimal-focus-theme` | 公开 | 视觉系统工具；GPL-3.0、预览、回滚和 EFI 验证完整 |
 | `feedback-analysis-system` | 公开 | Python/Streamlit 数据应用；干净发布快照、90 项测试 |
 | `oppo-phone-control` | 公开 | Android/ADB 防御性自动化工具 |
@@ -86,9 +102,9 @@
 `print-ready-nameplate-generator`。用户明确要求不处理 `VPN`，因此该项目没有
 修改、上传或进入作品集。遗留会话项目也不作为作品冒充发布。
 
-GitHub 账号 `ryanshi1103` 的公开简介已设置为：
-“Building local-first software, safety-conscious automation, and practical system tools.”
-七个原创公开作品仓库均已采用小写 `kebab-case` 命名，具备仓库简介、README 与
+GitHub 账号 `ryanshi1103` 的公开简介更新为：
+“Building local-first AI workflows, human-reviewable automation, and resilient software.”
+八个原创公开作品仓库均已采用小写 `kebab-case` 命名，具备仓库简介、README 与
 `branding/logo.png`。其中 `confera-media-skills` 将会映项目的 10 个原创 Skill
 整理为独立作品；官方/第三方 Skill 不计为个人原创。GitHub 的 `Projects` 标签是项目看板，不是代码仓库列表；
 作品应从 `Repositories` 查看。个人主页置顶仓库需要在 GitHub 网页端通过

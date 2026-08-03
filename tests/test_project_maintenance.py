@@ -33,6 +33,12 @@ class ProjectMaintenanceTests(unittest.TestCase):
             (project / "CLAUDE.md").write_text("rules", encoding="utf-8")
             self.assertEqual(maintain.classify_project(project), "A")
 
+    def test_flowfoundry_has_core_protection_reason(self):
+        self.assertEqual(
+            maintain._protection_reason("ai-workflow-foundry", True),
+            "核心基础设施",
+        )
+
     def test_nested_deliverables_are_real_project_content(self):
         with tempfile.TemporaryDirectory() as tmp:
             project = Path(tmp) / "A"
