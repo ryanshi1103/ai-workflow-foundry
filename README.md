@@ -1,4 +1,9 @@
-# 反馈分析系统 (Feedback Analysis System)
+<p align="center">
+  <img src="branding/logo.svg" width="128" alt="Feedback Analysis System logo">
+</p>
+
+<h1 align="center">反馈分析系统</h1>
+<p align="center">Feedback Analysis System</p>
 
 ## 项目作用
 
@@ -37,7 +42,7 @@
 sudo dnf install python3.11 python3.11-devel
 
 # 进入项目
-cd ~/Projects/social-negative-monitor
+cd ~/Projects/feedback-analysis-system
 ```
 
 ## Python 虚拟环境
