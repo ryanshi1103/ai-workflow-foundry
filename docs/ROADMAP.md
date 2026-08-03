@@ -6,6 +6,7 @@ stage has acceptance criteria and an owner.
 ## 0.1 — Foundation (implemented here)
 
 - Bundled workspace lifecycle runtime with preserved history.
+- Bundled media skills, feedback application, and document workflow with preserved histories.
 - Component manifest schema and standard-library validator.
 - Explicit integration modes and maturity labels.
 - Cross-project pattern audit, architecture, and product map.
@@ -16,7 +17,7 @@ stage has acceptance criteria and an owner.
 - Versioned workflow, stage, artifact, review, and execution-approval schemas.
 - Adapter contract for Codex/Claude skills and deterministic local commands.
 - Capability registry that maps reviewed intent to trusted implementations.
-- Compatibility checks for Confera Skills and reference applications.
+- Cross-component workflow compatibility checks and shared lifecycle adapters.
 
 Acceptance: a workflow pack can be validated without importing its application,
 and a host can reject unsafe or incompatible declarations before execution.

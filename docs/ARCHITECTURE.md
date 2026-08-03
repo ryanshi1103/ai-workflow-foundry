@@ -1,18 +1,21 @@
 # Architecture
 
-FlowFoundry AI separates a shared workflow lifecycle from domain-specific
-products. It does not require every product to share one codebase or one user
-interface.
+FlowFoundry AI combines a shared workflow lifecycle and its reusable public
+components in one monorepo. Components do not have to share one dependency
+environment or user interface.
 
 ## Product boundary
 
-The repository currently contains two implemented layers:
+The repository currently contains these implemented layers:
 
 1. The bundled AI Workspace Manager runtime: project selection, tool selection,
    explicit permission modes, session records, recovery, and careful workspace
    maintenance.
-2. The FlowFoundry catalog contract: machine-readable declarations and a
-   dependency-free validator for bundled and separately versioned components.
+2. Confera's safety-bounded media skill pack.
+3. The local feedback-intelligence reference application.
+4. The deterministic CSV-to-PPTX nameplate workflow.
+5. The FlowFoundry catalog contract: machine-readable declarations and a
+   dependency-free validator for every physically bundled component.
 
 The future workflow execution layer is deliberately documented as a roadmap,
 not presented as completed code.
@@ -52,9 +55,9 @@ This lifecycle generalizes patterns already proven in the project portfolio:
 | Mode | Meaning |
 |---|---|
 | `bundled` | Code is present in this repository and the path is validated. |
-| `compatible-extension` | A separately versioned package follows compatible safety and review concepts; install is explicit. |
-| `reference-application` | An independent product demonstrates the lifecycle but does not claim plug-and-play runtime integration. |
-| `reference-workflow` | A focused deterministic workflow provides reusable implementation patterns. |
+| `compatible-extension` | A future separately versioned package follows compatible safety and review concepts; install is explicit. |
+| `reference-application` | A future independent product demonstrates the lifecycle without claiming plug-and-play integration. |
+| `reference-workflow` | A future focused workflow provides reusable implementation patterns without being bundled. |
 
 This vocabulary prevents a portfolio link from being mistaken for an installed
 plugin or a universal executor.
@@ -87,6 +90,9 @@ dependency.
 branding/                 product logo
 catalog/                  validated component declarations
 core/workspace-manager/   bundled runtime with preserved project history
+components/               reusable workflow packs with preserved histories
+applications/             runnable vertical applications with preserved histories
+workflows/                focused deterministic workflows with preserved histories
 docs/                     architecture, audit, product lines, roadmap
 schemas/                  reusable JSON contract
 src/flowfoundry/           catalog library and CLI

@@ -10,7 +10,8 @@
     "license": "Learning and internal use"
   },
   "integration": {
-    "mode": "reference-application"
+    "mode": "bundled",
+    "bundled_path": "applications/feedback-analysis-system"
   },
   "capabilities": [
     "structured feedback import",
