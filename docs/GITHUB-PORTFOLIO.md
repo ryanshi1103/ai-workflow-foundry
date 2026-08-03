@@ -11,6 +11,14 @@ exercise real behavior.
 
 我专注于本地优先的软件、实用自动化和可恢复的系统工具。
 
+<p align="center">
+  <a href="https://github.com/ryanshi1103/grub-minimal-focus-theme"><img src="https://raw.githubusercontent.com/ryanshi1103/grub-minimal-focus-theme/main/branding/logo.png" width="76" alt="Minimal Focus"></a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/ryanshi1103/feedback-analysis-system"><img src="https://raw.githubusercontent.com/ryanshi1103/feedback-analysis-system/main/branding/logo.png" width="76" alt="Feedback Analysis System"></a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/ryanshi1103/oppo-phone-control"><img src="https://raw.githubusercontent.com/ryanshi1103/oppo-phone-control/main/branding/logo.png" width="76" alt="OPPO Phone Control"></a>
+</p>
+
 ## Selected work
 
 ### [Minimal Focus GRUB Theme](https://github.com/ryanshi1103/grub-minimal-focus-theme)
