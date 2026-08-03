@@ -10,25 +10,25 @@ data, and the explicitly excluded VPN project were not modified.
 |---|---:|---|
 | AI Project Workspace Manager | Bundled core | Real project root, multi-tool launcher, permission confirmation, recovery, retention-aware maintenance |
 | Legacy AI manager workspaces | Yes; archive candidates | Historical implementation evidence only; no new public product |
-| Confera/Huiying workbench | Yes | Stage contracts, tool registry, immutable revisions, artifact hashes, review/export separation |
+| Confera/Huiying workbench | Public skills bundled; full apps private | Stage contracts, tool registry, immutable revisions, artifact hashes, review/export separation |
 | Confera desktop release | Yes | Release readiness, dependency licensing, SBOM/checksum discipline, platform acceptance |
-| Feedback Analysis System | Yes | Original AI result retention, human audit trail, mock mode, safe imports, local database |
+| Feedback Analysis System | Public app bundled | Original AI result retention, human audit trail, mock mode, safe imports, local database |
 | Photo archive | Yes | `.partial` writes, SHA-256 verification, atomic promotion, deletion gate |
 | Android control | Yes | Plan/apply/restore operations and device-specific capability checks |
 | Minimal Focus GRUB theme | Yes | Backup/install/uninstall loop, rollback, visual preview, EFI-level validation |
-| Print-ready nameplates | Yes | Structured input, deterministic geometry, editable output, safe filenames, target-app test |
+| Print-ready nameplates | Public workflow bundled | Structured input, deterministic geometry, editable output, safe filenames, target-app test |
 | Hunan presentation | Yes/private | Source manifests, narrative structure, preview sheets, media license boundary |
 | Camp print materials | Yes/private source | Separating personal input data from generic generation code |
 | Taobao automation | Yes/private experimental | Inventory reservation, idempotency targets, operational audit ledger; production claims remain blocked |
 
 ## Consolidation decision
 
-Only the workspace runtime is physically bundled because it provides the actual
-project lifecycle foundation. Confera Skills, Feedback Analysis, and the
-Nameplate Generator are registered as separate components with honest
-integration modes. Other projects contribute design patterns and remain
+The workspace runtime, Confera Skills, Feedback Analysis, and the Nameplate
+Generator are physically bundled with their original Git histories. Each keeps
+its own runtime, license, and release boundary inside the monorepo. Full Confera
+applications, private source/data workspaces, and unrelated tools remain
 independent products or private case studies.
 
 This produces a coherent portfolio with one platform foundation and several
-credible specialist products. It avoids two opposite failures: a flat list with
-no visible relationship, and a monorepo that claims unrelated code is one app.
+credible specialist components. It avoids a flat list with no real integration
+without claiming that every bundled component is one executable application.

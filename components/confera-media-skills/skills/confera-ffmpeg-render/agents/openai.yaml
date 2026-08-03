@@ -1,0 +1,4 @@
+interface:
+  display_name: "Confera FFmpeg Render"
+  short_description: "Map edits to safe render capabilities"
+  default_prompt: "Use $confera-ffmpeg-render to translate this reviewed edit intent into a non-executable capability plan."

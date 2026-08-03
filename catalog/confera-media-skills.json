@@ -10,7 +10,8 @@
     "license": "MIT"
   },
   "integration": {
-    "mode": "compatible-extension"
+    "mode": "bundled",
+    "bundled_path": "components/confera-media-skills"
   },
   "capabilities": [
     "media evidence inspection",

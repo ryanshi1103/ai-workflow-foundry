@@ -1,15 +1,15 @@
 # Product Lines
 
-The portfolio is organized around customer value, not around forcing every
-repository into a monorepo.
+The public AI workflow components are organized in one monorepo while retaining
+clear product, dependency, license, and release boundaries.
 
 ## 1. FlowFoundry AI — platform foundation
 
 Audience: people building and operating local AI-assisted workflows.
 
 Core promise: keep projects, tools, permissions, review points, and recovery
-paths explicit. AI Workspace Manager is the bundled runtime. Workflow packs and
-applications can adopt the catalog contract without moving into this repository.
+paths explicit. AI Workspace Manager, the public media skill pack, the feedback
+application, and the document workflow are physically bundled and validated.
 
 ## 2. Confera — media workflow product line
 
@@ -17,24 +17,25 @@ Audience: small teams organizing photos, audio, subtitles, storyboards, and
 short-form video.
 
 The full workbench and commercial desktop release remain private products. The
-public Confera Media Skills repository is the reusable, auditable extension
-surface. It is connected to FlowFoundry but remains independently versioned.
+public Confera Media Skills code is bundled under `components/` as the reusable,
+auditable extension surface.
 
 ## 3. Feedback Analysis — customer intelligence product
 
 Audience: teams turning public or authorized feedback into structured issues,
 experience insights, review queues, and exports.
 
-It is a complete vertical application, not a generic plugin. Its audit-preserving
-human review model informs FlowFoundry's contracts while the app stays separate.
+It is a complete vertical application, not a generic plugin. Its code is bundled
+under `applications/` while retaining its own runtime and license boundary.
 
 ## 4. Structured document automation
 
 Audience: educators, events, and operations teams producing editable print
 materials from structured data.
 
-The nameplate generator remains a focused workflow. Its deterministic geometry,
-path-safe output, and real LibreOffice acceptance process are reusable patterns.
+The nameplate generator remains a focused workflow under `workflows/`. Its
+deterministic geometry, path-safe output, and real LibreOffice acceptance
+process are reusable patterns.
 The Hunan presentation remains a private design case study until media licensing
 records are complete.
 

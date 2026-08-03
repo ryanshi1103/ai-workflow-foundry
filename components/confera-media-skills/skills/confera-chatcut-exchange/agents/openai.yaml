@@ -1,0 +1,4 @@
+interface:
+  display_name: "Confera ChatCut Exchange"
+  short_description: "Plan consented manual edit exchange"
+  default_prompt: "Use $confera-chatcut-exchange to prepare a privacy-limited manual exchange candidate for these reviewed artifacts."
