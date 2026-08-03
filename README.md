@@ -84,6 +84,8 @@ ai-project-workspace-manager/
 `~/Projects` 的项目边界、规范显示名、建议目录名和整理顺序记录在
 [项目组合观察与命名方案](docs/PROJECT-PORTFOLIO.md)。目录改名必须在工作区干净、
 硬编码路径已盘点且项目测试通过后逐个执行。
+公开 GitHub 作品集的个人主页源文件见
+[GitHub Portfolio](docs/GITHUB-PORTFOLIO.md)。
 
 ## 许可证
 

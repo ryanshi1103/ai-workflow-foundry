@@ -58,3 +58,19 @@
   不应继续作为活跃基础设施入口。
 - `_trash-review/20260801/phone-photo-archive` 是照片归档会话残留；真实成果在
   `PhotoTransform`，当前隔离方向合理，但不应在未复核保留期前删除。
+
+## GitHub 作品集状态
+
+2026-08-03 开始以“有意义、可验证、无隐私风险”为公开标准，而不是将所有
+项目机械公开。
+
+| GitHub 仓库 | 可见性 | 作品集角色 |
+|---|---|---|
+| `grub-minimal-focus-theme` | 公开 | 视觉系统工具；GPL-3.0、预览、回滚和 EFI 验证完整 |
+| `feedback-analysis-system` | 公开 | Python/Streamlit 数据应用；干净发布快照、90 项测试 |
+| `oppo-phone-control` | 公开 | Android/ADB 防御性自动化工具 |
+| `ai-project-workspace-manager` | 私有 | 核心工具；待脱敏本机路径和运维文档后再评估公开 |
+| `hunan-four-universities-presentation` | 私有、待重试推送 | 演示设计；待补全逐图许可记录 |
+| `taobao-auto-shop` | 私有 | 未验证原型，不进入公开作品集 |
+
+公开主页文案的源文件为 [GitHub Portfolio](GITHUB-PORTFOLIO.md)。

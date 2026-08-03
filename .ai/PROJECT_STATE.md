@@ -29,6 +29,7 @@ AI 工具链的全局项目管理、启动和维护系统。整合了 cc 启动�
 - [x] 将 Fedora 电脑发布为 Tailscale 出口节点，并通过 Clash/Mihomo TUN 转发手机互联网流量
 - [x] Tailscale 出口节点后台批准、Android 选中、DNS 修复与境外 HTTPS/SSH 并行访问实测通过
 - [x] 手机链路优化：OpenAI HTTPS 预检、SSH 环境隔离测试、ConnectBot 中文输入说明与 Codex profile 本地信任保留
+- [x] 筛选并发布 GitHub 作品集：GRUB 主题、反馈分析系统、OPPO 控制工具和个人主页
 
 ### 待完成
 - [ ] systemd timer 实际运行验证
@@ -59,4 +60,4 @@ docs/                      — 文档
 
 ## 最后更新
 
-2026-08-02 — 手机远控稳定性、测试隔离与部署保留逻辑优化
+2026-08-03 — 完成首批 GitHub 作品集筛选、脱敏发布与个人主页整理
