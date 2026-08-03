@@ -10,6 +10,11 @@ AI 工具链的全局项目管理、启动和维护系统。
 - **auto_name** — 基于项目内容的自动命名检测
 - **maintain** — 项目分类、重复检测、隔离和索引生成
 
+`cc` 的项目选择器区分“主项目”和“托管发布/归档目录”。公开快照、扩展包、
+GitHub 主页克隆和遗留复核目录不会挤占主项目列表，但仍可从 `m` 子菜单进入。
+每周快速维护会对配置为自动更新的托管 Git 仓库执行安全快进同步；工作区有改动、
+本地领先、分支分叉或没有上游时只报告，不覆盖本地内容。
+
 ## 安装
 
 ```bash
@@ -27,10 +32,17 @@ Codex 四种权限、danger-full-access 二次确认、stdin/EOF 安全取消、
 OpenAI HTTPS 预检，以及 Claude/DeepSeek 分支；测试会显式隔离 SSH 环境变量，
 最终 `exec` 会被截获，不会启动真实 AI 会话。
 
+当前基础回归包括 64 项 `cc` 菜单/路径检查、35 项权限与 EOF 检查，以及
+14 项 Python 维护器测试。
+
 ```bash
 ./tests/test-cc.sh
 ./tests/test-cc-eof-fix.sh
 PYTHONPATH=src python -m unittest discover -s tests -p 'test_*.py'
+
+# 手动检查/同步托管仓库
+cc-projects-maintain --sync-managed --dry-run
+cc-projects-maintain --sync-managed
 ```
 
 正式部署会备份现有 Codex profile、更新源码管理的模型与权限键，并保留 profile 中
@@ -89,8 +101,9 @@ ai-project-workspace-manager/
 
 跨项目的共享能力已整理为公开旗舰
 [FlowFoundry AI](https://github.com/ryanshi1103/ai-workflow-foundry)：只将真实共享的
-Workspace Manager 底座物理纳入，Confera、反馈分析和文档自动化通过明确契约关联，
-Android、GRUB、演示与实验项目继续保持独立边界。
+Workspace Manager、Confera Media Skills、反馈分析应用和姓名牌文档工作流均已连同
+原始 Git 历史物理纳入统一 monorepo。私有会映产品、真实数据工作区、Android、
+GRUB、演示与实验项目继续保持独立边界。
 
 ## 许可证
 
