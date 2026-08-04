@@ -19,11 +19,14 @@ build/
 .ripgreprc
 .gitmodules
 
-# IDE configs
+# IDE configs (directory or device file)
+.idea
 .idea/
+.vscode
 .vscode/
 
 # Claude Code project-local settings (user-specific)
+.claude
 .claude/
 
 # MCP config (user-specific)
