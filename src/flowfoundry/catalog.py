@@ -112,6 +112,9 @@ def load_catalog(directory: Path | str | None = None) -> list[dict[str, Any]]:
             raw = json.loads(manifest_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             raise CatalogError(f"cannot read {manifest_path.name}: {exc}") from exc
+        # Skip non-component JSON files (e.g., capability-registry.json)
+        if not isinstance(raw, dict) or "kind" not in raw:
+            continue
         component = validate_component(raw)
         component_id = component["id"]
         if component_id in seen:
