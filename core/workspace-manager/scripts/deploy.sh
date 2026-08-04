@@ -199,15 +199,22 @@ else
 fi
 echo ""
 
-# ─── 4. Deploy ai-project-manager Python package ─────────────────────────────
-echo "4. Deploying ai-project-manager Python package..."
-PM_DST="$HOME/.local/share/ai-project-manager/ai_project_manager"
-mkdir -p "$PM_DST"
-if [[ -d "$PROJECT_ROOT/src/ai_project_manager" ]]; then
-    cp -v "$PROJECT_ROOT/src/ai_project_manager/"*.py "$PM_DST/" 2>&1 | sed 's/^/   /'
-    echo "   ✓ Python package deployed"
+# ─── 4. Install FlowFoundry unified package ──────────────────────────────
+echo "4. Installing FlowFoundry unified package..."
+if [[ -f "$PROJECT_ROOT/pyproject.toml" ]]; then
+    if command -v pip3 &>/dev/null; then
+        pip3 install --user -e "$PROJECT_ROOT" 2>&1 | sed 's/^/   /'
+        echo "   ✓ FlowFoundry package installed (pip install --user -e)"
+    else
+        echo "   ~ pip3 not found, skipping"
+    fi
+    # Legacy compat: also copy shim to old install location
+    PM_DST="$HOME/.local/share/ai-project-manager/ai_project_manager"
+    mkdir -p "$PM_DST"
+    cp -v "$PROJECT_ROOT/src/ai_project_manager/"*.py "$PM_DST/" 2>/dev/null || true
+    cp -v "$PROJECT_ROOT/src/flowfoundry/workspace/"*.py "$PM_DST/" 2>/dev/null || true
 else
-    echo "   ~ Python source not found, skipping (may be deployed separately)"
+    echo "   ~ Project root not found, skipping"
 fi
 echo ""
 
