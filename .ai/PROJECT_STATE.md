@@ -4,7 +4,7 @@
 
 - **Name:** FlowFoundry AI
 - **Repository:** `ai-workflow-foundry`
-- **Version:** 0.1.0 (Foundation)
+- **Version:** 0.2.0 (Portable Workflow Contracts)
 - **License:** MIT (bundled components retain their own licenses)
 
 ## What this is
@@ -20,6 +20,8 @@ in one monorepo.
 |---|---|
 | Catalog validator (`flowfoundry validate`) | ✅ 4 components + 16 capabilities + 1 workflow contract |
 | CLI (`flowfoundry list/show/workflows/capabilities`) | ✅ functional |
+| Capability Registry (`src/flowfoundry/capability_registry.py`) | ✅ 16 capabilities registered |
+| Workflow Contract (`src/flowfoundry/workflow_contract.py`) | ✅ schema validation + CLI commands |
 | Foundation tests (51 tests) | ✅ all passing |
 | Workspace runtime tests | ✅ passing |
 | Confera media skills tests | ✅ passing |

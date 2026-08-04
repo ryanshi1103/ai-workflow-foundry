@@ -1,5 +1,23 @@
 # Changelog — FlowFoundry AI
 
+## 2026-08-04 — v0.2.0 Workflow Contracts
+
+### Added
+- Capability Registry module (`src/flowfoundry/capability_registry.py`) — maps reviewed intents to trusted implementations
+- Workflow Contract module (`src/flowfoundry/workflow_contract.py`) — validates portable workflow contracts
+- JSON Schema for capability registry (`schemas/capability-registry.schema.json`)
+- JSON Schema for workflow contracts (`schemas/workflow-contract.schema.json`)
+- Capability registry data (`catalog/capability-registry.json`) with 16 capabilities
+- Nameplate generation workflow contract (`workflows/contracts/nameplate-generation.contract.json`)
+- Tests for capability registry (127 lines) and workflow contract (188 lines)
+
+### Changed
+- Extended CLI with capability and workflow contract subcommands
+- Updated `.gitignore` to handle workspace-manager device files and IDE configs
+
+### Removed
+- `AGENTS.md` — duplicate of `CLAUDE.md` (removed during hygiene pass)
+
 ## 2026-08-03 — v0.1.0 Foundation
 
 ### Added
