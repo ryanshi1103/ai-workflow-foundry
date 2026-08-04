@@ -1,7 +1,7 @@
 {
-  "last_cleaned": "2026-08-04T00:30:00+08:00",
-  "git_head": "139c75429770cf5902c6a30b9e39fc9a47b21a7e",
-  "file_tree_summary": "4 components, 5 schemas, 16 capabilities, 1 workflow contract, 51 tests, .ai/ state complete",
+  "last_cleaned": "2026-08-04T16:50:00+08:00",
+  "git_head": "3da16ac",
+  "file_tree_summary": "4 components, 4 schemas, 16 capabilities, 1 workflow contract, 51 tests, .ai/ state complete, AGENTS.md duplicate removed",
   "has_new_duplicates": false,
   "has_unfinished_cleanup": false,
   "rules_version": "2.0"

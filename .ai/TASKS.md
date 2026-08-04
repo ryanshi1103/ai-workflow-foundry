@@ -5,17 +5,17 @@
 | # | Task | Priority | Status |
 |---|---|---|---|
 | 1 | Clean up stray :memory: SQLite file | P0 | ✅ done |
-| 2 | Set up .ai/ project hygiene files | P0 | 🔄 in progress |
-| 3 | Create portable workflow contract schema (0.2) | P1 | ⏳ pending |
-| 4 | Create capability registry (0.2) | P1 | ⏳ pending |
+| 2 | Set up .ai/ project hygiene files | P0 | ✅ done |
+| 3 | Create portable workflow contract schema (0.2) | P1 | ✅ done |
+| 4 | Create capability registry (0.2) | P1 | ✅ done |
 | 5 | Create adapter contract for skills/commands (0.2) | P1 | ⏳ pending |
 | 6 | Add cross-component compatibility validation | P1 | ⏳ pending |
 
 ## Roadmap 0.2 — Portable workflow contract
 
-- [ ] Versioned workflow, stage, artifact, review, and execution-approval schemas
+- [x] Versioned workflow, stage, artifact, review, and execution-approval schemas
 - [ ] Adapter contract for Codex/Claude skills and deterministic local commands
-- [ ] Capability registry that maps reviewed intent to trusted implementations
+- [x] Capability registry that maps reviewed intent to trusted implementations
 - [ ] Cross-component workflow compatibility checks
 - [ ] Shared lifecycle adapters
 
