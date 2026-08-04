@@ -36,25 +36,35 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("validate", help="validate manifests, bundled paths, and workflow contracts")
 
     # Workflow contract subcommands
-    wf_list = subparsers.add_parser("workflows", help="list registered workflow contracts")
+    subparsers.add_parser("workflows", help="list registered workflow contracts")
     wf_show = subparsers.add_parser("workflow-show", help="show one workflow contract")
     wf_show.add_argument("contract_id")
-    wf_validate = subparsers.add_parser(
+    subparsers.add_parser(
         "workflow-validate", help="validate workflow contracts and cross-reference stages"
     )
 
     # Capability registry subcommands
-    cap_list = subparsers.add_parser("capabilities", help="list registered capabilities")
+    subparsers.add_parser("capabilities", help="list registered capabilities")
     cap_check = subparsers.add_parser(
         "capability-check", help="check workflow contract capabilities against the registry"
     )
     cap_check.add_argument("contract_id", nargs="?", help="workflow contract id (omit to check all)")
+
+    # Project management group (delegates to workspace CLI)
+    from .project_cli import add_project_parser
+    add_project_parser(subparsers)
+
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
+        # --- Project management group ---
+        if args.command == "project":
+            from .project_cli import dispatch_project
+            return dispatch_project(args.project_command, args)
+
         if args.command == "list":
             for component in load_catalog(args.catalog):
                 print(

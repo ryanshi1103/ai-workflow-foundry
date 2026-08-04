@@ -8,7 +8,7 @@
       "provided_by": "ai-workspace-manager",
       "adapter": {
         "type": "deterministic-command",
-        "entry_point": "core/workspace-manager/bin/aiproj",
+        "entry_point": "flowfoundry.workspace.project",
         "requires_network": false,
         "requires_secrets": false
       },
@@ -21,7 +21,7 @@
       "provided_by": "ai-workspace-manager",
       "adapter": {
         "type": "deterministic-command",
-        "entry_point": "core/workspace-manager/bin/cc",
+        "entry_point": "flowfoundry.workspace.cc_launcher",
         "requires_network": false,
         "requires_secrets": false
       },
@@ -34,7 +34,7 @@
       "provided_by": "ai-workspace-manager",
       "adapter": {
         "type": "python-module",
-        "entry_point": "ai_project_manager.recovery",
+        "entry_point": "flowfoundry.workspace.recovery",
         "requires_network": false,
         "requires_secrets": false
       },
@@ -47,7 +47,7 @@
       "provided_by": "ai-workspace-manager",
       "adapter": {
         "type": "deterministic-command",
-        "entry_point": "core/workspace-manager/bin/cc-projects-maintain",
+        "entry_point": "flowfoundry.workspace.maintain",
         "requires_network": false,
         "requires_secrets": false
       },

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flowfoundry-ai"
-version = "0.1.0"
-description = "Local-first catalog and foundations for safety-bounded AI workflows"
+version = "0.2.0"
+description = "Local-first catalog, workspace runtime, and foundations for safety-bounded AI workflows"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
@@ -19,6 +19,7 @@ classifiers = [
 
 [project.scripts]
 flowfoundry = "flowfoundry.cli:main"
+aiproj = "flowfoundry.aiproj:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
