@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "id": "nameplate-generation",
+  "display_name": "Print-ready Nameplate Generation",
+  "version": "1.0.0",
+  "description": "Deterministic CSV-to-PPTX workflow that produces editable, physically accurate A4 folded nameplates suitable for printing.",
+  "stages": [
+    {
+      "id": "validate-csv",
+      "name": "Validate CSV input",
+      "description": "Parse and validate the input CSV file — columns, encoding, required fields, safe name values.",
+      "required_inputs": [
+        {
+          "id": "names-csv",
+          "description": "CSV file with name entries",
+          "content_type": "text/csv",
+          "constraints": {
+            "allowed_extensions": [".csv"],
+            "max_size_bytes": 1048576
+          }
+        }
+      ],
+      "produces": {
+        "artifacts": [
+          {
+            "id": "validated-records",
+            "description": "Parsed and validated name records ready for layout",
+            "content_type": "application/json",
+            "content_addressed": false
+          }
+        ],
+        "review_required": false
+      },
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "scripts.generate_batch_nameplates:validate_csv",
+        "timeout_seconds": 30
+      }
+    },
+    {
+      "id": "build-deck",
+      "name": "Build editable PPTX deck",
+      "description": "Generate an A4 folded-nameplate presentation with deterministic geometry, safe filenames, and embedded fonts.",
+      "required_inputs": [
+        {
+          "id": "validated-records",
+          "description": "Validated name records from the previous stage",
+          "content_type": "application/json"
+        }
+      ],
+      "produces": {
+        "artifacts": [
+          {
+            "id": "nameplate-pptx",
+            "description": "Editable PowerPoint deck with A4 folded nameplate slides",
+            "content_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "content_addressed": true,
+            "schema_ref": "none — deterministic geometry"
+          }
+        ],
+        "review_required": true,
+        "review_instructions": "Open the generated PPTX in LibreOffice or PowerPoint. Verify: (1) each slide shows one name, (2) text is centered and readable, (3) A4 paper size is preserved, (4) no content is clipped."
+      },
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "scripts.generate_batch_nameplates:build_deck",
+        "timeout_seconds": 120
+      }
+    },
+    {
+      "id": "inspect-layout",
+      "name": "Inspect layout at actual size",
+      "description": "Open the output in LibreOffice for a visual print-preview check at 100% scale.",
+      "required_inputs": [
+        {
+          "id": "nameplate-pptx",
+          "description": "Generated nameplate deck",
+          "content_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        }
+      ],
+      "produces": {
+        "artifacts": [
+          {
+            "id": "inspection-report",
+            "description": "Manual inspection confirmation",
+            "content_type": "text/plain"
+          }
+        ],
+        "review_required": true,
+        "review_instructions": "Print one page at actual size on A4 paper. Fold along the center line. Verify the name is upright and centered on both sides. Check paper handling in your target printer."
+      },
+      "adapter": {
+        "type": "manual",
+        "entry_point": "Open the generated PPTX in LibreOffice Impress and use File > Print Preview"
+      }
+    }
+  ],
+  "approval_gates": [
+    {
+      "id": "approve-print",
+      "name": "Approve for printing",
+      "after_stage": "inspect-layout",
+      "description": "Confirm the nameplates are ready for production printing. This is a destructive/consumable action — paper and ink will be used.",
+      "scope": "destructive",
+      "auto_approve_policy": "never"
+    }
+  ],
+  "capabilities_required": [
+    "validated-tabular-input",
+    "deterministic-document-geometry",
+    "editable-vector-output",
+    "safe-output-filename-generation"
+  ],
+  "safety": {
+    "local_first": true,
+    "network_policy": "No network access is required at any stage.",
+    "side_effects": [
+      {
+        "stage_id": "build-deck",
+        "description": "Writes a .pptx file to the output directory.",
+        "kind": "file_write",
+        "reversible": true
+      }
+    ]
+  },
+  "idempotency": {
+    "key_source": "input-hash",
+    "description": "Running the workflow with the same CSV file produces an identical PPTX. Re-running overwrites the output file and is safe."
+  }
+}

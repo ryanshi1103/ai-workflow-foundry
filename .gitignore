@@ -8,3 +8,23 @@ build/
 *.egg-info/
 .ai-session/
 .env
+
+# Workspace-manager virtual device files
+.bashrc
+.zshrc
+.bash_profile
+.profile
+.zprofile
+.gitconfig
+.ripgreprc
+.gitmodules
+
+# IDE configs
+.idea/
+.vscode/
+
+# Claude Code project-local settings (user-specific)
+.claude/
+
+# MCP config (user-specific)
+.mcp.json

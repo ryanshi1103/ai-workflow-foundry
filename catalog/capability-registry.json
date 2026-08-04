@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "capabilities": [
+    {
+      "id": "project-lifecycle",
+      "display_name": "Project lifecycle management",
+      "description": "Select, initialize, maintain, and archive AI workspace projects with explicit permission modes.",
+      "provided_by": "ai-workspace-manager",
+      "adapter": {
+        "type": "deterministic-command",
+        "entry_point": "core/workspace-manager/bin/aiproj",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "beta"
+    },
+    {
+      "id": "explicit-permission-modes",
+      "display_name": "Explicit permission modes",
+      "description": "Require manual confirmation for elevated tool access before any AI session begins.",
+      "provided_by": "ai-workspace-manager",
+      "adapter": {
+        "type": "deterministic-command",
+        "entry_point": "core/workspace-manager/bin/cc",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "beta"
+    },
+    {
+      "id": "recoverable-ai-sessions",
+      "display_name": "Recoverable AI sessions",
+      "description": "Record session transcripts with recovery paths; each session is individually restartable.",
+      "provided_by": "ai-workspace-manager",
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "ai_project_manager.recovery",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "beta"
+    },
+    {
+      "id": "retention-aware-workspace-maintenance",
+      "display_name": "Retention-aware workspace maintenance",
+      "description": "Purge old projects and session data according to configurable retention policies with backup-first safety.",
+      "provided_by": "ai-workspace-manager",
+      "adapter": {
+        "type": "deterministic-command",
+        "entry_point": "core/workspace-manager/bin/cc-projects-maintain",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "beta"
+    },
+    {
+      "id": "media-evidence-inspection",
+      "display_name": "Media evidence inspection",
+      "description": "Inspect media files (images, audio, video) and return structured evidence without modifying originals.",
+      "provided_by": "confera-media-skills",
+      "adapter": {
+        "type": "claude-skill",
+        "entry_point": "components/confera-media-skills/skills/confera-media-inspector",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "beta"
+    },
+    {
+      "id": "schema-valid-ai-candidates",
+      "display_name": "Schema-valid AI candidates",
+      "description": "Produce AI-generated content in schema-validated envelopes that are inspectable before use.",
+      "provided_by": "confera-media-skills",
+      "adapter": {
+        "type": "claude-skill",
+        "entry_point": "components/confera-media-skills/skills/confera-narration-draft",
+        "requires_network": true,
+        "requires_secrets": false
+      },
+      "maturity": "beta"
+    },
+    {
+      "id": "storyboard-and-timeline-review",
+      "display_name": "Storyboard and timeline review",
+      "description": "Review and edit multi-media storyboards and timelines with human-in-the-loop approval.",
+      "provided_by": "confera-media-skills",
+      "adapter": {
+        "type": "claude-skill",
+        "entry_point": "components/confera-media-skills/skills/confera-timeline-review",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "beta"
+    },
+    {
+      "id": "quality-and-export-planning",
+      "display_name": "Quality review and export planning",
+      "description": "Review media quality against defined criteria; plan export steps separately from execution.",
+      "provided_by": "confera-media-skills",
+      "adapter": {
+        "type": "claude-skill",
+        "entry_point": "components/confera-media-skills/skills/confera-quality-review",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "beta"
+    },
+    {
+      "id": "structured-feedback-import",
+      "display_name": "Structured feedback import",
+      "description": "Import feedback from CSV, JSON, and Apify sources with validation and deduplication.",
+      "provided_by": "feedback-analysis-system",
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "src.services.import_service",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "beta"
+    },
+    {
+      "id": "ai-assisted-classification",
+      "display_name": "AI-assisted classification",
+      "description": "Classify feedback sentiment, category, severity, and confidence using AI with original-output preservation.",
+      "provided_by": "feedback-analysis-system",
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "src.services.analysis_service",
+        "requires_network": true,
+        "requires_secrets": true
+      },
+      "maturity": "beta"
+    },
+    {
+      "id": "human-review-dashboard",
+      "display_name": "Human review dashboard",
+      "description": "Web dashboard for reviewing, correcting, and approving AI-classified feedback before operational use.",
+      "provided_by": "feedback-analysis-system",
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "app:server",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "beta"
+    },
+    {
+      "id": "auditable-local-export",
+      "display_name": "Auditable local export",
+      "description": "Export reviewed feedback with full audit trail — original AI output preserved alongside human corrections.",
+      "provided_by": "feedback-analysis-system",
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "src.services.export_service",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "beta"
+    },
+    {
+      "id": "validated-tabular-input",
+      "display_name": "Validated tabular input",
+      "description": "Parse and validate CSV input with safe name values, encoding checks, and schema enforcement.",
+      "provided_by": "print-ready-nameplate-generator",
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "scripts.generate_batch_nameplates:validate_csv",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "stable"
+    },
+    {
+      "id": "deterministic-document-geometry",
+      "display_name": "Deterministic document geometry",
+      "description": "Generate documents with deterministic physical constraints — no AI randomness in layout decisions.",
+      "provided_by": "print-ready-nameplate-generator",
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "scripts.generate_batch_nameplates:build_deck",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "stable"
+    },
+    {
+      "id": "editable-vector-output",
+      "display_name": "Editable vector output",
+      "description": "Produce editable vector output (PPTX) that can be opened and modified in standard office applications.",
+      "provided_by": "print-ready-nameplate-generator",
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "scripts.generate_batch_nameplates:build_deck",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "stable"
+    },
+    {
+      "id": "safe-output-filename-generation",
+      "display_name": "Safe output filename generation",
+      "description": "Generate path-safe, collision-avoiding output filenames from structured input data.",
+      "provided_by": "print-ready-nameplate-generator",
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "scripts.generate_batch_nameplates:build_deck",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "stable"
+    }
+  ]
+}
