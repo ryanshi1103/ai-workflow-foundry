@@ -66,3 +66,16 @@ constraints, or contain private data. The portfolio is strengthened by referenci
 their patterns without bundling them.
 
 **Date:** 2026-08-03
+
+## 7. Portable workflow contracts with capability registry
+
+**Decision:** Workflow contracts are validated against a JSON Schema independent of
+any runtime. A capability registry maps reviewed intents (what a workflow stage does)
+to trusted implementations. Contracts must declare their stages, artifacts, review
+requirements, and execution preconditions before any code runs.
+
+**Why:** A workflow contract must be validatable without importing the application
+it describes. Hosts can reject unsafe or incompatible declarations before execution.
+The capability registry prevents untrusted code from masquerading as a reviewed skill.
+
+**Date:** 2026-08-04
