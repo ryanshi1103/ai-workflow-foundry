@@ -3,20 +3,27 @@
 ## 2026-08-04 — v0.2.0 Workflow Contracts
 
 ### Added
-- Capability Registry module (`src/flowfoundry/capability_registry.py`) — maps reviewed intents to trusted implementations
-- Workflow Contract module (`src/flowfoundry/workflow_contract.py`) — validates portable workflow contracts
-- JSON Schema for capability registry (`schemas/capability-registry.schema.json`)
-- JSON Schema for workflow contracts (`schemas/workflow-contract.schema.json`)
-- Capability registry data (`catalog/capability-registry.json`) with 16 capabilities
-- Nameplate generation workflow contract (`workflows/contracts/nameplate-generation.contract.json`)
-- Tests for capability registry (127 lines) and workflow contract (188 lines)
+- Capability Registry module (`src/flowfoundry/capability_registry.py`)
+- Workflow Contract module (`src/flowfoundry/workflow_contract.py`)
+- JSON Schema for capability registry and workflow contracts
+- Capability registry data with 16 capabilities
+- Nameplate generation workflow contract
+- Tests for capability registry and workflow contract
+- **Unified workspace-workflow package**: workspace manager merged into `flowfoundry.workspace`
+- **Unified CLI**: `flowfoundry project` subcommand group for full project lifecycle
+- Python port of cc launcher (`src/flowfoundry/workspace/cc_launcher.py`)
+- Backward-compat `ai_project_manager` import shim
+- Workflow-contract-aware project creation (`--workflow` flag)
 
 ### Changed
-- Extended CLI with capability and workflow contract subcommands
-- Updated `.gitignore` to handle workspace-manager device files and IDE configs
+- `pyproject.toml` bumped to v0.2.0; added `aiproj` entry point
+- `bin/cc`, `bin/aiproj`, `bin/cc-projects-maintain` → thin Python wrappers
+- Capability registry entry points updated for unified package
+- `workspace/cli.py` → `run(argv) -> int` for composable CLI dispatch
 
 ### Removed
-- `AGENTS.md` — duplicate of `CLAUDE.md` (removed during hygiene pass)
+- `AGENTS.md` — duplicate of `CLAUDE.md`
+- 1000+ line bash launcher in `bin/cc` (replaced by Python port)
 
 ## 2026-08-03 — v0.1.0 Foundation
 

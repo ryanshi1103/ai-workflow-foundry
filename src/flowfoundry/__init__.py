@@ -1,3 +1,3 @@
-"""FlowFoundry AI catalog and workflow foundation."""
+"""FlowFoundry AI — unified catalog, workspace runtime, and workflow foundation."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

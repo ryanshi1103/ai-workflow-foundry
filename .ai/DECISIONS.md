@@ -79,3 +79,22 @@ it describes. Hosts can reject unsafe or incompatible declarations before execut
 The capability registry prevents untrusted code from masquerading as a reviewed skill.
 
 **Date:** 2026-08-04
+
+## 8. Unified workspace-workflow package
+
+**Decision:** Merge the workspace manager (`ai_project_manager`) into the FlowFoundry
+package as a `workspace` subpackage. A single CLI (`flowfoundry`) now manages the full
+lifecycle: define workflow contracts → register capabilities → create projects → launch
+sessions → track/finalize → validate contracts. The old `aiproj` and `cc` scripts
+become thin wrappers delegating to the unified CLI.
+
+**Why:** Previously, the workspace manager (deployed to `~/.local/` by shell script)
+and the flowfoundry package (installed via pip) were two completely separate Python
+packages with zero code integration. Users ran `cc` for projects and `flowfoundry`
+for validation — two separate tools with no shared awareness. Unifying them under one
+package means: (1) one `pip install -e .` replaces a multi-step deploy.sh, (2) projects
+can reference workflow contracts as their operational template, (3) `flowfoundry validate`
+can cross-check project sessions against their declared contracts, (4) the interactive
+cc launcher moves from 1000+ lines of bash to maintainable Python.
+
+**Date:** 2026-08-04

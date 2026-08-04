@@ -64,23 +64,34 @@ The monorepo is the canonical integration point. Component boundaries remain
 because users, dependencies, licensing, and release artifacts differ—not
 because the code lives in unrelated local projects.
 
-## Try the catalog
+## Try it
 
-No third-party package is required:
+One package, one CLI — the full lifecycle:
 
 ```bash
+# Validate all components, contracts, and capabilities
 PYTHONPATH=src python3 -m flowfoundry validate
+
+# Browse catalog
 PYTHONPATH=src python3 -m flowfoundry list
-PYTHONPATH=src python3 -m flowfoundry show confera-media-skills
+PYTHONPATH=src python3 -m flowfoundry capabilities
+
+# Manage projects (was aiproj)
+PYTHONPATH=src python3 -m flowfoundry project status
+PYTHONPATH=src python3 -m flowfoundry project list
+
+# Interactive launcher (was cc)
+PYTHONPATH=src python3 -m flowfoundry project launch
 ```
 
-Install the CLI in an isolated environment if desired:
+Install the CLI to use anywhere:
 
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
 python3 -m pip install -e .
 flowfoundry validate
+flowfoundry project launch
 ```
 
 ## Design principles

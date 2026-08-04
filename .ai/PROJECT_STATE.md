@@ -4,7 +4,7 @@
 
 - **Name:** FlowFoundry AI
 - **Repository:** `ai-workflow-foundry`
-- **Version:** 0.2.0 (Portable Workflow Contracts)
+- **Version:** 0.2.0 (Unified Workspace + Workflow Contracts)
 - **License:** MIT (bundled components retain their own licenses)
 
 ## What this is
