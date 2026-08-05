@@ -34,9 +34,16 @@ approval skip and explicit approval, retry, approved/notes/blocked/pending
 review decisions, dependency skipping, resume, changed-input reconciliation,
 aggregation, CLI smoke paths, and synthetic end-to-end execution.
 
-At implementation checkpoint, **31 orchestration tests passed**. Final repository
+After the DeepSeek recovery-path repair, **33 orchestration tests passed**. Final repository
 totals and clean-environment results are recorded in `FINAL_TEST_MATRIX.md` after
 the complete migration validation.
+
+DeepSeek initially blocked scheduler checkpoint `a7e5175` because an approved
+`skipped_pending_human` task could not be retried and its skipped dependents did
+not revive. Commit `d10b948` fixes both P1 findings: the gated state is now
+retryable, and retry atomically resets transitively skipped dependents. Unit and
+CLI tests exercise the complete approve → retry → resume path. DeepSeek
+re-reviewed checkpoint 022 and returned `APPROVED` with no remaining findings.
 
 ## Safety posture
 
@@ -60,4 +67,3 @@ state, push, deploy, release, or send external messages.
 
 These are post-MVP refinements, not prerequisites for the local offline
 collaboration workflow delivered here.
-
