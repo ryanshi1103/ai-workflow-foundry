@@ -3,6 +3,8 @@
 .pytest_cache/
 .ruff_cache/
 .test-tmp/
+.flowfoundry-runs
+.flowfoundry/runs/
 .venv/
 dist/
 build/
