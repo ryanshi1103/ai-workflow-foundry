@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "goal": "Create a small validated documentation change using an offline synthetic provider",
+  "tasks": [
+    {
+      "id": "build",
+      "title": "Prepare the bounded change",
+      "role": "builder",
+      "required_capabilities": ["implementation"],
+      "preferred_capabilities": ["python"],
+      "inputs": {
+        "goal": "Prepare a synthetic documentation candidate"
+      },
+      "expected_outputs": ["implementation", "change_summary"],
+      "required_permissions": ["read_workspace", "write_workspace"],
+      "validation_commands": ["git diff --check"],
+      "retry_limit": 1,
+      "review_required": true
+    },
+    {
+      "id": "review",
+      "title": "Review the bounded change",
+      "role": "reviewer",
+      "required_capabilities": ["review"],
+      "preferred_capabilities": ["security_review"],
+      "dependencies": ["build"],
+      "inputs": {
+        "source_task": "build"
+      },
+      "expected_outputs": ["review_decision", "findings"],
+      "required_permissions": ["read_workspace"]
+    },
+    {
+      "id": "test",
+      "title": "Run offline validation",
+      "role": "tester",
+      "required_capabilities": ["testing"],
+      "dependencies": ["review"],
+      "inputs": {
+        "source_task": "build"
+      },
+      "expected_outputs": ["test_results"],
+      "required_permissions": ["read_workspace", "write_workspace"],
+      "validation_commands": ["python -m pytest", "ruff check ."]
+    }
+  ]
+}
