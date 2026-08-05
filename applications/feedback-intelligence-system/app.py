@@ -9,6 +9,7 @@ import streamlit as st
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from feedback_intelligence import __version__
 from feedback_intelligence.config import APP_LOG_LEVEL, APP_MOCK_MODE, DEEPSEEK_CONFIGURED
 from feedback_intelligence.database import init_db, run_migrations
 
@@ -60,7 +61,7 @@ def main():
     )
 
     st.sidebar.markdown("---")
-    st.sidebar.caption("v0.2.0 | 本地运行 | 仅监听 127.0.0.1")
+    st.sidebar.caption(f"v{__version__} | 本地运行 | 仅监听 127.0.0.1")
 
     # Route to pages
     page_map = {

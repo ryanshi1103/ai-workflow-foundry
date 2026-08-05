@@ -7,11 +7,11 @@ connected that baseline and imported its exact root tree under the original
 `applications/feedback-analysis-system/` path.
 
 The isolated migration branch advances that same public line to
-`1eb814d76b9826ca19cf5034edc249db3d10fd54`. Commit `d3ee954` connects the main
+`93b646baf6c92437b97abc0e13d6b6e53b8811eb`. Commit `d3ee954` connects the main
 source commits with a non-squash, history-only merge: its tree is identical to
 its first parent. The controlled vendor sync then moves the bundled path to
 `applications/feedback-intelligence-system/`. The source and staged bundled
-trees are both `5da36b814f312ed026e0a720f66be5e2065830e8`, proving that the
+trees are both `2a2c2796a4176a0fc354ba94d73bdbe00e0f38c2`, proving that the
 application snapshot is exact rather than hand-copied.
 
 The source-only lint configuration follow-up is connected by `c8bac35`; this

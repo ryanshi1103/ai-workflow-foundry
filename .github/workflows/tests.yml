@@ -51,12 +51,13 @@ jobs:
           python3 -m unittest discover -s components/confera-media-skills/tests -v
           python3 -m unittest discover -s workflows/print-ready-nameplate-generator/tests -v
       - name: Install feedback application
-        run: python3 -m pip install -e "applications/feedback-analysis-system[dev]"
+        run: python3 -m pip install -e "applications/feedback-intelligence-system[dev]"
       - name: Lint feedback application
         run: |
-          ruff check applications/feedback-analysis-system/src \
-            applications/feedback-analysis-system/tests \
-            applications/feedback-analysis-system/app.py \
-            applications/feedback-analysis-system/pages
+          ruff check applications/feedback-intelligence-system/feedback_intelligence \
+            applications/feedback-intelligence-system/src \
+            applications/feedback-intelligence-system/tests \
+            applications/feedback-intelligence-system/app.py \
+            applications/feedback-intelligence-system/pages
       - name: Test feedback application
-        run: pytest applications/feedback-analysis-system/tests -q
+        run: pytest applications/feedback-intelligence-system/tests -q

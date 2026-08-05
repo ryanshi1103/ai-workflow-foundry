@@ -14,8 +14,8 @@ and its history remain intact. `feedback-analysis-system` and
 
 - Public baseline: `e8b9e3374521578702eed7b92ea67dd5a2c1f327`
 - Isolated source branch: `migration/feedback-intelligence`
-- Final source commit: `1eb814d76b9826ca19cf5034edc249db3d10fd54`
-- Final source tree: `5da36b814f312ed026e0a720f66be5e2065830e8`
+- Final source commit: `93b646baf6c92437b97abc0e13d6b6e53b8811eb`
+- Final source tree: `2a2c2796a4176a0fc354ba94d73bdbe00e0f38c2`
 - Initial history connection: `d3ee9544584e844a090ebda7463b047e32724e63`
 - Final source follow-up connection: `c8bac35b8c9c8cb9725a2f3d9da743e43aa01d85`
 - FlowFoundry application commit: `cde3d6b357c49c6ad2037577c60317a496d07bc8`
