@@ -10,6 +10,7 @@ dist/
 build/
 *.egg-info/
 .ai-session/
+docs/sessions/
 .env
 
 # Workspace-manager virtual device files

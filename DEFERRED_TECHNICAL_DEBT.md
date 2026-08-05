@@ -46,5 +46,15 @@ actions and release operations are listed separately in
 - Installed `flowfoundry validate` validates packaged declarations; only a
   source checkout can validate physical monorepo bundled paths. Keep this
   distinction explicit in future CLI wording.
-- Pending DeepSeek reviews must remain `REVIEW_PENDING`; do not promote them to
-  approval without review artifacts.
+- Resource discovery is verified for standard prefix/venv wheel installs. Add a
+  documented decision or `importlib.resources` design before claiming support
+  for `pip --target` or `pip --user` layouts.
+- Convert the manual Git-archive wheel/sdist/install validation into a permanent
+  CI regression test, and migrate setuptools license metadata to an SPDX string
+  before the first package release.
+- The profile README still says the Multi-Agent MVP is being built. After the
+  sanitized FlowFoundry branch is published, update that sentence to describe
+  hardening/evolution of the implemented MVP.
+- All four closure checkpoints now have exact review artifacts. Future pending
+  reviews must remain `REVIEW_PENDING`; never promote them from acknowledgement
+  files alone.
