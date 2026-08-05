@@ -13,7 +13,7 @@ class CliTests(unittest.TestCase):
         with redirect_stdout(output):
             result = main(["validate"])
         self.assertEqual(result, 0)
-        self.assertIn("validated 4", output.getvalue())
+        self.assertIn("validated 5", output.getvalue())
 
     def test_list_command(self) -> None:
         output = io.StringIO()

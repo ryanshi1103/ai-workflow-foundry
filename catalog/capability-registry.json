@@ -106,6 +106,19 @@
       "maturity": "beta"
     },
     {
+      "id": "controlled-media-path-validation",
+      "display_name": "Controlled media path validation",
+      "description": "Validate portable media references at the public/private boundary without resolving or modifying private product data.",
+      "provided_by": "mediaflow",
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "flowfoundry.applications.mediaflow:validate_controlled_relative_path",
+        "requires_network": false,
+        "requires_secrets": false
+      },
+      "maturity": "beta"
+    },
+    {
       "id": "structured-feedback-import",
       "display_name": "Structured feedback import",
       "description": "Import feedback from CSV, JSON, and Apify sources with validation and deduplication.",

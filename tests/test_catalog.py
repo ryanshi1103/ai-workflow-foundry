@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class CatalogTests(unittest.TestCase):
     def test_repository_catalog_is_valid(self) -> None:
         components = validate_catalog(repository_root=ROOT)
-        self.assertEqual(len(components), 4)
+        self.assertEqual(len(components), 5)
 
     def test_component_ids_are_unique(self) -> None:
         components = load_catalog()

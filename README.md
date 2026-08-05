@@ -21,10 +21,13 @@ lifecycle shared by useful AI work.
 - A bundled, tested workspace runtime for Claude, DeepSeek, and Codex under
   [`core/workspace-manager`](core/workspace-manager/README.md).
 - Three physically integrated workflow components with their original Git
-  histories: Confera Media Skills, Feedback Analysis System, and the
+  histories: Confera Media Skills, Feedback Intelligence System, and the
   Print-ready Nameplate Generator.
-- A dependency-free catalog validator and CLI that verifies all four bundled
-  component paths, maturity declarations, and safety boundaries.
+- A sanitized application contract for the private Huiying / MediaFlow product;
+  its commercial implementation, real media, configuration, and release assets
+  remain outside this public repository.
+- A dependency-free catalog validator and CLI that verifies bundled paths,
+  maturity declarations, and safety boundaries.
 - A generic component schema, product architecture, project-pattern audit, and
   staged roadmap toward a reusable workflow runner.
 
@@ -58,6 +61,7 @@ real project + controlled inputs
 | Core runtime | [AI Workspace Manager](core/workspace-manager/README.md) | Bundled with preserved Git history |
 | Media workflow pack | [Confera Media Skills](components/confera-media-skills/README.md) | Bundled under `components/` with preserved history |
 | Customer intelligence | [Feedback Intelligence System](applications/feedback-intelligence-system/README.md) | Bundled under `applications/`; independently runnable; legacy catalog IDs remain aliases |
+| Private media application | [Huiying / MediaFlow](applications/mediaflow/README.md) | Public workflow and policy contract only; private source and product data remain isolated |
 | Document automation | [Print-ready Nameplate Generator](workflows/print-ready-nameplate-generator/README.md) | Bundled under `workflows/`; independently runnable |
 
 The monorepo is the canonical integration point. Component boundaries remain
