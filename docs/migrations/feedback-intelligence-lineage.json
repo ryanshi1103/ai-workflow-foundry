@@ -2,10 +2,12 @@
   "schema_version": 1,
   "product": "feedback-intelligence-system",
   "canonical_public_repository": "https://github.com/ryanshi1103/feedback-analysis-system",
-  "canonical_source_commit": "e8b9e3374521578702eed7b92ea67dd5a2c1f327",
-  "canonical_source_tree": "5e47752bdfbf871201ad4f02a13f73634f044b1",
-  "flowfoundry_integration_commit": "8617cc29924b38c298f7f84aa545ea34d7c36b26",
+  "canonical_public_baseline": "e8b9e3374521578702eed7b92ea67dd5a2c1f327",
+  "canonical_source_commit": "1eb814d76b9826ca19cf5034edc249db3d10fd54",
+  "canonical_source_tree": "5da36b814f312ed026e0a720f66be5e2065830e8",
+  "flowfoundry_integration_commit": "d3ee9544584e844a090ebda7463b047e32724e63",
   "flowfoundry_original_path": "applications/feedback-analysis-system",
+  "flowfoundry_canonical_path": "applications/feedback-intelligence-system",
   "legacy_product_names": [
     "feedback-analysis-system",
     "social-negative-monitor"
@@ -18,6 +20,9 @@
     "location": "repository-external private backup directory",
     "sha256": "8544ce02c43b1ac645d4993246985f14f24643c70427f63fb0e1b1d038c8183d"
   },
-  "history_import_required": false,
+  "history_connection": {
+    "strategy": "non-squash history-only merge using the ours strategy",
+    "tree_unchanged": true
+  },
   "remote_rename_performed": false
 }

@@ -7,16 +7,15 @@ import json
 import sys
 from pathlib import Path
 
-from .catalog import CatalogError, get_component, load_catalog, validate_catalog
 from .capability_registry import (
     check_workflow_capabilities,
     cross_reference_catalog,
     load_capability_registry,
 )
+from .catalog import CatalogError, get_component, load_catalog, validate_catalog
 from .workflow_contract import (
     cross_reference_stages,
     load_workflow_contracts,
-    validate_workflow_contract,
 )
 
 

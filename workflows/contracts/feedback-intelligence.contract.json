@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "id": "feedback-intelligence",
+  "display_name": "Feedback Intelligence Review Workflow",
+  "version": "1.0.0",
+  "description": "Local-first feedback import, deduplication, AI candidate analysis, human review, and audit-preserving export.",
+  "stages": [
+    {
+      "id": "import-feedback",
+      "name": "Import authorized feedback",
+      "description": "Validate user-provided, public, or authorized connector records before local persistence.",
+      "required_inputs": [
+        {
+          "id": "feedback-records",
+          "description": "Authorized CSV, JSON, sample, or configured connector records",
+          "content_type": "application/json"
+        }
+      ],
+      "produces": {
+        "artifacts": [
+          {
+            "id": "validated-feedback",
+            "description": "Validated feedback rows with stable content hashes",
+            "content_type": "application/json"
+          }
+        ],
+        "review_required": false
+      },
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "feedback_intelligence.services.import_service",
+        "timeout_seconds": 120
+      }
+    },
+    {
+      "id": "deduplicate-feedback",
+      "name": "Deduplicate feedback",
+      "description": "Use stable content hashes to avoid repeated rows without deleting existing data.",
+      "depends_on": ["import-feedback"],
+      "produces": {
+        "artifacts": [
+          {
+            "id": "unique-feedback",
+            "description": "New feedback rows and duplicate counters",
+            "content_type": "application/json"
+          }
+        ],
+        "review_required": false
+      },
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "feedback_intelligence.services.dedup_service",
+        "timeout_seconds": 30
+      }
+    },
+    {
+      "id": "analyze-feedback",
+      "name": "Produce analysis candidates",
+      "description": "Run deterministic mock analysis or an explicitly configured provider while preserving original input.",
+      "depends_on": ["deduplicate-feedback"],
+      "produces": {
+        "artifacts": [
+          {
+            "id": "analysis-candidates",
+            "description": "Model candidates with type, sentiment, severity, evidence, and confidence",
+            "content_type": "application/json"
+          }
+        ],
+        "review_required": true
+      },
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "feedback_intelligence.services.analysis_service",
+        "timeout_seconds": 600
+      }
+    },
+    {
+      "id": "review-feedback",
+      "name": "Review model candidates",
+      "description": "Record human corrections separately from the immutable candidate output.",
+      "depends_on": ["analyze-feedback"],
+      "produces": {
+        "artifacts": [
+          {
+            "id": "review-records",
+            "description": "Human review records and approval state",
+            "content_type": "application/json"
+          }
+        ],
+        "review_required": true
+      },
+      "adapter": {
+        "type": "manual",
+        "entry_point": "Streamlit human review page"
+      }
+    },
+    {
+      "id": "export-feedback",
+      "name": "Export reviewed feedback",
+      "description": "Create stable CSV or JSON output while retaining both AI and human audit fields.",
+      "depends_on": ["review-feedback"],
+      "produces": {
+        "artifacts": [
+          {
+            "id": "feedback-export",
+            "description": "Reviewed UTF-8-SIG CSV or JSON export",
+            "content_type": "application/octet-stream"
+          }
+        ],
+        "review_required": false
+      },
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "feedback_intelligence.services.export_service",
+        "timeout_seconds": 120
+      }
+    }
+  ],
+  "approval_gates": [
+    {
+      "id": "approve-authoritative-export",
+      "name": "Approve authoritative export",
+      "after_stage": "review-feedback",
+      "description": "Confirm human review before an export is used as an authoritative operational result.",
+      "scope": "export",
+      "auto_approve_policy": "never"
+    }
+  ],
+  "capabilities_required": [
+    "structured-feedback-import",
+    "ai-assisted-classification",
+    "human-review-dashboard",
+    "auditable-local-export"
+  ],
+  "safety": {
+    "local_first": true,
+    "network_policy": "Mock analysis is offline. DeepSeek and Apify network access require explicit environment configuration.",
+    "side_effects": [
+      {
+        "stage_id": "import-feedback",
+        "description": "Writes authorized feedback rows to the configured local SQLite database.",
+        "kind": "database_write",
+        "reversible": true
+      },
+      {
+        "stage_id": "analyze-feedback",
+        "description": "May call an explicitly configured model provider when mock mode is disabled.",
+        "kind": "network_call",
+        "reversible": false
+      },
+      {
+        "stage_id": "review-feedback",
+        "description": "Appends a human review record without overwriting the original model result.",
+        "kind": "database_write",
+        "reversible": true
+      },
+      {
+        "stage_id": "export-feedback",
+        "description": "Writes a CSV or JSON artifact selected by the operator.",
+        "kind": "file_write",
+        "reversible": true
+      }
+    ]
+  },
+  "idempotency": {
+    "key_source": "content-hash",
+    "description": "Import deduplication is content-addressed; schema migrations are additive and safe to repeat."
+  }
+}

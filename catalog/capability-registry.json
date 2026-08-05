@@ -109,10 +109,10 @@
       "id": "structured-feedback-import",
       "display_name": "Structured feedback import",
       "description": "Import feedback from CSV, JSON, and Apify sources with validation and deduplication.",
-      "provided_by": "feedback-analysis-system",
+      "provided_by": "feedback-intelligence-system",
       "adapter": {
         "type": "python-module",
-        "entry_point": "src.services.import_service",
+        "entry_point": "feedback_intelligence.services.import_service",
         "requires_network": false,
         "requires_secrets": false
       },
@@ -122,10 +122,10 @@
       "id": "ai-assisted-classification",
       "display_name": "AI-assisted classification",
       "description": "Classify feedback sentiment, category, severity, and confidence using AI with original-output preservation.",
-      "provided_by": "feedback-analysis-system",
+      "provided_by": "feedback-intelligence-system",
       "adapter": {
         "type": "python-module",
-        "entry_point": "src.services.analysis_service",
+        "entry_point": "feedback_intelligence.services.analysis_service",
         "requires_network": true,
         "requires_secrets": true
       },
@@ -135,10 +135,10 @@
       "id": "human-review-dashboard",
       "display_name": "Human review dashboard",
       "description": "Web dashboard for reviewing, correcting, and approving AI-classified feedback before operational use.",
-      "provided_by": "feedback-analysis-system",
+      "provided_by": "feedback-intelligence-system",
       "adapter": {
         "type": "python-module",
-        "entry_point": "app:server",
+        "entry_point": "app:main",
         "requires_network": false,
         "requires_secrets": false
       },
@@ -148,10 +148,10 @@
       "id": "auditable-local-export",
       "display_name": "Auditable local export",
       "description": "Export reviewed feedback with full audit trail — original AI output preserved alongside human corrections.",
-      "provided_by": "feedback-analysis-system",
+      "provided_by": "feedback-intelligence-system",
       "adapter": {
         "type": "python-module",
-        "entry_point": "src.services.export_service",
+        "entry_point": "feedback_intelligence.services.export_service",
         "requires_network": false,
         "requires_secrets": false
       },

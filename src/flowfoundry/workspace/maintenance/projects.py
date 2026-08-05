@@ -1278,6 +1278,7 @@ def _protection_reason(name: str, is_protected: bool) -> str:
         "PhotoTransform",
         "Hunan-University-Motivation-PPT",
         "confera-media-skills",
+        "feedback-intelligence-system",
         "feedback-analysis-system",
         "print-ready-nameplate-generator",
         "ryanshi1103",
@@ -1437,6 +1438,7 @@ def _write_default_protected_list() -> None:
                     "phone-control",
                     "hunan-university",
                     "confera-media-skills",
+                    "feedback-intelligence-system",
                     "feedback-analysis-system",
                     "print-ready-nameplate-generator",
                 ]
