@@ -65,3 +65,27 @@ DeepSeek's scheduler review found two P1 recovery failures. The repair commit
 
 After the repair, the full 158-test root matrix and 33-test orchestration matrix
 passed.
+
+## Release-candidate closure revalidation — 2026-08-06
+
+The closure re-ran the complete local gates with user site-packages disabled
+and bytecode/cache generation disabled where supported:
+
+- FlowFoundry: **158 passed, 63 subtests**;
+- orchestration focused: **33 passed**;
+- Feedback Intelligence: **101 passed**;
+- workspace: **24 Python, 40 shell, 4 deploy/profile assertions**;
+- MediaFlow private integration: **547 passed, 31 subtests** in a newly created
+  isolated dependency venv with the authorized SDK directory mounted through a
+  temporary read-only reference;
+- Confera and Nameplate: **3 + 3 passed**;
+- Ruff, 8 shell syntax checks, source/import/CLI/validate, standard-prefix clean
+  wheel, editable resource parity, and synthetic 3/3 E2E: passed.
+
+The first MediaFlow closure attempt had one environment-induced failure because
+the isolated HOME directory name itself contained the test's forbidden word
+`media`. Re-running the full suite with a neutral temporary HOME produced 547
+passes; no assertion or code was changed.
+
+These green tests do not override the separate tracked-session history privacy
+blocker recorded in `FINAL_PRIVACY_AUDIT.md`.

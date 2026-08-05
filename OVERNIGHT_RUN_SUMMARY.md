@@ -90,24 +90,37 @@ operation occurred. Full operator queue: `HUMAN_ACTIONS_REQUIRED.md`.
 
 ## Known blockers and push assessment
 
-Automated validation is green and DeepSeek approved the scheduler P1 repair in
-`d10b948`. Provenance-documentation checkpoint 019 and installed-resource
-checkpoint 020 remain `REVIEW_PENDING`. Therefore the branch is **not yet
-recommended for push** without human review of those checkpoints and the final
-privacy/license decisions.
+The statements below preserve the status at overnight report generation. The
+2026-08-06 release-candidate closure supersedes the push assessment:
+
+- checkpoint `7a41b9d` was blocked for one provenance fact and corrected by
+  approved commit `180c65b`;
+- checkpoint `3471894` is `APPROVED_WITH_NOTES` after exact wheel/sdist and
+  clean-prefix installation verification;
+- checkpoint `fd62992` is `BLOCKED` because tracked session material is
+  reachable from `portfolio-migration`, the old privacy result was therefore
+  incorrect, and the Feedback license boundary remains unresolved;
+- no `REVIEW_PENDING` status is represented as approval.
+
+All re-run automated tests are green, but the branch is
+**BLOCKED_BEFORE_PUSH**. A normal follow-up deletion cannot remove an ancestor
+blob. Explicit human authority is required for a sanitized publication branch
+or another compliant history treatment, followed by complete retesting and
+rereview.
 
 ## Recommended human execution order
 
-1. Review pending checkpoints 019 and 020; checkpoint 022's P1 repair is already approved.
-2. Review the final privacy audit, test matrix, commit graph, and external bundle
-   hashes.
-3. Review standalone Feedback and private MediaFlow branches; decide licenses
-   and protected platform release steps.
-4. Push normal feature branches—never force-push or squash preserved lineage—and
-   let remote CI run.
+1. Keep the current FlowFoundry branch unpushed and review the session-history
+   blocker and verified external backup.
+2. Decide the Feedback license/boundary before either public repository is
+   pushed.
+3. Authorize and build a sanitized FlowFoundry publication branch without
+   changing `main` or the preserved migration branch; retest and rereview it.
+4. Fetch and compare remote refs, then push only reviewed feature branches—never
+   force-push or squash lineage commits—and let remote CI run.
 5. Merge through protected workflows only after CI/review.
 6. Perform the Feedback in-place rename and verify redirects before updating
-   links.
+   profile links.
 7. Push the profile README and then apply pins/topics manually.
 8. Handle private signing, installers, real devices/media, releases, and
    deployments last in their approved environments.

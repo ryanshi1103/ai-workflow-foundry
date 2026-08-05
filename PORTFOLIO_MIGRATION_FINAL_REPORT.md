@@ -25,7 +25,7 @@ real external message occurred.
 | 3 Huiying / MediaFlow | completed locally with human release work deferred | Private histories integrated on local branches; public FlowFoundry receives sanitized contract only |
 | 4 GitHub Portfolio Layer | locally prepared | Profile branch and reports committed locally; all GitHub writes deferred |
 | 5 Multi-Agent Collaboration MVP | implemented, tested, and approved | 33 focused tests, resumable DAG, mailbox, gates, CLI, fake-provider E2E; both DeepSeek P1 findings closed |
-| Final validation | passed | 158 root tests, clean wheel, privacy/secret/history/CLI/synthetic checks |
+| Final validation | functional gates passed; privacy publication gate failed | 158 root tests, clean wheel, CLI/synthetic checks green; reachable session history blocks push |
 
 ## Major deliverables
 
@@ -56,16 +56,25 @@ DeepSeek approved Phase 3 and Phase 4. It blocked scheduler checkpoint `a7e5175`
 with two P1 recovery findings. Commit `d10b948` makes approved gated tasks
 retryable and revives transitively skipped dependents; focused and full tests
 pass. DeepSeek re-reviewed checkpoint 022 as `APPROVED` with no remaining
-findings. Any checkpoint without a review file remains `REVIEW_PENDING` in the
-overnight summary.
+findings. The release-candidate closure subsequently recorded exact structured
+artifacts for checkpoints `7a41b9d`, `3471894`, `fd62992`, and repair
+`180c65b`; their current decisions are summarized in
+`RELEASE_CANDIDATE_FINAL_REPORT.md`.
 
 ## Risk and push readiness
 
-There is no known failing automated validation or unresolved code P1 after the
-approved repair. The branch is **not yet authorized for push**: two late final
-checkpoints remain pending, standalone license and remote ordering decisions
-remain, and private platform releases require protected environments. Follow
-`HUMAN_ACTIONS_REQUIRED.md` in the recommended order.
+Automated validation remains green, but the 2026-08-06 release-candidate review
+found a P0 public-history privacy blocker. Tracked session material introduced
+by `e3f42ecc` is reachable from `portfolio-migration`; the earlier privacy audit
+incorrectly said no transcript was tracked. A normal follow-up deletion cannot
+prevent that ancestor blob from being transferred. The branch is therefore
+**BLOCKED_BEFORE_PUSH**, not merely awaiting late reviews.
+
+Checkpoint `3471894` is `APPROVED_WITH_NOTES`. The provenance fact in
+checkpoint `7a41b9d` was corrected and approved in `180c65b`. Final-report
+checkpoint `fd62992` remains `BLOCKED` until an explicitly authorized sanitized
+publication candidate is built, fully retested, and rereviewed. The Feedback
+license/boundary decision must also precede public push.
 
 ## Rollback
 
