@@ -11,8 +11,9 @@ from pathlib import Path
 from typing import Any
 
 from .catalog import CatalogError, _require_text, load_catalog
+from .resources import resource_path
 
-CAPABILITY_REGISTRY_PATH = Path(__file__).resolve().parents[2] / "catalog" / "capability-registry.json"
+CAPABILITY_REGISTRY_PATH = resource_path("catalog", "capability-registry.json")
 
 ADAPTER_TYPES = {
     "claude-skill",

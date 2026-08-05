@@ -7,7 +7,9 @@ import re
 from pathlib import Path
 from typing import Any
 
-CATALOG_DIR = Path(__file__).resolve().parents[2] / "catalog"
+from .resources import resource_path, resource_root
+
+CATALOG_DIR = resource_path("catalog")
 ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 KINDS = {"core-runtime", "workflow-pack", "reference-application", "reference-workflow"}
 MATURITY = {"experimental", "alpha", "beta", "stable"}
@@ -140,10 +142,12 @@ def load_catalog(directory: Path | str | None = None) -> list[dict[str, Any]]:
 
 def validate_catalog(directory: Path | str | None = None, repository_root: Path | None = None) -> list[dict[str, Any]]:
     components = load_catalog(directory)
-    root = repository_root or Path(__file__).resolve().parents[2]
+    default_root, is_source_checkout = resource_root()
+    root = repository_root or default_root
+    verify_bundled_paths = repository_root is not None or is_source_checkout
     for component in components:
         bundled_path = component["integration"].get("bundled_path")
-        if bundled_path and not (root / bundled_path).is_dir():
+        if bundled_path and verify_bundled_paths and not (root / bundled_path).is_dir():
             raise CatalogError(
                 f"bundled path for {component['id']} does not exist: {bundled_path}"
             )
