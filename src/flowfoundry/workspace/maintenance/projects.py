@@ -19,14 +19,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
-from ..auto_name import (
+from ..lifecycle.auto_name import (
     analyze_project,
     is_placeholder_name,
     safe_rename_project,
     suggest_rename,
     update_project_json,
 )
-from ..utils import (
+from ..policy.runtime import (
     PROJECTS_ROOT,
     atomic_write_json,
     compute_sha256,

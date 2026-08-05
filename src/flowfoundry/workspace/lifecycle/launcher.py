@@ -5,20 +5,20 @@ import subprocess
 import sys
 from pathlib import Path
 
-from ..finalize import finalize_session
-from ..git_manager import ensure_git_identity, git_init
-from ..project import (
-    _update_project_index,
-    create_new_project,
-    create_session_meta,
-    read_project_meta,
-)
-from ..recovery import auto_recover_on_startup
-from ..utils import (
+from ..policy.runtime import (
     INTERNAL_ENV_VAR,
     atomic_write_json,
     find_real_executable,
     timestamp_iso,
+)
+from ..sessions.finalize import finalize_session
+from ..sessions.recovery import auto_recover_on_startup
+from .git_manager import ensure_git_identity, git_init
+from .project import (
+    _update_project_index,
+    create_new_project,
+    create_session_meta,
+    read_project_meta,
 )
 
 
@@ -183,7 +183,7 @@ def launch_here(
         # Initialize as a project if not already
         git_init(project_dir)
         ensure_git_identity(project_dir)
-        from ..project import create_project_meta, create_project_structure
+        from .project import create_project_meta, create_project_structure
 
         create_project_structure(project_dir)
         cli_version = _get_cli_version(cli_path, tool)
@@ -221,7 +221,7 @@ def launch_here(
     else:
         # Create a new session within existing project
         cli_version = _get_cli_version(cli_path, tool)
-        from ..utils import generate_session_id
+        from ..policy.runtime import generate_session_id
 
         session_id = generate_session_id(tool)
         session_meta = create_session_meta(

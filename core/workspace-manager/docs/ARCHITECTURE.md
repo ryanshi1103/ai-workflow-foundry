@@ -22,8 +22,9 @@ The AI Project Workspace Manager is a unified project management, launch, and ma
 - **Path**: `src/flowfoundry/workspace/`
 - **Purpose**: lifecycle, provider selection, session tracking, recovery,
   permissions, redaction, and maintenance
-- **Compatibility**: legacy flat module imports remain aliases for one release;
-  `cc`, `aiproj`, and `cc-projects-maintain` keep their existing entry points
+- **Compatibility**: `cc`, `aiproj`, and `cc-projects-maintain` keep their
+  existing entry points; the legacy `ai_project_manager` package maps old
+  imports directly to canonical subpackages
 
 ```text
 workspace/

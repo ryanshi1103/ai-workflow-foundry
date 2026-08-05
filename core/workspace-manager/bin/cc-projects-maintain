@@ -9,4 +9,4 @@ if [[ -d "$MONOREPO_ROOT/src/flowfoundry" ]]; then
     export PYTHONPATH="$MONOREPO_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 fi
 
-exec python3 -m flowfoundry.workspace.maintain_cli "$@"
+exec python3 -m flowfoundry.workspace.cli.maintenance "$@"

@@ -3,8 +3,7 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from ..finalize import finalize_session
-from ..utils import (
+from ..policy.runtime import (
     PROJECTS_ROOT,
     STATE_DIR,
     atomic_write_json,
@@ -12,6 +11,7 @@ from ..utils import (
     read_json,
     timestamp_iso,
 )
+from .finalize import finalize_session
 
 
 def scan_interrupted_projects() -> list[dict]:
@@ -120,7 +120,7 @@ def recover_interrupted(project_dir: Path, session_id: str) -> dict:
                 return {"success": False, "error": "No project.json found"}
 
             # Mark as interrupted (atomic update)
-            from ..project import update_project_status
+            from ..lifecycle.project import update_project_status
 
             update_project_status(
                 project_dir,

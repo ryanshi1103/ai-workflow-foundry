@@ -22,7 +22,7 @@ def main(argv: list[str] | None = None) -> int:
 
 def run_maintenance_cli(args: argparse.Namespace) -> int:
     """Run project maintenance and return exit code."""
-    from flowfoundry.workspace.maintain import run_maintenance
+    from ..maintenance.projects import run_maintenance
 
     dry_run = args.dry_run
     if args.quick:

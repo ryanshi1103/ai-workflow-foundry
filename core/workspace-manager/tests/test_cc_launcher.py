@@ -17,7 +17,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from flowfoundry.workspace import cc_launcher
+from flowfoundry.workspace.cli import launcher as cc_launcher
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 COMPONENT_ROOT = REPO_ROOT / "core" / "workspace-manager"
@@ -45,7 +45,7 @@ class WrapperContractTests(unittest.TestCase):
         expected = {
             "cc": "flowfoundry.cc",
             "aiproj": "flowfoundry.aiproj",
-            "cc-projects-maintain": "flowfoundry.workspace.maintain_cli",
+            "cc-projects-maintain": "flowfoundry.workspace.cli.maintenance",
         }
         for name, module in expected.items():
             source = (COMPONENT_ROOT / "bin" / name).read_text(encoding="utf-8")
@@ -266,7 +266,7 @@ class LaunchContractTests(unittest.TestCase):
     def test_claude_launch_uses_selected_project_provider_and_permission(self):
         with patch.dict(os.environ, {}, clear=True), \
                 patch.object(cc_launcher, "_find_executable", return_value="/usr/bin/claude"), \
-                patch("flowfoundry.workspace.launcher.launch_here", return_value=0) as launch:
+                patch("flowfoundry.workspace.lifecycle.launcher.launch_here", return_value=0) as launch:
             result = cc_launcher._launch_claude(self.project, "claude", "plan", False)
         self.assertEqual(result, 0)
         kwargs = launch.call_args.kwargs
@@ -278,7 +278,7 @@ class LaunchContractTests(unittest.TestCase):
     def test_deepseek_uses_isolated_config_directory(self):
         with patch.dict(os.environ, {}, clear=True), \
                 patch.object(cc_launcher, "_find_executable", return_value="/usr/bin/claude"), \
-                patch("flowfoundry.workspace.launcher.launch_here", return_value=0):
+                patch("flowfoundry.workspace.lifecycle.launcher.launch_here", return_value=0):
             cc_launcher._launch_claude(self.project, "deepseek", "default", False)
             self.assertTrue(os.environ["CLAUDE_CONFIG_DIR"].endswith(".claude-deepseek"))
 

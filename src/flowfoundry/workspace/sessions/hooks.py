@@ -12,8 +12,8 @@ import os
 import sys
 from pathlib import Path
 
-from ..redact import redact_jsonl
-from ..utils import (
+from ..policy.redact import redact_jsonl
+from ..policy.runtime import (
     INTERNAL_ENV_VAR,
     atomic_copy,
     atomic_write_json,

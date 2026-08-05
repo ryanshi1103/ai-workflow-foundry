@@ -1,7 +1,8 @@
-"""Phase 1 contracts for the canonical workspace package layout."""
+"""Contracts for the canonical workspace package layout."""
 
 from __future__ import annotations
 
+import ast
 import importlib
 import unittest
 from pathlib import Path
@@ -13,61 +14,74 @@ from flowfoundry.workspace.providers import (
     prepare_claude_environment,
 )
 
+WORKSPACE_ROOT = Path(__file__).resolve().parents[3] / "src/flowfoundry/workspace"
+ROOT_SHIM_NAMES = {
+    "auto_name",
+    "cc_launcher",
+    "finalize",
+    "git_manager",
+    "hook_entry",
+    "hooks",
+    "launcher",
+    "maintain",
+    "maintain_cli",
+    "project",
+    "recovery",
+    "redact",
+    "transcript_claude",
+    "transcript_codex",
+    "utils",
+}
 
-class CompatibilityImportTests(unittest.TestCase):
-    def test_legacy_modules_alias_canonical_implementations(self):
-        aliases = {
-            "flowfoundry.workspace.auto_name": (
-                "flowfoundry.workspace.lifecycle.auto_name"
-            ),
-            "flowfoundry.workspace.cc_launcher": (
-                "flowfoundry.workspace.cli.launcher"
-            ),
-            "flowfoundry.workspace.finalize": (
-                "flowfoundry.workspace.sessions.finalize"
-            ),
-            "flowfoundry.workspace.git_manager": (
-                "flowfoundry.workspace.lifecycle.git_manager"
-            ),
-            "flowfoundry.workspace.hook_entry": (
-                "flowfoundry.workspace.sessions.hook_entry"
-            ),
-            "flowfoundry.workspace.hooks": "flowfoundry.workspace.sessions.hooks",
-            "flowfoundry.workspace.launcher": (
-                "flowfoundry.workspace.lifecycle.launcher"
-            ),
-            "flowfoundry.workspace.maintain": (
-                "flowfoundry.workspace.maintenance.projects"
-            ),
-            "flowfoundry.workspace.maintain_cli": (
-                "flowfoundry.workspace.cli.maintenance"
-            ),
-            "flowfoundry.workspace.project": (
-                "flowfoundry.workspace.lifecycle.project"
-            ),
-            "flowfoundry.workspace.recovery": (
-                "flowfoundry.workspace.sessions.recovery"
-            ),
-            "flowfoundry.workspace.redact": "flowfoundry.workspace.policy.redact",
-            "flowfoundry.workspace.transcript_claude": (
-                "flowfoundry.workspace.sessions.transcript_claude"
-            ),
-            "flowfoundry.workspace.transcript_codex": (
-                "flowfoundry.workspace.sessions.transcript_codex"
-            ),
-            "flowfoundry.workspace.utils": "flowfoundry.workspace.policy.runtime",
+
+class CanonicalImportTests(unittest.TestCase):
+    def test_canonical_workspace_modules_import(self):
+        modules = (
+            "flowfoundry.workspace.cli.launcher",
+            "flowfoundry.workspace.cli.maintenance",
+            "flowfoundry.workspace.lifecycle.project",
+            "flowfoundry.workspace.lifecycle.launcher",
+            "flowfoundry.workspace.lifecycle.git_manager",
+            "flowfoundry.workspace.sessions.finalize",
+            "flowfoundry.workspace.sessions.hooks",
+            "flowfoundry.workspace.sessions.recovery",
+            "flowfoundry.workspace.policy.redact",
+            "flowfoundry.workspace.policy.runtime",
+            "flowfoundry.workspace.maintenance.projects",
+        )
+        for module_name in modules:
+            with self.subTest(module=module_name):
+                self.assertIsNotNone(importlib.import_module(module_name))
+
+    def test_root_level_workspace_shims_are_absent(self):
+        for module_name in ROOT_SHIM_NAMES:
+            with self.subTest(module=module_name):
+                self.assertFalse((WORKSPACE_ROOT / f"{module_name}.py").exists())
+
+    def test_internal_imports_do_not_target_removed_root_shims(self):
+        violations = []
+        absolute_shims = {
+            f"flowfoundry.workspace.{name}" for name in ROOT_SHIM_NAMES
         }
+        for source_path in WORKSPACE_ROOT.rglob("*.py"):
+            tree = ast.parse(source_path.read_text(encoding="utf-8"), source_path)
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.ImportFrom) or not node.module:
+                    continue
+                root_target = node.level == 2 and node.module in ROOT_SHIM_NAMES
+                if root_target or node.module in absolute_shims:
+                    violations.append(f"{source_path}:{node.lineno}:{node.module}")
+        self.assertEqual(violations, [])
 
-        for legacy_name, canonical_name in aliases.items():
-            with self.subTest(legacy=legacy_name):
-                legacy = importlib.import_module(legacy_name)
-                canonical = importlib.import_module(canonical_name)
-                self.assertIs(legacy, canonical)
+    def test_cli_package_exports_run(self):
+        cli_package = importlib.import_module("flowfoundry.workspace.cli")
+        cli_module = importlib.import_module("flowfoundry.workspace.cli.project")
+        self.assertIs(cli_package.run, cli_module.run)
 
-    def test_legacy_cli_package_exports_run(self):
-        legacy_cli = importlib.import_module("flowfoundry.workspace.cli")
-        canonical_cli = importlib.import_module("flowfoundry.workspace.cli.project")
-        self.assertIs(legacy_cli.run, canonical_cli.run)
+    def test_legacy_package_maps_directly_to_canonical_modules(self):
+        legacy = importlib.import_module("ai_project_manager.project")
+        canonical = importlib.import_module("flowfoundry.workspace.lifecycle.project")
+        self.assertIs(legacy, canonical)
 
 
 class ProviderIsolationTests(unittest.TestCase):

@@ -10,7 +10,7 @@ It reads the hook event JSON from stdin and processes it.
 import logging
 import os
 
-from flowfoundry.workspace.hooks import handle_hook_event
+from .hooks import handle_hook_event
 
 
 def main() -> int:

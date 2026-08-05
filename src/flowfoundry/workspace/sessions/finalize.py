@@ -4,45 +4,15 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..git_manager import (
+from ..lifecycle.git_manager import (
     build_commit_message,
     git_add_all_safe,
     git_commit,
     git_status,
 )
-from ..project import update_project_status
-from ..redact import redact_jsonl
-from ..transcript_claude import (
-    extract_accomplishments as claude_accomplishments,
-)
-from ..transcript_claude import (
-    extract_conversation_markdown as claude_md,
-)
-from ..transcript_claude import (
-    extract_decisions as claude_decisions,
-)
-from ..transcript_claude import (
-    extract_first_prompt as claude_first_prompt,
-)
-from ..transcript_claude import (
-    parse_claude_transcript,
-)
-from ..transcript_codex import (
-    extract_accomplishments as codex_accomplishments,
-)
-from ..transcript_codex import (
-    extract_conversation_markdown as codex_md,
-)
-from ..transcript_codex import (
-    extract_decisions as codex_decisions,
-)
-from ..transcript_codex import (
-    extract_first_prompt as codex_first_prompt,
-)
-from ..transcript_codex import (
-    parse_codex_transcript,
-)
-from ..utils import (
+from ..lifecycle.project import update_project_status
+from ..policy.redact import redact_jsonl
+from ..policy.runtime import (
     atomic_copy,
     atomic_write_json,
     compute_sha256,
@@ -52,6 +22,36 @@ from ..utils import (
     read_json,
     sanitize_project_title,
     timestamp_iso,
+)
+from .transcript_claude import (
+    extract_accomplishments as claude_accomplishments,
+)
+from .transcript_claude import (
+    extract_conversation_markdown as claude_md,
+)
+from .transcript_claude import (
+    extract_decisions as claude_decisions,
+)
+from .transcript_claude import (
+    extract_first_prompt as claude_first_prompt,
+)
+from .transcript_claude import (
+    parse_claude_transcript,
+)
+from .transcript_codex import (
+    extract_accomplishments as codex_accomplishments,
+)
+from .transcript_codex import (
+    extract_conversation_markdown as codex_md,
+)
+from .transcript_codex import (
+    extract_decisions as codex_decisions,
+)
+from .transcript_codex import (
+    extract_first_prompt as codex_first_prompt,
+)
+from .transcript_codex import (
+    parse_codex_transcript,
 )
 
 
@@ -294,7 +294,7 @@ def _record_final_commit(
     project_dir: Path, session_id: str, tool: str, final_commit: str | None
 ) -> None:
     """Record a commit id without modifying files contained in that commit."""
-    from ..utils import GLOBAL_LOCK_FILE, STATE_DIR
+    from ..policy.runtime import GLOBAL_LOCK_FILE, STATE_DIR
 
     private_dir = project_dir / ".ai-session" / "private" / session_id
     ensure_dir(private_dir, 0o700)
@@ -867,7 +867,7 @@ def _derive_title(goal: str, tool: str) -> str:
 
 def _rename_project_if_possible(project_dir: Path, first_prompt: str) -> None:
     """Attempt to rename the project based on the first prompt."""
-    from ..project import rename_project
+    from ..lifecycle.project import rename_project
 
     title = _derive_title(first_prompt, "")
     if not title or title in ("session", "claude session", "codex session"):

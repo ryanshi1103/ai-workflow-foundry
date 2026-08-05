@@ -606,7 +606,7 @@ def _launch_claude(
     extra_args: list[str] | None = None,
 ) -> int:
     """Launch Claude or DeepSeek via the workspace manager's launcher."""
-    from flowfoundry.workspace.launcher import launch_here
+    from ..lifecycle.launcher import launch_here
 
     prepare_claude_environment(provider)
 

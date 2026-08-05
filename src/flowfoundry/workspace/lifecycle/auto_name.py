@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from ..utils import PROJECTS_ROOT, read_json
+from ..policy.runtime import PROJECTS_ROOT, read_json
 
 # ─── Placeholder name patterns ────────────────────────────────────────────
 
@@ -965,7 +965,7 @@ def update_project_json(project_dir: Path, analysis: dict = None) -> dict:
     ai_dir.mkdir(parents=True, exist_ok=True)
 
     # Write
-    from ..utils import atomic_write_json
+    from ..policy.runtime import atomic_write_json
 
     atomic_write_json(ai_dir / "project.json", result)
 
