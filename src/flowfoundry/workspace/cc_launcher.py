@@ -127,12 +127,16 @@ def add_to_recent(target_dir: Path) -> None:
 # ---------------------------------------------------------------------------
 
 _input_fn: Callable[[str], str] = input  # injectable for tests
+_prompt_closed = False
 
 
 def _prompt(msg: str) -> str:
+    global _prompt_closed
+    _prompt_closed = False
     try:
         return _input_fn(msg).strip()
     except (EOFError, KeyboardInterrupt):
+        _prompt_closed = True
         print()
         return ""
 
@@ -162,7 +166,13 @@ def _confirm_remote(mode_name: str) -> bool:
     print()
     print(f"远程高权限确认: {mode_name}")
     answer = _prompt("请输入 'remote-yes' 继续: ")
-    return answer == "remote-yes"
+    if _prompt_closed:
+        print("输入已关闭，已取消。")
+        return False
+    if answer != "remote-yes":
+        print("远程高权限确认失败，已取消。")
+        return False
+    return True
 
 
 def _choose_provider(project_dir: Path) -> str | None:
@@ -176,10 +186,16 @@ def _choose_provider(project_dir: Path) -> str | None:
     print("╚══════════════════════════════════════════╝")
     print()
     choice = _prompt("请选择 (c/d/o/q): ").lower()
+    if _prompt_closed:
+        print("输入已关闭，已取消。")
+        return "error"
     if choice == "q":
         print("已取消。")
         return None
-    return choice
+    if choice in {"c", "d", "o"}:
+        return choice
+    print("无效选择，已取消。")
+    return "error"
 
 
 def _choose_permission_mode() -> dict | None:
@@ -649,6 +665,8 @@ def main() -> int:
         provider = _choose_provider(project_dir)
         if provider is None:
             return 0
+        if provider == "error":
+            return 1
         if provider == "q":
             print("已取消。")
             return 0
@@ -674,9 +692,13 @@ def main() -> int:
             print(f"║  权限: {codex_cfg['name']}")
             print("╚══════════════════════════════════════════╝")
             print()
-            if _prompt("请输入 'yes' 确认启动: ") != "yes":
+            answer = _prompt("请输入 'yes' 确认启动: ")
+            if _prompt_closed:
+                print("输入已关闭，已取消。")
+                return 1
+            if answer != "yes":
                 print("已取消。")
-                return 0
+                return 1
 
             if not _codex_preflight(project_dir, codex_cfg["profile"]):
                 print()
@@ -714,9 +736,13 @@ def main() -> int:
                 print("║  Shift+Tab 可切换权限模式                ║")
             print("╚══════════════════════════════════════════╝")
             print()
-            if _prompt("请输入 'yes' 确认启动: ") != "yes":
+            answer = _prompt("请输入 'yes' 确认启动: ")
+            if _prompt_closed:
+                print("输入已关闭，已取消。")
+                return 1
+            if answer != "yes":
                 print("已取消。")
-                return 0
+                return 1
 
             prov = {"c": "claude", "d": "deepseek"}.get(provider, "claude")
             return _launch_claude(
