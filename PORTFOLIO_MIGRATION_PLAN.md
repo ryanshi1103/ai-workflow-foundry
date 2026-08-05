@@ -212,8 +212,8 @@ git merge --no-ff --allow-unrelated-histories -s ours workspace-private/main \
 
 # Legacy local-only repo: create and verify a bundle before importing its committed branch
 mkdir -p .git/migration-bundles
-git -C /home/ryan/Projects/claude-switcher-setup bundle create \
-  /home/ryan/Projects/ai-workflow-foundry/.git/migration-bundles/claude-switcher.bundle --all
+git -C ~/Projects/claude-switcher-setup bundle create \
+  ~/Projects/ai-workflow-foundry/.git/migration-bundles/claude-switcher.bundle --all
 git bundle verify .git/migration-bundles/claude-switcher.bundle
 git remote add claude-switcher .git/migration-bundles/claude-switcher.bundle
 git fetch claude-switcher master
@@ -363,7 +363,7 @@ Because the repositories share ancestry, a normal non-squash merge is the correc
 ### 8.5 Proposed Git operations — not executed
 
 ```bash
-cd /home/ryan/Projects/meeting-media-auto
+cd ~/Projects/meeting-media-auto
 git status --short --branch
 git fsck --full
 git switch -c integration/unified-huiying-product

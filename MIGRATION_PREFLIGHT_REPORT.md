@@ -45,7 +45,7 @@ should be deleted or archived.
 
 #### `ai-project-workspace-manager`
 
-- **Checkout:** `/home/ryan/Projects/ai-project-workspace-manager`
+- **Checkout:** `~/Projects/ai-project-workspace-manager`
 - **Current branch/HEAD:** `main` at `ea19e49c93a8`
 - **Tracking:** `origin/main`; cached behind/ahead `0/0`
 - **Live remote:** `origin/main` at `ea19e49c93a8` — synchronized
@@ -62,7 +62,7 @@ should be deleted or archived.
 
 #### `ai-workspace-manager`
 
-- **Standalone checkout:** absent under `/home/ryan/Projects`
+- **Standalone checkout:** absent under `~/Projects`
 - **Representations available:**
   - bundled module: `core/workspace-manager`
   - FlowFoundry remote: `workspace`
@@ -82,7 +82,7 @@ should be deleted or archived.
 
 #### `claude-switcher-setup`
 
-- **Checkout:** `/home/ryan/Projects/claude-switcher-setup`
+- **Checkout:** `~/Projects/claude-switcher-setup`
 - **Current branch/HEAD:** `master` at `aaaa66738947`
 - **Tracking/remotes:** no upstream and no Git remote configured
 - **Working tree:** eight tracked files modified and two untracked files
@@ -101,7 +101,7 @@ should be deleted or archived.
 
 #### `feedback-analysis-system`
 
-- **Standalone checkout:** absent under `/home/ryan/Projects`
+- **Standalone checkout:** absent under `~/Projects`
 - **Representations available:**
   - public remote `feedback/main` at live and cached `e8b9e3374521`
   - bundled application at `applications/feedback-analysis-system`
@@ -118,7 +118,7 @@ should be deleted or archived.
 
 #### `social-negative-monitor`
 
-- **Checkout:** `/home/ryan/Projects/social-negative-monitor`
+- **Checkout:** `~/Projects/social-negative-monitor`
 - **Current branch/HEAD:** `main` at `62a1e00efa75`
 - **Working tree:** clean
 - **Current tracking:** cached `archive/main`, behind/ahead `0/0`
@@ -144,7 +144,7 @@ should be deleted or archived.
 #### `huiying-media-workbench`
 
 - **Standalone checkout:** absent; this is the `origin` repository identity of
-  `/home/ryan/Projects/meeting-media-auto`
+  `~/Projects/meeting-media-auto`
 - **Live default branch:** `master` at `28f2f74e1a7b`
 - **Migration meaning:** product/workbench identity, not an additional source
   tree
@@ -152,7 +152,7 @@ should be deleted or archived.
 
 #### `meeting-media-auto`
 
-- **Checkout:** `/home/ryan/Projects/meeting-media-auto`
+- **Checkout:** `~/Projects/meeting-media-auto`
 - **Current branch/HEAD:** `master` at `a02d112c07af`
 - **Working tree:** clean
 - **Tracking:** `origin/master`; cached behind/ahead `0/1`
@@ -168,7 +168,7 @@ should be deleted or archived.
 
 #### `meeting-media-desktop`
 
-- **Checkout:** `/home/ryan/Projects/meeting-media-desktop`
+- **Checkout:** `~/Projects/meeting-media-desktop`
 - **Current branch/HEAD:** `product/windows-desktop` at `a78e8b3e9ec2`
 - **Working tree:** clean
 - **Tracking/live remote:** `origin/product/windows-desktop`, behind/ahead
@@ -203,7 +203,7 @@ should be deleted or archived.
 | Huiying common core | Main dependencies align. `defusedxml` is `>=0.7.1` in auto and `>=0.7` in desktop. | Normalize on the stricter lower bound after compatibility testing. |
 | Huiying desktop | Adds `cryptography>=46,<50`, pywebview, PyInstaller, and platform binaries. | Keep desktop/build extras separate from the common runtime. |
 | Windows lock | `requirements-windows.lock.txt` is explicitly pending and contains no resolved hashes. | Block reproducible release claims until generated on Windows x64 CPython 3.11. |
-| Existing Huiying venvs | Both `.venv` interpreters resolve `qrcode` from `/home/ryan/.local/lib/python3.14/site-packages`; isolated HOME initially caused 115/118 import errors. With that existing user-site made explicit, all tests passed. | Rebuild clean venvs from manifests and prove tests pass with user-site disabled before migration. |
+| Existing Huiying venvs | Both `.venv` interpreters resolve `qrcode` from a user-level `site-packages`; isolated HOME initially caused 115/118 import errors. With that existing user-site made explicit, all tests passed. | Rebuild clean venvs from manifests and prove tests pass with user-site disabled before migration. |
 | Workspace/Claude setup | No formal dependency manifests. | Add explicit runtime prerequisites and config schema when extracting adapters. |
 
 ## Privacy and public-display assessment
