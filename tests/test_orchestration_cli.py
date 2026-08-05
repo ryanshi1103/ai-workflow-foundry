@@ -87,6 +87,73 @@ class TeamCliTests(unittest.TestCase):
         self.assertEqual(result, 2)
         self.assertIn("flowfoundry team", error)
 
+    def test_approve_retry_resume_executes_previously_gated_task(self) -> None:
+        task_file = Path(self.temp_dir.name) / "gated.json"
+        task_file.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "goal": "Release after approval",
+                    "tasks": [
+                        {
+                            "id": "release",
+                            "title": "Release",
+                            "role": "builder",
+                            "required_capabilities": ["implementation"],
+                            "risk_level": "high",
+                            "approval_requirements": ["release"],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        result, output, _ = self.call(
+            "team",
+            "run",
+            str(task_file),
+            "--run-id",
+            "gated-cli",
+            "--runs-root",
+            str(self.runs_root),
+        )
+        self.assertEqual(result, 0)
+        self.assertEqual(
+            json.loads(output)["tasks"]["release"]["status"],
+            "skipped_pending_human",
+        )
+        self.assertEqual(
+            self.call(
+                "team",
+                "approve",
+                "gated-cli",
+                "release",
+                "--action",
+                "release",
+                "--actor",
+                "test-operator",
+                "--runs-root",
+                str(self.runs_root),
+            )[0],
+            0,
+        )
+        self.assertEqual(
+            self.call(
+                "team",
+                "retry",
+                "gated-cli",
+                "release",
+                "--runs-root",
+                str(self.runs_root),
+            )[0],
+            0,
+        )
+        result, output, error = self.call(
+            "team", "resume", "gated-cli", "--runs-root", str(self.runs_root)
+        )
+        self.assertEqual((result, error), (0, ""))
+        self.assertEqual(json.loads(output)["status"], "completed")
+
 
 if __name__ == "__main__":
     unittest.main()

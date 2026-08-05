@@ -24,14 +24,43 @@ class RecoveryManager:
         return workspace.update_manifest(recover)
 
     def retry_failed_task(self, workspace: RunWorkspace, task_id: str) -> dict[str, Any]:
-        current = workspace.manifest()["tasks"][task_id]["status"]
+        manifest = workspace.manifest()
+        current = manifest["tasks"][task_id]["status"]
         if current not in {
             TaskStatus.FAILED.value,
             TaskStatus.BLOCKED.value,
             TaskStatus.SKIPPED.value,
+            TaskStatus.SKIPPED_PENDING_HUMAN.value,
         }:
             raise ValueError(f"task is not retryable from status: {current}")
-        return workspace.update_task(task_id, status=TaskStatus.PENDING.value, error=None)
+
+        plan = workspace.plan()
+
+        def reset_retry_chain(run_manifest: dict[str, Any]) -> dict[str, Any]:
+            run_manifest["tasks"][task_id].update(
+                {"status": TaskStatus.PENDING.value, "error": None}
+            )
+            revived = {task_id}
+            for task in plan.tasks:
+                state = run_manifest["tasks"][task.id]
+                if (
+                    state["status"] == TaskStatus.SKIPPED.value
+                    and set(task.dependencies).intersection(revived)
+                ):
+                    state.update(
+                        {
+                            "status": TaskStatus.PENDING.value,
+                            "error": None,
+                            "attempts": 0,
+                            "agent_id": None,
+                        }
+                    )
+                    revived.add(task.id)
+            run_manifest["status"] = "running"
+            run_manifest["revived_tasks"] = sorted(revived)
+            return run_manifest
+
+        return workspace.update_manifest(reset_retry_chain)
 
     def reconcile_plan(self, workspace: RunWorkspace, plan: TaskPlan) -> dict[str, Any]:
         """Preserve unchanged completed tasks and reset changed inputs plus dependents."""
