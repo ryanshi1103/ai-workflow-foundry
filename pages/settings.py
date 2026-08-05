@@ -69,7 +69,7 @@ def show():
 
     st.info(
         """
-    **反馈分析系统 v0.2.0**
+    **Feedback Intelligence System v{__version__}**
 
     **API Key 配置方式:**
     - 复制 `.env.example` 为 `.env`
