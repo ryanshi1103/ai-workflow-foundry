@@ -10,6 +10,11 @@ Validated pre-report tip: `180c65b8147fddf39bb0281dbceceb1119221bfe`
 
 Main baseline: `bf6a4ad7157b9d8b35b7d7325ed609912c6b01d0`
 
+Final closure seal: the commit containing this metadata update; resolve it with
+`git log -1 --format=%H -- RELEASE_CANDIDATE_FINAL_REPORT.md`. Through that
+seal, the branch has 25 first-parent commits after the initial closure basis,
+55 commits not in local `main`, and 8 merge commits not in local `main`.
+
 ## Final status
 
 # BLOCKED_BEFORE_PUSH
