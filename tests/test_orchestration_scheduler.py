@@ -6,6 +6,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from flowfoundry.orchestration.aggregator import ResultAggregator
+from flowfoundry.orchestration.approvals import ApprovalGate
 from flowfoundry.orchestration.models import (
     ReviewDecision,
     RiskLevel,
@@ -141,6 +142,65 @@ class RecoveryTests(unittest.TestCase):
             RecoveryManager().reconcile_plan(workspace, changed)
             states = workspace.manifest()["tasks"]
             self.assertTrue(all(state["status"] == "pending" for state in states.values()))
+
+    def test_approved_gated_task_and_skipped_dependent_can_resume(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            plan = TaskPlan(
+                "Approval chain",
+                (
+                    TaskSpec(
+                        id="prepare",
+                        title="Prepare",
+                        role="builder",
+                        required_capabilities=("implementation",),
+                    ),
+                    TaskSpec(
+                        id="release",
+                        title="Release",
+                        role="builder",
+                        required_capabilities=("implementation",),
+                        dependencies=("prepare",),
+                        risk_level=RiskLevel.HIGH,
+                        approval_requirements=("release",),
+                    ),
+                    TaskSpec(
+                        id="finish",
+                        title="Finish",
+                        role="tester",
+                        required_capabilities=("testing",),
+                        dependencies=("release",),
+                    ),
+                ),
+            )
+            workspace = RunWorkspace.create(Path(temp_dir), "approval-chain", plan)
+            scheduler = RunScheduler(
+                TaskRouter(default_registry().synthetic()),
+                FakeProvider(),
+            )
+            scheduler.run(workspace)
+            first_states = workspace.manifest()["tasks"]
+            self.assertEqual(
+                first_states["release"]["status"],
+                TaskStatus.SKIPPED_PENDING_HUMAN.value,
+            )
+            self.assertEqual(first_states["finish"]["status"], TaskStatus.SKIPPED.value)
+
+            ApprovalGate().record_approval(
+                workspace,
+                "release",
+                ("release",),
+                "test-operator",
+            )
+            recovered = RecoveryManager().retry_failed_task(workspace, "release")
+            self.assertEqual(recovered["revived_tasks"], ["finish", "release"])
+            self.assertEqual(recovered["tasks"]["finish"]["status"], TaskStatus.PENDING.value)
+
+            scheduler.run(workspace)
+            final_states = workspace.manifest()["tasks"]
+            self.assertEqual(workspace.manifest()["status"], "completed")
+            self.assertTrue(
+                all(state["status"] == TaskStatus.COMPLETED.value for state in final_states.values())
+            )
 
 
 if __name__ == "__main__":
