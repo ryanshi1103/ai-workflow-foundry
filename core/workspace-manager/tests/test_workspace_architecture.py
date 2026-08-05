@@ -43,6 +43,11 @@ class CanonicalImportTests(unittest.TestCase):
             "flowfoundry.workspace.lifecycle.launcher",
             "flowfoundry.workspace.lifecycle.git_manager",
             "flowfoundry.workspace.sessions.finalize",
+            "flowfoundry.workspace.sessions.finalization.pipeline",
+            "flowfoundry.workspace.sessions.finalization.validation",
+            "flowfoundry.workspace.sessions.finalization.recovery",
+            "flowfoundry.workspace.sessions.finalization.output",
+            "flowfoundry.workspace.sessions.finalization.hooks",
             "flowfoundry.workspace.sessions.hooks",
             "flowfoundry.workspace.sessions.recovery",
             "flowfoundry.workspace.policy.redact",
@@ -65,12 +70,20 @@ class CanonicalImportTests(unittest.TestCase):
         }
         for source_path in WORKSPACE_ROOT.rglob("*.py"):
             tree = ast.parse(source_path.read_text(encoding="utf-8"), source_path)
+            relative = source_path.relative_to(WORKSPACE_ROOT).with_suffix("")
+            module_parts = ["flowfoundry", "workspace", *relative.parts]
+            package = ".".join(module_parts[:-1])
             for node in ast.walk(tree):
                 if not isinstance(node, ast.ImportFrom) or not node.module:
                     continue
-                root_target = node.level == 2 and node.module in ROOT_SHIM_NAMES
-                if root_target or node.module in absolute_shims:
-                    violations.append(f"{source_path}:{node.lineno}:{node.module}")
+                target = node.module
+                if node.level:
+                    target = importlib.util.resolve_name(
+                        "." * node.level + node.module,
+                        package,
+                    )
+                if target in absolute_shims:
+                    violations.append(f"{source_path}:{node.lineno}:{target}")
         self.assertEqual(violations, [])
 
     def test_cli_package_exports_run(self):

@@ -77,8 +77,9 @@ The maintenance configuration example intentionally uses
 core/workspace-manager/bin/       compatibility command entry points
 src/flowfoundry/workspace/cli/    interactive and project CLI logic
 src/flowfoundry/workspace/providers/ portable provider/profile policy
-src/flowfoundry/workspace/lifecycle/ project, Git, naming, launch lifecycle
-src/flowfoundry/workspace/sessions/ hooks, transcripts, recovery, finalization
+src/flowfoundry/workspace/lifecycle/ stable project and shared launch API
+src/flowfoundry/workspace/sessions/ stable hooks, transcripts, recovery API
+src/flowfoundry/workspace/sessions/finalization/ composable finalize stages
 src/flowfoundry/workspace/policy/  redaction and local-state boundaries
 src/flowfoundry/workspace/maintenance/ inventory and retention operations
 core/workspace-manager/config/    portable profiles and systemd examples
