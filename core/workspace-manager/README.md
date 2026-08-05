@@ -29,7 +29,8 @@ foundation.
   review and retention-aware quarantine maintenance.
 - `flowfoundry.workspace`: canonical Python runtime for lifecycle, providers,
   hooks, redaction, transcripts, recovery, auto-naming and safe filesystem
-  operations. Legacy flat imports and command names remain compatible.
+  operations. Public command names remain compatible and import the canonical
+  subpackages directly.
 - systemd user timers and Codex profile templates for repeatable deployment.
 
 ## Safety properties

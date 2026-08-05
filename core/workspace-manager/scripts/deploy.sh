@@ -218,11 +218,10 @@ if [[ -f "$PACKAGE_ROOT/pyproject.toml" ]]; then
     else
         echo "   ~ pip3 not found, skipping"
     fi
-    # Legacy compat: also copy shim to old install location
+    # Legacy package maps old imports directly to canonical subpackages.
     PM_DST="$HOME/.local/share/ai-project-manager/ai_project_manager"
     mkdir -p "$PM_DST"
     cp -v "$PACKAGE_ROOT/src/ai_project_manager/"*.py "$PM_DST/" 2>/dev/null || true
-    cp -v "$PACKAGE_ROOT/src/flowfoundry/workspace/"*.py "$PM_DST/" 2>/dev/null || true
 else
     echo "   ~ FlowFoundry package root not found, skipping"
 fi
@@ -310,7 +309,7 @@ grep -q 'os.execv(codex_bin' "$PYTHON_LAUNCHER_SOURCE" && verify_pass "native Co
 
 # Installed package import verifies that the deployed wrappers can resolve the
 # same public modules exercised from a source checkout.
-if HOME="$HOME" python3 -c 'import flowfoundry.aiproj; import flowfoundry.workspace.cc_launcher' 2>/dev/null; then
+if HOME="$HOME" python3 -c 'import flowfoundry.aiproj; import flowfoundry.workspace.cli.launcher' 2>/dev/null; then
     verify_pass "FlowFoundry launcher modules import"
 else
     verify_fail "FlowFoundry launcher modules are not importable"

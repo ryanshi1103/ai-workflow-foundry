@@ -7,8 +7,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from ..redact import scan_for_secrets
-from ..utils import file_lock
+from ..policy.redact import scan_for_secrets
+from ..policy.runtime import file_lock
 
 
 def git_init(project_dir: Path) -> bool:

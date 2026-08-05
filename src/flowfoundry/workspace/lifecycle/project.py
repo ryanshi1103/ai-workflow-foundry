@@ -5,7 +5,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..utils import (
+from ..policy.runtime import (
     PROJECT_INDEX_FILE,
     PROJECTS_ROOT,
     atomic_write_json,
@@ -520,7 +520,12 @@ def _update_project_index(
     project_dir: Path, session_id: str, tool: str, status: str = "running"
 ) -> None:
     """Update the global project index atomically."""
-    from ..utils import GLOBAL_LOCK_FILE, STATE_DIR, atomic_write_json, file_lock
+    from ..policy.runtime import (
+        GLOBAL_LOCK_FILE,
+        STATE_DIR,
+        atomic_write_json,
+        file_lock,
+    )
 
     ensure_dir(STATE_DIR)
 
@@ -581,7 +586,7 @@ def update_project_status(
     2. Update project-index.json (under global lock)
     3. If index update fails, roll back project.json
     """
-    from ..utils import (
+    from ..policy.runtime import (
         GLOBAL_LOCK_FILE,
         STATE_DIR,
         atomic_write_json,

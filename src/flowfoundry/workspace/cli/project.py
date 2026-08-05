@@ -145,7 +145,7 @@ def _cmd_new(args):
         print(f"Unknown tool: {tool}. Use 'claude' or 'codex'.", file=sys.stderr)
         sys.exit(1)
 
-    from ..launcher import launch_new
+    from ..lifecycle.launcher import launch_new
 
     # Parse optional flags
     extra_args = []
@@ -199,7 +199,7 @@ def _cmd_here(args):
         print(f"Unknown tool: {tool}. Use 'claude' or 'codex'.", file=sys.stderr)
         sys.exit(1)
 
-    from ..launcher import launch_here
+    from ..lifecycle.launcher import launch_here
 
     project_dir = None
     cli_path = None
@@ -258,7 +258,7 @@ def _cmd_select(args):
         return
 
     if choice == "n":
-        from ..launcher import launch_new
+        from ..lifecycle.launcher import launch_new
 
         sys.exit(launch_new(tool, extra_args=extra_args))
     if choice == "o":
@@ -268,7 +268,7 @@ def _cmd_select(args):
         _launch_latest_project(tool, extra_args)
         return
     if choice == "h":
-        from ..launcher import launch_here
+        from ..lifecycle.launcher import launch_here
 
         sys.exit(launch_here(tool, project_dir=Path.cwd(), extra_args=extra_args))
     if choice == "q":
@@ -278,8 +278,8 @@ def _cmd_select(args):
 
 
 def _launch_chosen_project(tool, extra_args=None):
-    from ..launcher import launch_here
-    from ..project import choose_project
+    from ..lifecycle.launcher import launch_here
+    from ..lifecycle.project import choose_project
 
     project_dir = choose_project()
     if project_dir is None:
@@ -288,8 +288,8 @@ def _launch_chosen_project(tool, extra_args=None):
 
 
 def _launch_latest_project(tool, extra_args=None):
-    from ..launcher import launch_here
-    from ..project import discover_projects
+    from ..lifecycle.launcher import launch_here
+    from ..lifecycle.project import discover_projects
 
     projects = discover_projects()
     if not projects:
@@ -355,7 +355,7 @@ def _cmd_launch_new(args):
         print("Error: --tool is required", file=sys.stderr)
         sys.exit(1)
 
-    from ..launcher import launch_new
+    from ..lifecycle.launcher import launch_new
 
     exit_code = launch_new(
         tool=tool,
@@ -415,7 +415,7 @@ def _cmd_launch_here(args):
         print("Error: --tool is required", file=sys.stderr)
         sys.exit(1)
 
-    from ..launcher import launch_here
+    from ..lifecycle.launcher import launch_here
 
     exit_code = launch_here(
         tool=tool,
@@ -432,8 +432,8 @@ def _cmd_launch_here(args):
 
 def _cmd_status():
     """Show running and interrupted projects."""
-    from ..recovery import scan_interrupted_projects
-    from ..utils import read_json
+    from ..policy.runtime import read_json
+    from ..sessions.recovery import scan_interrupted_projects
 
     interrupted = scan_interrupted_projects()
     if interrupted:
@@ -462,7 +462,7 @@ def _cmd_status():
 
 def _cmd_latest():
     """Show most recent project."""
-    from ..utils import read_json
+    from ..policy.runtime import read_json
 
     index_path = (
         Path.home() / ".local" / "state" / "ai-project-manager" / "project-index.json"
@@ -486,7 +486,7 @@ def _cmd_latest():
 
 def _cmd_list(args):
     """List recent projects."""
-    from ..utils import read_json
+    from ..policy.runtime import read_json
 
     limit = 10
     if args:
@@ -515,7 +515,7 @@ def _cmd_list(args):
 
 def _cmd_unfinished():
     """List projects with unfinished tasks."""
-    from ..utils import PROJECTS_ROOT
+    from ..policy.runtime import PROJECTS_ROOT
 
     if not PROJECTS_ROOT.exists():
         print("No projects found.")
@@ -562,7 +562,7 @@ def _cmd_finalize(args):
         else:
             i += 1
 
-    from ..finalize import finalize_session
+    from ..sessions.finalize import finalize_session
 
     result = finalize_session(project_dir, session_id)
     if result["success"]:
@@ -590,8 +590,8 @@ def _cmd_repair(args):
         else:
             i += 1
 
-    from ..finalize import finalize_session
-    from ..utils import atomic_write_json, read_json
+    from ..policy.runtime import atomic_write_json, read_json
+    from ..sessions.finalize import finalize_session
 
     # Reset finalize state to allow re-finalize
     meta = read_json(project_dir / ".ai-session" / "project.json")
@@ -612,7 +612,7 @@ def _cmd_repair(args):
 
 def _cmd_recover():
     """Scan and recover interrupted sessions."""
-    from ..recovery import recover_all
+    from ..sessions.recovery import recover_all
 
     results = recover_all()
     for r in results:
@@ -628,7 +628,12 @@ def _cmd_doctor():
     """Check installation health."""
     import subprocess
 
-    from ..utils import CONFIG_DIR, INSTALL_DIR, STATE_DIR, find_real_executable
+    from ..policy.runtime import (
+        CONFIG_DIR,
+        INSTALL_DIR,
+        STATE_DIR,
+        find_real_executable,
+    )
 
     print("=== AI Project Manager Doctor ===\n")
 
@@ -680,7 +685,7 @@ def _cmd_doctor():
         if config_dir.exists():
             settings = config_dir / "settings.json"
             if settings.exists():
-                from ..utils import read_json
+                from ..policy.runtime import read_json
 
                 data = read_json(settings)
                 has_hooks = data and "hooks" in data
@@ -714,7 +719,7 @@ def _cmd_doctor():
 
 def _cmd_show_config():
     """Show non-sensitive configuration."""
-    from ..utils import CONFIG_DIR, INSTALL_DIR
+    from ..policy.runtime import CONFIG_DIR, INSTALL_DIR
 
     print("=== AI Project Manager Configuration ===\n")
     print(f"Config dir:  {CONFIG_DIR}")
@@ -769,7 +774,7 @@ No remote push was performed. No system-level changes were made.
 
 def _cmd_open_latest():
     """Open the most recent project directory in the default file manager."""
-    from ..utils import read_json
+    from ..policy.runtime import read_json
 
     index_path = (
         Path.home() / ".local" / "state" / "ai-project-manager" / "project-index.json"
