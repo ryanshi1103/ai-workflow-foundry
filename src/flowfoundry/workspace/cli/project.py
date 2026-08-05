@@ -23,8 +23,8 @@ Usage:
   aiproj uninstall-plan
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Ensure package is importable
@@ -135,7 +135,9 @@ Usage:
 def _cmd_new(args):
     """Create a new project and launch the CLI."""
     if not args:
-        print("Usage: aiproj new <claude|codex> [--workflow CONTRACT_ID]", file=sys.stderr)
+        print(
+            "Usage: aiproj new <claude|codex> [--workflow CONTRACT_ID]", file=sys.stderr
+        )
         sys.exit(1)
 
     tool = args[0].lower()
@@ -143,7 +145,7 @@ def _cmd_new(args):
         print(f"Unknown tool: {tool}. Use 'claude' or 'codex'.", file=sys.stderr)
         sys.exit(1)
 
-    from .launcher import launch_new
+    from ..launcher import launch_new
 
     # Parse optional flags
     extra_args = []
@@ -169,7 +171,7 @@ def _cmd_new(args):
             i += 2
             i += 2
         elif remaining[i] == "--":
-            extra_args.extend(remaining[i + 1:])
+            extra_args.extend(remaining[i + 1 :])
             break
         else:
             extra_args.append(remaining[i])
@@ -197,7 +199,7 @@ def _cmd_here(args):
         print(f"Unknown tool: {tool}. Use 'claude' or 'codex'.", file=sys.stderr)
         sys.exit(1)
 
-    from .launcher import launch_here
+    from ..launcher import launch_here
 
     project_dir = None
     cli_path = None
@@ -210,7 +212,7 @@ def _cmd_here(args):
             project_dir = Path(remaining[i + 1])
             i += 2
         elif remaining[i] == "--":
-            extra_args.extend(remaining[i + 1:])
+            extra_args.extend(remaining[i + 1 :])
             break
         else:
             extra_args.append(remaining[i])
@@ -239,8 +241,7 @@ def _parse_tool_args(args, command):
 def _cmd_select(args):
     """Show the zero-argument interactive project menu."""
     tool, extra_args = _parse_tool_args(args, "select")
-    if (not sys.stdin.isatty() or not sys.stdout.isatty()
-            or os.environ.get("CI")):
+    if not sys.stdin.isatty() or not sys.stdout.isatty() or os.environ.get("CI"):
         print("Project selection requires an interactive TTY.", file=sys.stderr)
         sys.exit(2)
 
@@ -257,7 +258,8 @@ def _cmd_select(args):
         return
 
     if choice == "n":
-        from .launcher import launch_new
+        from ..launcher import launch_new
+
         sys.exit(launch_new(tool, extra_args=extra_args))
     if choice == "o":
         _launch_chosen_project(tool, extra_args)
@@ -266,7 +268,8 @@ def _cmd_select(args):
         _launch_latest_project(tool, extra_args)
         return
     if choice == "h":
-        from .launcher import launch_here
+        from ..launcher import launch_here
+
         sys.exit(launch_here(tool, project_dir=Path.cwd(), extra_args=extra_args))
     if choice == "q":
         return
@@ -275,8 +278,9 @@ def _cmd_select(args):
 
 
 def _launch_chosen_project(tool, extra_args=None):
-    from .project import choose_project
-    from .launcher import launch_here
+    from ..launcher import launch_here
+    from ..project import choose_project
+
     project_dir = choose_project()
     if project_dir is None:
         return
@@ -284,13 +288,16 @@ def _launch_chosen_project(tool, extra_args=None):
 
 
 def _launch_latest_project(tool, extra_args=None):
-    from .project import discover_projects
-    from .launcher import launch_here
+    from ..launcher import launch_here
+    from ..project import discover_projects
+
     projects = discover_projects()
     if not projects:
         print("没有找到已有项目。", file=sys.stderr)
         sys.exit(1)
-    sys.exit(launch_here(tool, project_dir=Path(projects[0]["path"]), extra_args=extra_args))
+    sys.exit(
+        launch_here(tool, project_dir=Path(projects[0]["path"]), extra_args=extra_args)
+    )
 
 
 def _cmd_open(args):
@@ -338,7 +345,7 @@ def _cmd_launch_new(args):
             env[k] = v
             i += 2
         elif args[i] == "--":
-            extra_args.extend(args[i + 1:])
+            extra_args.extend(args[i + 1 :])
             break
         else:
             extra_args.append(args[i])
@@ -348,7 +355,8 @@ def _cmd_launch_new(args):
         print("Error: --tool is required", file=sys.stderr)
         sys.exit(1)
 
-    from .launcher import launch_new
+    from ..launcher import launch_new
+
     exit_code = launch_new(
         tool=tool,
         cli_path=cli_path,
@@ -397,7 +405,7 @@ def _cmd_launch_here(args):
             env[k] = v
             i += 2
         elif args[i] == "--":
-            extra_args.extend(args[i + 1:])
+            extra_args.extend(args[i + 1 :])
             break
         else:
             extra_args.append(args[i])
@@ -407,7 +415,8 @@ def _cmd_launch_here(args):
         print("Error: --tool is required", file=sys.stderr)
         sys.exit(1)
 
-    from .launcher import launch_here
+    from ..launcher import launch_here
+
     exit_code = launch_here(
         tool=tool,
         project_dir=project_dir,
@@ -423,8 +432,8 @@ def _cmd_launch_here(args):
 
 def _cmd_status():
     """Show running and interrupted projects."""
-    from .recovery import scan_interrupted_projects
-    from .utils import read_json, PROJECTS_ROOT
+    from ..recovery import scan_interrupted_projects
+    from ..utils import read_json
 
     interrupted = scan_interrupted_projects()
     if interrupted:
@@ -435,11 +444,16 @@ def _cmd_status():
         print("No interrupted projects found.")
 
     # Also show recent running
-    index_path = Path.home() / ".local" / "state" / "ai-project-manager" / "project-index.json"
+    index_path = (
+        Path.home() / ".local" / "state" / "ai-project-manager" / "project-index.json"
+    )
     index = read_json(index_path)
     if index:
-        running = {k: v for k, v in index.get("projects", {}).items()
-                   if v.get("status") in ("running", "finalizing")}
+        running = {
+            k: v
+            for k, v in index.get("projects", {}).items()
+            if v.get("status") in ("running", "finalizing")
+        }
         if running:
             print("\nRunning sessions (from index):")
             for sid, info in running.items():
@@ -448,9 +462,11 @@ def _cmd_status():
 
 def _cmd_latest():
     """Show most recent project."""
-    from .utils import read_json, PROJECTS_ROOT
+    from ..utils import read_json
 
-    index_path = Path.home() / ".local" / "state" / "ai-project-manager" / "project-index.json"
+    index_path = (
+        Path.home() / ".local" / "state" / "ai-project-manager" / "project-index.json"
+    )
     index = read_json(index_path)
     if index and index.get("projects"):
         sorted_projects = sorted(
@@ -470,7 +486,7 @@ def _cmd_latest():
 
 def _cmd_list(args):
     """List recent projects."""
-    from .utils import read_json, PROJECTS_ROOT
+    from ..utils import read_json
 
     limit = 10
     if args:
@@ -479,7 +495,9 @@ def _cmd_list(args):
         except ValueError:
             pass
 
-    index_path = Path.home() / ".local" / "state" / "ai-project-manager" / "project-index.json"
+    index_path = (
+        Path.home() / ".local" / "state" / "ai-project-manager" / "project-index.json"
+    )
     index = read_json(index_path)
     if index and index.get("projects"):
         sorted_projects = sorted(
@@ -488,14 +506,16 @@ def _cmd_list(args):
             reverse=True,
         )
         for sid, info in sorted_projects[:limit]:
-            print(f"{sid}  {info.get('tool', '?'):8s}  {info.get('status', '?'):12s}  {info['path']}")
+            print(
+                f"{sid}  {info.get('tool', '?'):8s}  {info.get('status', '?'):12s}  {info['path']}"
+            )
     else:
         print("No projects found.")
 
 
 def _cmd_unfinished():
     """List projects with unfinished tasks."""
-    from .utils import read_json, PROJECTS_ROOT
+    from ..utils import PROJECTS_ROOT
 
     if not PROJECTS_ROOT.exists():
         print("No projects found.")
@@ -506,12 +526,18 @@ def _cmd_unfinished():
             continue
         tasks_path = entry / "docs" / "tasks.md"
         if tasks_path.exists():
-            content = tasks_path.read_text(encoding='utf-8')
+            content = tasks_path.read_text(encoding="utf-8")
             if "## 未完成" in content:
                 # Check if there are actual items under 未完成
-                section = content.split("## 未完成")[1] if "## 未完成" in content else ""
+                section = (
+                    content.split("## 未完成")[1] if "## 未完成" in content else ""
+                )
                 section = section.split("##")[0] if "##" in section else section
-                items = [l for l in section.split('\n') if l.strip().startswith('- [ ]')]
+                items = [
+                    line
+                    for line in section.split("\n")
+                    if line.strip().startswith("- [ ]")
+                ]
                 if items:
                     print(f"{entry.name} — {len(items)} unfinished tasks")
                     for item in items[:5]:
@@ -536,7 +562,8 @@ def _cmd_finalize(args):
         else:
             i += 1
 
-    from .finalize import finalize_session
+    from ..finalize import finalize_session
+
     result = finalize_session(project_dir, session_id)
     if result["success"]:
         print(f"Finalized: {result['status']}  commit: {result.get('commit', 'none')}")
@@ -563,11 +590,10 @@ def _cmd_repair(args):
         else:
             i += 1
 
-    from .finalize import finalize_session
-    from .utils import read_json, atomic_write_json
+    from ..finalize import finalize_session
+    from ..utils import atomic_write_json, read_json
 
     # Reset finalize state to allow re-finalize
-    session_dir = project_dir / ".ai-session" / "sessions" / session_id
     meta = read_json(project_dir / ".ai-session" / "project.json")
     if meta:
         meta["status"] = "running"
@@ -586,17 +612,23 @@ def _cmd_repair(args):
 
 def _cmd_recover():
     """Scan and recover interrupted sessions."""
-    from .recovery import recover_all
+    from ..recovery import recover_all
+
     results = recover_all()
     for r in results:
-        status = "OK" if r["result"].get("success") else f"FAILED: {r['result'].get('error')}"
+        status = (
+            "OK"
+            if r["result"].get("success")
+            else f"FAILED: {r['result'].get('error')}"
+        )
         print(f"{r['session_id']}: {status}")
 
 
 def _cmd_doctor():
     """Check installation health."""
-    from .utils import find_real_executable, CONFIG_DIR, INSTALL_DIR, STATE_DIR
     import subprocess
+
+    from ..utils import CONFIG_DIR, INSTALL_DIR, STATE_DIR, find_real_executable
 
     print("=== AI Project Manager Doctor ===\n")
 
@@ -624,7 +656,9 @@ def _cmd_doctor():
 
     # Check git
     try:
-        result = subprocess.run(["git", "--version"], capture_output=True, text=True, timeout=5)
+        result = subprocess.run(
+            ["git", "--version"], capture_output=True, text=True, timeout=5
+        )
         checks.append(("Git", result.returncode == 0, f"  {result.stdout.strip()}"))
     except Exception:
         checks.append(("Git", False, "  NOT FOUND"))
@@ -636,7 +670,7 @@ def _cmd_doctor():
     # Check bashrc
     bashrc = Path.home() / ".bashrc"
     if bashrc.exists():
-        content = bashrc.read_text(encoding='utf-8')
+        content = bashrc.read_text(encoding="utf-8")
         has_source = "ai-project-manager" in content
         checks.append(("bashrc sourcing", has_source))
 
@@ -646,11 +680,17 @@ def _cmd_doctor():
         if config_dir.exists():
             settings = config_dir / "settings.json"
             if settings.exists():
-                from .utils import read_json
+                from ..utils import read_json
+
                 data = read_json(settings)
                 has_hooks = data and "hooks" in data
-                checks.append((f"Hooks in {config_dir_name}", has_hooks,
-                               f"  {'Installed' if has_hooks else 'Not installed'}"))
+                checks.append(
+                    (
+                        f"Hooks in {config_dir_name}",
+                        has_hooks,
+                        f"  {'Installed' if has_hooks else 'Not installed'}",
+                    )
+                )
 
     # Check Codex hooks
     codex_hooks = Path.home() / ".codex" / "hooks.json"
@@ -674,8 +714,7 @@ def _cmd_doctor():
 
 def _cmd_show_config():
     """Show non-sensitive configuration."""
-    import json
-    from .utils import CONFIG_DIR, INSTALL_DIR
+    from ..utils import CONFIG_DIR, INSTALL_DIR
 
     print("=== AI Project Manager Configuration ===\n")
     print(f"Config dir:  {CONFIG_DIR}")
@@ -683,7 +722,7 @@ def _cmd_show_config():
     print(f"State dir:   {Path.home() / '.local' / 'state' / 'ai-project-manager'}")
     print(f"Projects:    {Path.home() / 'Projects'}")
     print(f"Python:      {sys.executable}")
-    print(f"Version:     1.0.0")
+    print("Version:     1.0.0")
 
 
 def _cmd_uninstall_plan():
@@ -730,9 +769,11 @@ No remote push was performed. No system-level changes were made.
 
 def _cmd_open_latest():
     """Open the most recent project directory in the default file manager."""
-    from .utils import read_json
+    from ..utils import read_json
 
-    index_path = Path.home() / ".local" / "state" / "ai-project-manager" / "project-index.json"
+    index_path = (
+        Path.home() / ".local" / "state" / "ai-project-manager" / "project-index.json"
+    )
     index = read_json(index_path)
     if index and index.get("projects"):
         sorted_projects = sorted(
@@ -745,6 +786,7 @@ def _cmd_open_latest():
             path = info["path"]
             if Path(path).exists():
                 import subprocess
+
                 subprocess.run(["xdg-open", path], check=False)
                 print(f"Opened: {path}")
                 return

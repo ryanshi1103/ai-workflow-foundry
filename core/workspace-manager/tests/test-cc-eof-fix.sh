@@ -4,7 +4,7 @@ set -uo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MONOREPO_ROOT="$(cd "$PROJECT_ROOT/../.." && pwd)"
 SCRIPT="${CC_TEST_SCRIPT:-$PROJECT_ROOT/bin/cc}"
-PYTHON_SOURCE="$MONOREPO_ROOT/src/flowfoundry/workspace/cc_launcher.py"
+PYTHON_SOURCE="$MONOREPO_ROOT/src/flowfoundry/workspace/cli/launcher.py"
 TEST_TMP_BASE="$MONOREPO_ROOT/.test-tmp"
 mkdir -p "$TEST_TMP_BASE"
 TEST_ROOT="$(mktemp -d -p "$TEST_TMP_BASE")"

@@ -13,12 +13,11 @@ import os
 import subprocess
 import tempfile
 import unittest
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
 from flowfoundry.workspace import cc_launcher
-
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 COMPONENT_ROOT = REPO_ROOT / "core" / "workspace-manager"

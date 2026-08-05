@@ -16,7 +16,7 @@ if [[ -f "$MONOREPO_CANDIDATE/pyproject.toml" ]] \
 else
     PACKAGE_ROOT="$PROJECT_ROOT"
 fi
-PYTHON_LAUNCHER_SOURCE="$PACKAGE_ROOT/src/flowfoundry/workspace/cc_launcher.py"
+PYTHON_LAUNCHER_SOURCE="$PACKAGE_ROOT/src/flowfoundry/workspace/cli/launcher.py"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/cc-projects/backups/${TIMESTAMP}-cc-v31"
 
