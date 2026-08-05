@@ -53,6 +53,11 @@ def build_parser() -> argparse.ArgumentParser:
     from .project_cli import add_project_parser
     add_project_parser(subparsers)
 
+    # Local-first multi-agent orchestration group.
+    from .orchestration.cli import add_team_parser
+
+    add_team_parser(subparsers)
+
     return parser
 
 
@@ -63,6 +68,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "project":
             from .project_cli import dispatch_project
             return dispatch_project(args.project_command, args)
+
+        if args.command == "team":
+            from .orchestration.cli import dispatch_team
+
+            return dispatch_team(args)
 
         if args.command == "list":
             for component in load_catalog(args.catalog):
