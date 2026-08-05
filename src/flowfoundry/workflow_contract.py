@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .catalog import CatalogError, _require_text, _require_unique_text_list
+from .catalog import CatalogError, _require_text
 
 # Re-export for convenience — workflow contracts are validated separately
 # from component manifests but share the same error type.

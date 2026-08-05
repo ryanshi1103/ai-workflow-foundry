@@ -1,14 +1,18 @@
 # Feedback Intelligence Lineage Decision
 
-The canonical public implementation is commit
+The canonical public baseline is commit
 `e8b9e3374521578702eed7b92ea67dd5a2c1f327` from the existing
 `feedback-analysis-system` repository identity. FlowFoundry commit `8617cc2`
-already connects that commit as a parent and imports its exact root tree under
-`applications/feedback-analysis-system/`.
+connected that baseline and imported its exact root tree under the original
+`applications/feedback-analysis-system/` path.
 
-The source root tree and the imported application tree are both
-`5e47752bdfbf871201ad4f02a13f73634f044b1`. Importing the public repository a
-second time would duplicate provenance and is therefore prohibited.
+The isolated migration branch advances that same public line to
+`1eb814d76b9826ca19cf5034edc249db3d10fd54`. Commit `d3ee954` connects the main
+source commits with a non-squash, history-only merge: its tree is identical to
+its first parent. The controlled vendor sync then moves the bundled path to
+`applications/feedback-intelligence-system/`. The source and staged bundled
+trees are both `5da36b814f312ed026e0a720f66be5e2065830e8`, proving that the
+application snapshot is exact rather than hand-copied.
 
 ## Local archive line
 
@@ -26,8 +30,8 @@ FlowFoundry.
 
 ## Product identity
 
-The code and local bundled path may evolve to `feedback-intelligence-system`,
-but the existing GitHub repository will not be renamed automatically. The old
+The code and local bundled path now use `feedback-intelligence-system`, but the
+existing GitHub repository was not renamed automatically. The old
 catalog identifier, Python imports, environment variables, database path,
 Streamlit component keys, commands, and export formats remain compatibility
 contracts during the migration window.

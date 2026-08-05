@@ -7,7 +7,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-
 CATALOG_DIR = Path(__file__).resolve().parents[2] / "catalog"
 ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 KINDS = {"core-runtime", "workflow-pack", "reference-application", "reference-workflow"}
@@ -45,6 +44,16 @@ def validate_component(component: Any) -> dict[str, Any]:
     component_id = _require_text(component.get("id"), "id")
     if not ID_PATTERN.fullmatch(component_id):
         raise CatalogError("id must use lowercase kebab-case")
+    aliases = component.get("aliases", [])
+    if not isinstance(aliases, list):
+        raise CatalogError("aliases must be a list")
+    if len(aliases) != len(set(aliases)):
+        raise CatalogError("aliases entries must be unique")
+    for alias in aliases:
+        if not isinstance(alias, str) or not ID_PATTERN.fullmatch(alias):
+            raise CatalogError("aliases entries must use lowercase kebab-case")
+        if alias == component_id:
+            raise CatalogError("aliases must not repeat the canonical id")
     _require_text(component.get("display_name"), "display_name")
     _require_text(component.get("summary"), "summary")
 
@@ -117,9 +126,11 @@ def load_catalog(directory: Path | str | None = None) -> list[dict[str, Any]]:
             continue
         component = validate_component(raw)
         component_id = component["id"]
-        if component_id in seen:
-            raise CatalogError(f"duplicate component id: {component_id}")
-        seen.add(component_id)
+        identities = [component_id, *component.get("aliases", [])]
+        collision = next((identity for identity in identities if identity in seen), None)
+        if collision is not None:
+            raise CatalogError(f"duplicate component id or alias: {collision}")
+        seen.update(identities)
         components.append(component)
 
     if not components:
@@ -141,6 +152,6 @@ def validate_catalog(directory: Path | str | None = None, repository_root: Path 
 
 def get_component(component_id: str, directory: Path | str | None = None) -> dict[str, Any]:
     for component in load_catalog(directory):
-        if component["id"] == component_id:
+        if component["id"] == component_id or component_id in component.get("aliases", []):
             return component
     raise CatalogError(f"unknown component: {component_id}")

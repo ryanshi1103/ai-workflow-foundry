@@ -14,7 +14,6 @@ from flowfoundry.catalog import (
     validate_component,
 )
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -40,14 +39,19 @@ class CatalogTests(unittest.TestCase):
             {
                 "ai-workspace-manager": "core/workspace-manager",
                 "confera-media-skills": "components/confera-media-skills",
-                "feedback-analysis-system": "applications/feedback-analysis-system",
+                "feedback-intelligence-system": "applications/feedback-intelligence-system",
                 "print-ready-nameplate-generator": "workflows/print-ready-nameplate-generator",
             },
         )
 
     def test_get_known_component(self) -> None:
-        component = get_component("feedback-analysis-system")
+        component = get_component("feedback-intelligence-system")
         self.assertEqual(component["kind"], "reference-application")
+
+    def test_legacy_component_alias_resolves_to_canonical_identity(self) -> None:
+        component = get_component("feedback-analysis-system")
+        self.assertEqual(component["id"], "feedback-intelligence-system")
+        self.assertIn("social-negative-monitor", component["aliases"])
 
     def test_unknown_component_is_rejected(self) -> None:
         with self.assertRaisesRegex(CatalogError, "unknown component"):
@@ -87,10 +91,23 @@ class CatalogTests(unittest.TestCase):
             with self.assertRaisesRegex(CatalogError, "duplicate component id"):
                 load_catalog(directory)
 
+    def test_alias_collision_is_rejected(self) -> None:
+        first = copy.deepcopy(get_component("confera-media-skills"))
+        second = copy.deepcopy(get_component("ai-workspace-manager"))
+        first["aliases"] = ["legacy-component"]
+        second["aliases"] = ["legacy-component"]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            (directory / "one.json").write_text(json.dumps(first), encoding="utf-8")
+            (directory / "two.json").write_text(json.dumps(second), encoding="utf-8")
+            with self.assertRaisesRegex(CatalogError, "id or alias"):
+                load_catalog(directory)
+
     def test_schema_declares_same_required_top_level_fields(self) -> None:
         schema = json.loads((ROOT / "schemas/workflow-component.schema.json").read_text())
         component = load_catalog()[0]
-        self.assertEqual(set(schema["required"]), set(component))
+        self.assertTrue(set(schema["required"]).issubset(component))
+        self.assertTrue(set(component).issubset(schema["properties"]))
 
 
 if __name__ == "__main__":

@@ -57,7 +57,7 @@ real project + controlled inputs
 |---|---|---|
 | Core runtime | [AI Workspace Manager](core/workspace-manager/README.md) | Bundled with preserved Git history |
 | Media workflow pack | [Confera Media Skills](components/confera-media-skills/README.md) | Bundled under `components/` with preserved history |
-| Customer intelligence | [Feedback Analysis System](applications/feedback-analysis-system/README.md) | Bundled under `applications/`; independently runnable |
+| Customer intelligence | [Feedback Intelligence System](applications/feedback-intelligence-system/README.md) | Bundled under `applications/`; independently runnable; legacy catalog IDs remain aliases |
 | Document automation | [Print-ready Nameplate Generator](workflows/print-ready-nameplate-generator/README.md) | Bundled under `workflows/`; independently runnable |
 
 The monorepo is the canonical integration point. Component boundaries remain
@@ -126,16 +126,17 @@ python3 -m unittest discover -s components/confera-media-skills/tests -v
 python3 -m unittest discover -s workflows/print-ready-nameplate-generator/tests -v
 
 # Feedback application (after installing its dev dependencies)
-python3 -m pip install -e "applications/feedback-analysis-system[dev]"
-ruff check applications/feedback-analysis-system/src \
-  applications/feedback-analysis-system/tests \
-  applications/feedback-analysis-system/app.py \
-  applications/feedback-analysis-system/pages
-pytest applications/feedback-analysis-system/tests -q
+python3 -m pip install -e "applications/feedback-intelligence-system[dev]"
+ruff check applications/feedback-intelligence-system/feedback_intelligence \
+  applications/feedback-intelligence-system/src \
+  applications/feedback-intelligence-system/tests \
+  applications/feedback-intelligence-system/app.py \
+  applications/feedback-intelligence-system/pages
+pytest applications/feedback-intelligence-system/tests -q
 ```
 
 ## License
 
 FlowFoundry AI is MIT licensed. Bundled components retain their own license
-files and notices; the Feedback Analysis component keeps its more restrictive
+files and notices; the Feedback Intelligence component keeps its more restrictive
 learning/internal-use terms.
