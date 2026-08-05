@@ -26,11 +26,13 @@ The complete canonical source branch is also preserved in a repository-external
 
 ## Local archive line
 
-The local `social-negative-monitor` branch diverges from the public line at
-`be047d62812b072a6281e133d5435625cb24e859`. Its unique history contains
-tracked session documentation. Those objects are unsuitable for a public
-branch, so the archive line is not merged into FlowFoundry or the public
-product line.
+The local `social-negative-monitor` archive tip is
+`62a1e00efa7504a8207cc3a752c72268a9c0a0b6`, with tree
+`be047d62812b072a6281e133d5435625cb24e859`. That archive has no common
+ancestor with the public product line. Its unique history contains tracked
+session documentation, so those objects are unsuitable for a public branch
+and the archive line is intentionally not merged into FlowFoundry or the
+public product line.
 
 The excluded local archive Git graph is preserved outside both repositories in
 a separate private bundle with SHA-256
