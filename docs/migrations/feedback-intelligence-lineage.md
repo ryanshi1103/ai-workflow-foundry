@@ -14,6 +14,9 @@ its first parent. The controlled vendor sync then moves the bundled path to
 trees are both `5da36b814f312ed026e0a720f66be5e2065830e8`, proving that the
 application snapshot is exact rather than hand-copied.
 
+The source-only lint configuration follow-up is connected by `c8bac35`; this
+second non-squash merge also preserves its first-parent tree exactly.
+
 ## Local archive line
 
 The local `social-negative-monitor` branch diverges from the public line at
