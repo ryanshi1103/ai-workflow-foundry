@@ -9,6 +9,7 @@ from ..policy.runtime import (
     INTERNAL_ENV_VAR,
     atomic_write_json,
     find_real_executable,
+    generate_session_id,
     timestamp_iso,
 )
 from ..sessions.finalize import finalize_session
@@ -17,6 +18,8 @@ from .git_manager import ensure_git_identity, git_init
 from .project import (
     _update_project_index,
     create_new_project,
+    create_project_meta,
+    create_project_structure,
     create_session_meta,
     read_project_meta,
 )
@@ -60,82 +63,31 @@ def launch_new(
                 permission_mode=permission_mode,
             )
 
-    # Recover any previously interrupted sessions
     auto_recover_on_startup()
-
-    # Find real executable
-    if cli_path is None:
-        cli_path = find_real_executable(tool)
-    if not cli_path or not Path(cli_path).exists():
-        print(f"Error: Could not find {tool} executable", file=sys.stderr)
+    resolved_cli = _resolve_cli_path(tool, cli_path)
+    if resolved_cli is None:
         return 1
-
-    # Get version
-    cli_version = _get_cli_version(cli_path, tool)
-
-    # Create project
+    cli_version = _get_cli_version(resolved_cli, tool)
     project_dir = create_new_project(
         tool=tool,
         model=model,
         provider=provider,
         permission_mode=permission_mode,
-        cli_path=cli_path,
+        cli_path=resolved_cli,
         cli_version=cli_version,
         workflow_contract_id=workflow_contract_id,
     )
-
-    # Initialize git
     git_init(project_dir)
     ensure_git_identity(project_dir)
-
-    # Set environment for project tracking
-    child_env = os.environ.copy()
-    child_env["AI_PROJECT_MANAGER_PROJECT"] = str(project_dir)
-    child_env["AI_PROJECT_MANAGER_SESSION"] = project_dir.name  # temp name = session ID
-    child_env["AI_PROJECT_MANAGER_TOOL"] = tool  # for hook tool detection
-    if env:
-        # Don't override critical project vars
-        for k, v in env.items():
-            if not k.startswith("AI_PROJECT_MANAGER_"):
-                child_env[k] = v
-
-    # Build args
-    args = [cli_path]
-    if extra_args:
-        args.extend(extra_args)
-
-    # Launch CLI interactively
-    exit_code = 0
-    try:
-        print("", file=sys.stderr)
-        print(
-            f"  AI Project Manager: Created project {project_dir.name}", file=sys.stderr
-        )
-        print(f"  Project: {project_dir}", file=sys.stderr)
-        print("", file=sys.stderr)
-
-        os.chdir(str(project_dir))
-
-        # Run the CLI
-        result = subprocess.run(
-            args,
-            env=child_env,
-            # Inherit stdin/stdout/stderr for interactive use
-        )
-
-        exit_code = result.returncode
-
-    except KeyboardInterrupt:
-        exit_code = 130  # Standard SIGINT exit code
-    except Exception as e:
-        print(f"Error launching {tool}: {e}", file=sys.stderr)
-        exit_code = 1
-    finally:
-        # Always finalize
-        if not _safe_finalize(project_dir, tool) and exit_code == 0:
-            exit_code = 1
-
-    return exit_code
+    return _launch_session(
+        project_dir=project_dir,
+        session_id=project_dir.name,
+        tool=tool,
+        cli_path=resolved_cli,
+        extra_args=extra_args,
+        env=env,
+        announce_created=True,
+    )
 
 
 def launch_here(
@@ -170,23 +122,42 @@ def launch_here(
 
     project_dir = Path(project_dir).resolve()
 
-    # Find real executable
-    if cli_path is None:
-        cli_path = find_real_executable(tool)
-    if not cli_path or not Path(cli_path).exists():
-        print(f"Error: Could not find {tool} executable", file=sys.stderr)
+    resolved_cli = _resolve_cli_path(tool, cli_path)
+    if resolved_cli is None:
         return 1
+    session_id = _prepare_session_here(
+        project_dir=project_dir,
+        tool=tool,
+        cli_path=resolved_cli,
+        model=model,
+        provider=provider,
+        permission_mode=permission_mode,
+    )
+    return _launch_session(
+        project_dir=project_dir,
+        session_id=session_id,
+        tool=tool,
+        cli_path=resolved_cli,
+        extra_args=extra_args,
+        env=env,
+    )
 
-    # Check if it's an ai-project-manager project
+
+def _prepare_session_here(
+    project_dir: Path,
+    tool: str,
+    cli_path: str,
+    model: str,
+    provider: str,
+    permission_mode: str,
+) -> str:
+    """Initialize or continue a session in an existing project."""
     meta = read_project_meta(project_dir)
+    cli_version = _get_cli_version(cli_path, tool)
     if not meta:
-        # Initialize as a project if not already
         git_init(project_dir)
         ensure_git_identity(project_dir)
-        from .project import create_project_meta, create_project_structure
-
         create_project_structure(project_dir)
-        cli_version = _get_cli_version(cli_path, tool)
         session_id = f"{timestamp_iso().replace(':', '').replace('-', '').replace('T', '-')}-{tool}-here"
         create_project_meta(
             project_dir=project_dir,
@@ -217,12 +188,7 @@ def launch_here(
         meta["status"] = "running"
         meta["last_updated"] = timestamp_iso()
         atomic_write_json(project_dir / ".ai-session" / "project.json", meta)
-        _update_project_index(project_dir, session_id, tool, status="running")
     else:
-        # Create a new session within existing project
-        cli_version = _get_cli_version(cli_path, tool)
-        from ..policy.runtime import generate_session_id
-
         session_id = generate_session_id(tool)
         session_meta = create_session_meta(
             project_dir=project_dir,
@@ -245,24 +211,59 @@ def launch_here(
         meta["tool"] = tool
         meta["last_updated"] = timestamp_iso()
         atomic_write_json(project_dir / ".ai-session" / "project.json", meta)
-        _update_project_index(project_dir, session_id, tool, status="running")
+    _update_project_index(project_dir, session_id, tool, status="running")
+    return session_id
 
-    # Set environment
+
+def _resolve_cli_path(tool: str, cli_path: str | None) -> str | None:
+    """Resolve and validate the provider CLI executable."""
+    resolved = cli_path or find_real_executable(tool)
+    if not resolved or not Path(resolved).exists():
+        print(f"Error: Could not find {tool} executable", file=sys.stderr)
+        return None
+    return resolved
+
+
+def _build_child_environment(
+    project_dir: Path,
+    session_id: str,
+    tool: str,
+    env: dict | None,
+) -> dict:
+    """Build a child environment without allowing tracking variables to drift."""
     child_env = os.environ.copy()
     child_env["AI_PROJECT_MANAGER_PROJECT"] = str(project_dir)
     child_env["AI_PROJECT_MANAGER_SESSION"] = session_id
     child_env["AI_PROJECT_MANAGER_TOOL"] = tool
     if env:
-        for k, v in env.items():
-            if not k.startswith("AI_PROJECT_MANAGER_"):
-                child_env[k] = v
+        for key, value in env.items():
+            if not key.startswith("AI_PROJECT_MANAGER_"):
+                child_env[key] = value
+    return child_env
 
-    args = [cli_path]
-    if extra_args:
-        args.extend(extra_args)
 
+def _launch_session(
+    project_dir: Path,
+    session_id: str,
+    tool: str,
+    cli_path: str,
+    extra_args: list[str] | None,
+    env: dict | None,
+    announce_created: bool = False,
+) -> int:
+    """Shared CLI execution and finalization core for all launch modes."""
+    child_env = _build_child_environment(project_dir, session_id, tool, env)
+    args = [cli_path, *(extra_args or [])]
     exit_code = 0
     try:
+        if announce_created:
+            print("", file=sys.stderr)
+            print(
+                f"  AI Project Manager: Created project {project_dir.name}",
+                file=sys.stderr,
+            )
+            print(f"  Project: {project_dir}", file=sys.stderr)
+            print("", file=sys.stderr)
         os.chdir(str(project_dir))
         result = subprocess.run(args, env=child_env)
         exit_code = result.returncode
@@ -274,7 +275,6 @@ def launch_here(
     finally:
         if not _safe_finalize(project_dir, tool) and exit_code == 0:
             exit_code = 1
-
     return exit_code
 
 
