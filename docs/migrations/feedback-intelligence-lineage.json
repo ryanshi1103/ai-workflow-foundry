@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "product": "feedback-intelligence-system",
+  "canonical_public_repository": "https://github.com/ryanshi1103/feedback-analysis-system",
+  "canonical_source_commit": "e8b9e3374521578702eed7b92ea67dd5a2c1f327",
+  "canonical_source_tree": "5e47752bdfbf871201ad4f02a13f73634f044b1",
+  "flowfoundry_integration_commit": "8617cc29924b38c298f7f84aa545ea34d7c36b26",
+  "flowfoundry_original_path": "applications/feedback-analysis-system",
+  "legacy_product_names": [
+    "feedback-analysis-system",
+    "social-negative-monitor"
+  ],
+  "excluded_history": {
+    "local_tip": "62a1e00efa7504a8207cc3a752c72268a9c0a0b6",
+    "reason": "The local archive line contains tracked session documentation and is preserved only in an external private bundle. It is not connected to the public FlowFoundry branch."
+  },
+  "external_backup": {
+    "location": "repository-external private backup directory",
+    "sha256": "8544ce02c43b1ac645d4993246985f14f24643c70427f63fb0e1b1d038c8183d"
+  },
+  "history_import_required": false,
+  "remote_rename_performed": false
+}
