@@ -32,3 +32,4 @@ select = ["E4", "E7", "E9", "F", "I"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "core/workspace-manager/tests"]
+pythonpath = ["src", "applications/feedback-intelligence-system"]
