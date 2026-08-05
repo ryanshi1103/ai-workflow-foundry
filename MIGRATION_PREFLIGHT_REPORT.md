@@ -203,7 +203,7 @@ should be deleted or archived.
 | Huiying common core | Main dependencies align. `defusedxml` is `>=0.7.1` in auto and `>=0.7` in desktop. | Normalize on the stricter lower bound after compatibility testing. |
 | Huiying desktop | Adds `cryptography>=46,<50`, pywebview, PyInstaller, and platform binaries. | Keep desktop/build extras separate from the common runtime. |
 | Windows lock | `requirements-windows.lock.txt` is explicitly pending and contains no resolved hashes. | Block reproducible release claims until generated on Windows x64 CPython 3.11. |
-| Existing Huiying venvs | Both `.venv` interpreters resolve `qrcode` from `~/.local/lib/python3.14/site-packages`; isolated HOME initially caused 115/118 import errors. With that existing user-site made explicit, all tests passed. | Rebuild clean venvs from manifests and prove tests pass with user-site disabled before migration. |
+| Existing Huiying venvs | Both `.venv` interpreters resolve `qrcode` from a user-level `site-packages`; isolated HOME initially caused 115/118 import errors. With that existing user-site made explicit, all tests passed. | Rebuild clean venvs from manifests and prove tests pass with user-site disabled before migration. |
 | Workspace/Claude setup | No formal dependency manifests. | Add explicit runtime prerequisites and config schema when extracting adapters. |
 
 ## Privacy and public-display assessment

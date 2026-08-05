@@ -1392,10 +1392,10 @@ def run_maintenance(mode: str, dry_run: bool = False) -> dict:
 def _write_default_config() -> None:
     """Write default maintenance.conf."""
     ensure_dir(CONFIG_DIR)
-    content = """# cc-projects maintenance configuration
+    content = f"""# cc-projects maintenance configuration
 # Edit this file to customize behavior.
 
-PROJECTS_ROOT="$HOME/Projects"
+PROJECTS_ROOT="{PROJECTS_ROOT}"
 QUARANTINE_DAYS=14
 AUTO_RENAME_PLACEHOLDERS=true
 AUTO_MERGE_DUPLICATES=true

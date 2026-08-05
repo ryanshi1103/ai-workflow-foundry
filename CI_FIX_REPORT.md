@@ -74,7 +74,7 @@ behavior and the existing regression contract.
 
 ## Verification evidence
 
-Commands were run from `~/Projects/ai-workflow-foundry` unless noted.
+Commands were run from the active FlowFoundry project root unless noted.
 
 | Check | Result |
 |---|---:|
