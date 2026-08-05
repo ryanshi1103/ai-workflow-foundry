@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "job_id": "synthetic-mediaflow-demo",
+  "controlled_root": "fixtures/synthetic",
+  "inputs": [
+    "photos/photo-001.jpg",
+    "videos/clip-001.mp4",
+    "audio/room-tone-001.wav"
+  ],
+  "requested_outputs": [
+    "outputs/review-candidate.json"
+  ],
+  "provider_mode": "offline_fake",
+  "human_review_required": true,
+  "export_approval": "pending"
+}
