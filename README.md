@@ -26,6 +26,8 @@ lifecycle shared by useful AI work.
 - A sanitized application contract for the private Huiying / MediaFlow product;
   its commercial implementation, real media, configuration, and release assets
   remain outside this public repository.
+- A resumable multi-agent MVP with capability routing, offline fake providers,
+  atomic local mailboxes, review decisions, and human approval gates.
 - A dependency-free catalog validator and CLI that verifies bundled paths,
   maturity declarations, and safety boundaries.
 - A generic component schema, product architecture, project-pattern audit, and
@@ -86,6 +88,10 @@ PYTHONPATH=src python3 -m flowfoundry project list
 
 # Interactive launcher (was cc)
 PYTHONPATH=src python3 -m flowfoundry project launch
+
+# Offline multi-agent example (Codex Builder + DeepSeek Reviewer identities)
+PYTHONPATH=src python3 -m flowfoundry team run \
+  examples/orchestration/codex-builder-deepseek-reviewer.json
 ```
 
 Install the CLI to use anywhere:
@@ -109,6 +115,9 @@ flowfoundry project launch
 - Separate products may reuse contracts without pretending to share one runtime.
 
 See [Architecture](docs/ARCHITECTURE.md),
+[Multi-Agent Architecture](MULTI_AGENT_ARCHITECTURE.md),
+[Multi-Agent Operator Guide](MULTI_AGENT_OPERATOR_GUIDE.md),
+[Multi-Agent Security Model](MULTI_AGENT_SECURITY_MODEL.md),
 [Product Lines](docs/PRODUCT-LINES.md),
 [Project Pattern Audit](docs/PROJECT-PATTERN-AUDIT.md), and
 [Roadmap](docs/ROADMAP.md).
