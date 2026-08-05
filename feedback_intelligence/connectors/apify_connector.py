@@ -7,8 +7,8 @@ Provides mock data for demo.
 import logging
 from typing import Any
 
-from src.config import APIFY_ACTOR_ID, APIFY_MAX_ITEMS, APIFY_TOKEN, APP_MOCK_MODE
-from src.schemas import ApifyFieldMapping, ImportRow
+from feedback_intelligence.config import APIFY_ACTOR_ID, APIFY_MAX_ITEMS, APIFY_TOKEN, APP_MOCK_MODE
+from feedback_intelligence.schemas import ApifyFieldMapping, ImportRow
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +156,7 @@ class ApifyConnector:
 
     def _mock_run(self) -> dict[str, Any]:
         """Return mock Apify data for demo."""
-        from src.connectors.mock_connector import MOCK_DATA
+        from feedback_intelligence.connectors.mock_connector import MOCK_DATA
 
         mock_items = MOCK_DATA[:10]
         items = []

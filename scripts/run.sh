@@ -5,7 +5,7 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-echo "=== 启动负面反馈监测系统 ==="
+echo "=== 启动 Feedback Intelligence System ==="
 
 cd "$PROJECT_DIR"
 

@@ -31,10 +31,16 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
-# Database
-data/*.db
-data/*.db-wal
-data/*.db-shm
+# Database (including WAL/SHM companions in any local run directory)
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
 :memory:
 
 # Logs

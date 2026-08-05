@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from src.schemas import ImportResult, ImportRow
+from feedback_intelligence.schemas import ImportResult, ImportRow
 
 
 class BaseConnector(ABC):
@@ -19,7 +19,7 @@ class BaseConnector(ABC):
 
     def import_data(self, db_session) -> ImportResult:
         """Fetch, validate, and import data."""
-        from src.services.import_service import import_rows
+        from feedback_intelligence.services.import_service import import_rows
 
         rows = self.fetch()
         valid_rows = [r for r in rows if self.validate(r)]

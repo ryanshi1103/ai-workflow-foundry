@@ -4,16 +4,16 @@
 import streamlit as st
 from sqlalchemy.orm import Session
 
-from src.database import SessionLocal
-from src.repositories.feedback_repo import (
+from feedback_intelligence.database import SessionLocal
+from feedback_intelligence.repositories.feedback_repo import (
     ACTION_PRIORITY_LABELS,
     ACTION_STATUS_LABELS,
     FEEDBACK_TYPE_LABELS,
     get_platforms,
     search_items,
 )
-from src.schemas import ComplaintCategory, FeedbackType, Sentiment
-from src.services.export_service import export_csv, export_json_str
+from feedback_intelligence.schemas import ComplaintCategory, FeedbackType, Sentiment
+from feedback_intelligence.services.export_service import export_csv, export_json_str
 
 
 def show():

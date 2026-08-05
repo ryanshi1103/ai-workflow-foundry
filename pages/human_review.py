@@ -5,16 +5,16 @@ from datetime import UTC, datetime
 import streamlit as st
 from sqlalchemy.orm import Session
 
-from src.database import SessionLocal
-from src.models import HumanReview
-from src.repositories.feedback_repo import (
+from feedback_intelligence.database import SessionLocal
+from feedback_intelligence.models import HumanReview
+from feedback_intelligence.repositories.feedback_repo import (
     ACTION_PRIORITY_LABELS,
     ACTION_STATUS_LABELS,
     FEEDBACK_TYPE_LABELS,
     get_item_detail,
     save_human_review,
 )
-from src.schemas import ActionPriority, ActionStatus, ComplaintCategory, FeedbackType, Sentiment
+from feedback_intelligence.schemas import ActionPriority, ActionStatus, ComplaintCategory, FeedbackType, Sentiment
 
 
 def show():
@@ -23,7 +23,7 @@ def show():
     db: Session = SessionLocal()
     try:
         # Select items needing review
-        from src.models import FeedbackAnalysis, FeedbackItem
+        from feedback_intelligence.models import FeedbackAnalysis, FeedbackItem
 
         review_items = (
             db.query(FeedbackItem)

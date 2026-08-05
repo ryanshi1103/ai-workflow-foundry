@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from src.config import (
+from feedback_intelligence.config import (
     APIFY_CONFIGURED,
     APP_DB_URL,
     APP_MOCK_MODE,
@@ -90,15 +90,15 @@ def show():
     col1, col2 = st.columns(2)
     with col1:
         if st.button("🗑️ 清除分析缓存"):
-            from src.services.deepseek_service import deepseek_service
+            from feedback_intelligence.services.deepseek_service import deepseek_service
 
             deepseek_service.clear_cache()
             st.success("分析缓存已清除")
 
     with col2:
         if st.button("🔍 检查数据库完整性"):
-            from src.database import SessionLocal
-            from src.models import FeedbackAnalysis, FeedbackItem
+            from feedback_intelligence.database import SessionLocal
+            from feedback_intelligence.models import FeedbackAnalysis, FeedbackItem
 
             db = SessionLocal()
             try:

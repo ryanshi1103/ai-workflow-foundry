@@ -9,8 +9,8 @@ import streamlit as st
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from src.config import APP_LOG_LEVEL, APP_MOCK_MODE, DEEPSEEK_CONFIGURED
-from src.database import init_db, run_migrations
+from feedback_intelligence.config import APP_LOG_LEVEL, APP_MOCK_MODE, DEEPSEEK_CONFIGURED
+from feedback_intelligence.database import init_db, run_migrations
 
 # ── Page config ────────────────────────────────────────────────
 st.set_page_config(

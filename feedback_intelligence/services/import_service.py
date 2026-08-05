@@ -9,8 +9,8 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from src.models import FeedbackItem
-from src.schemas import ImportResult, ImportRow, compute_content_hash
+from feedback_intelligence.models import FeedbackItem
+from feedback_intelligence.schemas import ImportResult, ImportRow, compute_content_hash
 
 logger = logging.getLogger(__name__)
 

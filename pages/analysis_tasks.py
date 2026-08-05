@@ -3,8 +3,8 @@
 import streamlit as st
 from sqlalchemy.orm import Session
 
-from src.database import SessionLocal
-from src.services.analysis_service import reanalyze_items, run_analysis
+from feedback_intelligence.database import SessionLocal
+from feedback_intelligence.services.analysis_service import reanalyze_items, run_analysis
 
 
 def show():
@@ -12,7 +12,7 @@ def show():
 
     db: Session = SessionLocal()
     try:
-        from src.models import FeedbackItem
+        from feedback_intelligence.models import FeedbackItem
 
         # Count pending
         pending_count = (
@@ -91,7 +91,7 @@ def show():
 
 
 def _run_pending_analysis(db: Session, max_items: int):
-    from src.models import FeedbackItem
+    from feedback_intelligence.models import FeedbackItem
 
     items = (
         db.query(FeedbackItem.id)
@@ -122,7 +122,7 @@ def _run_pending_analysis(db: Session, max_items: int):
 
 
 def _retry_errors(db: Session):
-    from src.models import FeedbackItem
+    from feedback_intelligence.models import FeedbackItem
 
     items = (
         db.query(FeedbackItem.id)

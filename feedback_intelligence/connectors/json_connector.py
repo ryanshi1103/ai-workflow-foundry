@@ -3,8 +3,8 @@
 import json
 from pathlib import Path
 
-from src.connectors.base import BaseConnector
-from src.schemas import ImportRow
+from feedback_intelligence.connectors.base import BaseConnector
+from feedback_intelligence.schemas import ImportRow
 
 
 class JsonConnector(BaseConnector):

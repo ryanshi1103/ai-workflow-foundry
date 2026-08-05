@@ -5,9 +5,9 @@ import streamlit as st
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.database import SessionLocal
-from src.models import FeedbackAnalysis, FeedbackItem
-from src.repositories.feedback_repo import (
+from feedback_intelligence.database import SessionLocal
+from feedback_intelligence.models import FeedbackAnalysis, FeedbackItem
+from feedback_intelligence.repositories.feedback_repo import (
     get_stats,
     get_timeline,
 )

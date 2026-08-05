@@ -34,7 +34,7 @@ export APP_DB_URL=sqlite:///:memory:
 
 echo ""
 echo "=== 1/2: Ruff 代码检查 ==="
-ruff check src/ tests/ app.py pages/ || {
+ruff check feedback_intelligence/ src/ tests/ app.py pages/ || {
     echo "⚠️  Ruff 检查发现问题，请修复后重试。"
     exit 1
 }

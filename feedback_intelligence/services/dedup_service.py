@@ -1,6 +1,6 @@
 """Deduplication service using content hashing."""
 
-from src.schemas import compute_content_hash
+from feedback_intelligence.schemas import compute_content_hash
 
 
 def compute_hash(

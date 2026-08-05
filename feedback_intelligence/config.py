@@ -51,7 +51,12 @@ APIFY_ACTOR_ID: str = os.getenv("APIFY_ACTOR_ID", "")
 APIFY_MAX_ITEMS: int = _int(os.getenv("APIFY_MAX_ITEMS"), 100)
 
 # ── Application ────────────────────────────────────────────────
-APP_DB_URL: str = os.getenv("APP_DB_URL", "sqlite:///data/social_monitor.db")
+# ``APP_DB_URL`` remains the supported legacy variable.  The canonical name is
+# additive so existing deployments continue to select the same database.
+APP_DB_URL: str = os.getenv(
+    "FEEDBACK_DB_URL",
+    os.getenv("APP_DB_URL", "sqlite:///data/social_monitor.db"),
+)
 APP_MOCK_MODE: bool = _bool(os.getenv("APP_MOCK_MODE"), default=True)
 APP_LOG_LEVEL: str = os.getenv("APP_LOG_LEVEL", "INFO")
 APP_HOST: str = "127.0.0.1"

@@ -7,8 +7,8 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from src.models import FeedbackAnalysis, FeedbackItem, HumanReview
-from src.schemas import ExportRow
+from feedback_intelligence.models import FeedbackAnalysis, FeedbackItem, HumanReview
+from feedback_intelligence.schemas import ExportRow
 
 
 def _build_export_rows(db: Session, item_ids: list[int] | None = None,

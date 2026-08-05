@@ -15,7 +15,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from src.config import (
+from feedback_intelligence.config import (
     APP_MOCK_MODE,
     DEEPSEEK_API_KEY,
     DEEPSEEK_BASE_URL,
@@ -25,8 +25,8 @@ from src.config import (
     DEEPSEEK_THINKING,
     DEEPSEEK_TIMEOUT_SECONDS,
 )
-from src.prompts.sentiment_v1 import SYSTEM_PROMPT, USER_MESSAGE_TEMPLATE
-from src.schemas import DeepSeekAnalysisResult
+from feedback_intelligence.prompts.sentiment_v1 import SYSTEM_PROMPT, USER_MESSAGE_TEMPLATE
+from feedback_intelligence.schemas import DeepSeekAnalysisResult
 
 logger = logging.getLogger(__name__)
 

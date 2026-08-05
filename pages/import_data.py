@@ -5,10 +5,10 @@ import json
 import streamlit as st
 from sqlalchemy.orm import Session
 
-from src.config import APIFY_CONFIGURED, APP_MOCK_MODE
-from src.database import SessionLocal
-from src.schemas import ImportRow
-from src.services.import_service import (
+from feedback_intelligence.config import APIFY_CONFIGURED, APP_MOCK_MODE
+from feedback_intelligence.database import SessionLocal
+from feedback_intelligence.schemas import ImportRow
+from feedback_intelligence.services.import_service import (
     ImportResult,
     import_csv_string,
     import_json_string,
@@ -41,7 +41,7 @@ def _show_example_data():
     st.info("⚠️ 所有示例数据均为虚构，不包含真实个人信息。")
 
     if st.button("🚀 导入示例数据", type="primary"):
-        from src.connectors.mock_connector import MOCK_DATA
+        from feedback_intelligence.connectors.mock_connector import MOCK_DATA
 
         db: Session = SessionLocal()
         try:
@@ -163,7 +163,7 @@ def _show_apify_connector():
             st.error(f"JSON 格式错误: {e}")
             return
 
-        from src.connectors.apify_connector import ApifyConnector
+        from feedback_intelligence.connectors.apify_connector import ApifyConnector
 
         connector = ApifyConnector()
         with st.spinner("正在运行 Apify Actor..."):

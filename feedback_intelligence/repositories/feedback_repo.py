@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.models import FeedbackAnalysis, FeedbackItem, HumanReview
+from feedback_intelligence.models import FeedbackAnalysis, FeedbackItem, HumanReview
 
 
 def get_stats(db: Session) -> dict:

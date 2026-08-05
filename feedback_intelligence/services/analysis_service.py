@@ -6,9 +6,9 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from src.models import FeedbackAnalysis, FeedbackItem
-from src.schemas import DeepSeekAnalysisResult
-from src.services.deepseek_service import deepseek_service
+from feedback_intelligence.models import FeedbackAnalysis, FeedbackItem
+from feedback_intelligence.schemas import DeepSeekAnalysisResult
+from feedback_intelligence.services.deepseek_service import deepseek_service
 
 logger = logging.getLogger(__name__)
 
