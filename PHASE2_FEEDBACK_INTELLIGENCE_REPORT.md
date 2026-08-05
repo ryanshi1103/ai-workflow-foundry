@@ -17,12 +17,19 @@ and its history remain intact. `feedback-analysis-system` and
 - Final source commit: `93b646baf6c92437b97abc0e13d6b6e53b8811eb`
 - Final source tree: `2a2c2796a4176a0fc354ba94d73bdbe00e0f38c2`
 - Initial history connection: `d3ee9544584e844a090ebda7463b047e32724e63`
-- Final source follow-up connection: `c8bac35b8c9c8cb9725a2f3d9da743e43aa01d85`
+- Lint follow-up connection: `c8bac35b8c9c8cb9725a2f3d9da743e43aa01d85`
+- Final source-tip connection: `c335a3d3b79efd2dcec0816b3752aa93e3fb6c06`
 - FlowFoundry application commit: `cde3d6b357c49c6ad2037577c60317a496d07bc8`
 
-Both history connections are non-squash, `ours` strategy merges. Each merge
-tree equals its first-parent tree. The application was then synchronized from a
-Git archive; its staged subtree hash matched the standalone source root tree.
+All history connections are non-squash, `ours` strategy merges. Each merge tree
+equals its first-parent tree. The final source-tip connection preserves tree
+`f6a8a3a7f5ea0501e2785f05a1e29ed675a6a2b4`. The application was synchronized
+from a Git archive; its staged subtree hash matched the standalone source root
+tree.
+
+The complete final source branch has a verified repository-external bundle with
+SHA-256
+`cc4c0f4bda959edc33f7882c3d3daf506a2266612f29b7f0b1c5a61612bf8cc2`.
 
 The local archive-only lineage was not connected because it contains tracked
 session material. Its full graph is retained only in a repository-external Git

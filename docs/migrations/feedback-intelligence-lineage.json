@@ -20,11 +20,18 @@
     "location": "repository-external private backup directory",
     "sha256": "8544ce02c43b1ac645d4993246985f14f24643c70427f63fb0e1b1d038c8183d"
   },
+  "canonical_source_backup": {
+    "location": "repository-external private backup directory",
+    "filename": "feedback-intelligence-phase2-final.bundle",
+    "sha256": "cc4c0f4bda959edc33f7882c3d3daf506a2266612f29b7f0b1c5a61612bf8cc2"
+  },
   "history_connection": {
     "strategy": "non-squash history-only merge using the ours strategy",
     "tree_unchanged": true,
     "initial_connection_commit": "d3ee9544584e844a090ebda7463b047e32724e63",
-    "final_connection_commit": "c8bac35b8c9c8cb9725a2f3d9da743e43aa01d85"
+    "lint_followup_connection_commit": "c8bac35b8c9c8cb9725a2f3d9da743e43aa01d85",
+    "final_connection_commit": "c335a3d3b79efd2dcec0816b3752aa93e3fb6c06",
+    "final_connection_tree": "f6a8a3a7f5ea0501e2785f05a1e29ed675a6a2b4"
   },
   "remote_rename_performed": false
 }
