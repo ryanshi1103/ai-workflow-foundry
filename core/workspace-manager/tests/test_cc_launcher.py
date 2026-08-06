@@ -57,6 +57,18 @@ class WrapperContractTests(unittest.TestCase):
         self.assertNotIn("meeting-media-auto", source)
 
 
+class ExecutableLookupTests(unittest.TestCase):
+    def test_find_executable_returns_resolved_path(self):
+        with patch.object(cc_launcher.shutil, "which", return_value="/usr/bin/claude") as which:
+            self.assertEqual(cc_launcher._find_executable("claude"), "/usr/bin/claude")
+        which.assert_called_once_with("claude")
+
+    def test_find_executable_returns_none_when_command_is_missing(self):
+        with patch.object(cc_launcher.shutil, "which", return_value=None) as which:
+            self.assertIsNone(cc_launcher._find_executable("missing-tool"))
+        which.assert_called_once_with("missing-tool")
+
+
 class LauncherHelperTests(unittest.TestCase):
     def setUp(self):
         self.temp = RepoTemporaryDirectory()
