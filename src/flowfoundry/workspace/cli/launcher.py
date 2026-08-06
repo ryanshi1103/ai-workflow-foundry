@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -345,11 +346,7 @@ def _check_api_reachable() -> bool:
 
 
 def _find_executable(name: str) -> str | None:
-    result = subprocess.run(
-        ["type", "-P", name], capture_output=True, text=True, timeout=5
-    )
-    path = result.stdout.strip()
-    return path if path else None
+    return shutil.which(name)
 
 
 # ---------------------------------------------------------------------------
