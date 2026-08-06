@@ -21,10 +21,15 @@ lifecycle shared by useful AI work.
 - A bundled, tested workspace runtime for Claude, DeepSeek, and Codex under
   [`core/workspace-manager`](core/workspace-manager/README.md).
 - Three physically integrated workflow components with their original Git
-  histories: Confera Media Skills, Feedback Analysis System, and the
+  histories: Confera Media Skills, Feedback Intelligence System, and the
   Print-ready Nameplate Generator.
-- A dependency-free catalog validator and CLI that verifies all four bundled
-  component paths, maturity declarations, and safety boundaries.
+- A sanitized application contract for the private Huiying / MediaFlow product;
+  its commercial implementation, real media, configuration, and release assets
+  remain outside this public repository.
+- A resumable multi-agent MVP with capability routing, offline fake providers,
+  atomic local mailboxes, review decisions, and human approval gates.
+- A dependency-free catalog validator and CLI that verifies bundled paths,
+  maturity declarations, and safety boundaries.
 - A generic component schema, product architecture, project-pattern audit, and
   staged roadmap toward a reusable workflow runner.
 
@@ -57,7 +62,8 @@ real project + controlled inputs
 |---|---|---|
 | Core runtime | [AI Workspace Manager](core/workspace-manager/README.md) | Bundled with preserved Git history |
 | Media workflow pack | [Confera Media Skills](components/confera-media-skills/README.md) | Bundled under `components/` with preserved history |
-| Customer intelligence | [Feedback Analysis System](applications/feedback-analysis-system/README.md) | Bundled under `applications/`; independently runnable |
+| Customer intelligence | [Feedback Intelligence System](applications/feedback-intelligence-system/README.md) | Bundled under `applications/`; independently runnable; legacy catalog IDs remain aliases |
+| Private media application | [Huiying / MediaFlow](applications/mediaflow/README.md) | Public workflow and policy contract only; private source and product data remain isolated |
 | Document automation | [Print-ready Nameplate Generator](workflows/print-ready-nameplate-generator/README.md) | Bundled under `workflows/`; independently runnable |
 
 The monorepo is the canonical integration point. Component boundaries remain
@@ -82,6 +88,10 @@ PYTHONPATH=src python3 -m flowfoundry project list
 
 # Interactive launcher (was cc)
 PYTHONPATH=src python3 -m flowfoundry project launch
+
+# Offline multi-agent example (Codex Builder + DeepSeek Reviewer identities)
+PYTHONPATH=src python3 -m flowfoundry team run \
+  examples/orchestration/codex-builder-deepseek-reviewer.json
 ```
 
 Install the CLI to use anywhere:
@@ -105,6 +115,9 @@ flowfoundry project launch
 - Separate products may reuse contracts without pretending to share one runtime.
 
 See [Architecture](docs/ARCHITECTURE.md),
+[Multi-Agent Architecture](MULTI_AGENT_ARCHITECTURE.md),
+[Multi-Agent Operator Guide](MULTI_AGENT_OPERATOR_GUIDE.md),
+[Multi-Agent Security Model](MULTI_AGENT_SECURITY_MODEL.md),
 [Product Lines](docs/PRODUCT-LINES.md),
 [Project Pattern Audit](docs/PROJECT-PATTERN-AUDIT.md), and
 [Roadmap](docs/ROADMAP.md).
@@ -126,16 +139,17 @@ python3 -m unittest discover -s components/confera-media-skills/tests -v
 python3 -m unittest discover -s workflows/print-ready-nameplate-generator/tests -v
 
 # Feedback application (after installing its dev dependencies)
-python3 -m pip install -e "applications/feedback-analysis-system[dev]"
-ruff check applications/feedback-analysis-system/src \
-  applications/feedback-analysis-system/tests \
-  applications/feedback-analysis-system/app.py \
-  applications/feedback-analysis-system/pages
-pytest applications/feedback-analysis-system/tests -q
+python3 -m pip install -e "applications/feedback-intelligence-system[dev]"
+ruff check applications/feedback-intelligence-system/feedback_intelligence \
+  applications/feedback-intelligence-system/src \
+  applications/feedback-intelligence-system/tests \
+  applications/feedback-intelligence-system/app.py \
+  applications/feedback-intelligence-system/pages
+pytest applications/feedback-intelligence-system/tests -q
 ```
 
 ## License
 
 FlowFoundry AI is MIT licensed. Bundled components retain their own license
-files and notices; the Feedback Analysis component keeps its more restrictive
+files and notices; the Feedback Intelligence component keeps its more restrictive
 learning/internal-use terms.

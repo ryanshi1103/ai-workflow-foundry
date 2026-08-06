@@ -1,0 +1,64 @@
+# AI Project Manager — private session data (NOT committed)
+.ai-session/private/
+.ai-session/*.lock
+.ai-session/**/*.lock
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+secrets/
+credentials.*
+
+# Python virtual environment
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+
+# Database (including WAL/SHM companions in any local run directory)
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+:memory:
+
+# Logs
+*.log
+logs/
+
+# Temporary exports
+*.csv
+*.json
+!config/*.yaml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+.ai-session/
+docs/sessions/
+
+*.egg-info/

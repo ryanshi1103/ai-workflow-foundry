@@ -17,9 +17,25 @@ The AI Project Workspace Manager is a unified project management, launch, and ma
 - **Purpose**: Periodic maintenance of `~/Projects/` (hygiene, dedup, quarantine, indexing)
 - **Schedule**: systemd user timers (weekly quick, monthly deep, quarantine cleanup)
 
-### ai-project-manager (Python)
-- **Path**: `src/ai_project_manager/` → `~/.local/share/ai-project-manager/ai_project_manager/`
-- **Purpose**: Session tracking, project creation/cleanup/recovery, auto-naming, transcript processing
+### FlowFoundry workspace runtime (Python)
+
+- **Path**: `src/flowfoundry/workspace/`
+- **Purpose**: lifecycle, provider selection, session tracking, recovery,
+  permissions, redaction, and maintenance
+- **Compatibility**: `cc`, `aiproj`, and `cc-projects-maintain` keep their
+  existing entry points; the legacy `ai_project_manager` package maps old
+  imports directly to canonical subpackages
+
+```text
+workspace/
+├── cli/           interactive and project command entry logic
+├── providers/     portable provider/profile policy (never credentials)
+├── lifecycle/     stable API for project, naming, Git, and shared launch core
+├── sessions/      stable API for hooks, transcripts, and recovery
+│   └── finalization/  validation, pipeline, output, hooks, failure recovery
+├── policy/        local-state boundaries and redaction
+└── maintenance/   inventory and retention operations
+```
 
 ## Tool Integration Architecture
 
@@ -57,3 +73,10 @@ The AI Project Workspace Manager is a unified project management, launch, and ma
 3. **Tool-native configs**: Each tool uses its own config system (Claude: env vars, Codex: TOML profiles)
 4. **launch-here over launch-new**: Always opens the selected project, never creates new ones
 5. **Codex uses profiles**: 4 pre-built profiles for different permission levels, no CLI arg passthrough
+6. **Runtime state is external**: sessions, transcripts, caches, provider
+   credentials, and user metadata stay in local state/config roots and are not
+   vendored into the workspace package
+7. **Provider policy is portable**: source code owns only stable profile and
+   permission identifiers; generated profiles and authentication remain local
+8. **Runtime APIs are explicit**: `lifecycle` and `sessions` export curated
+   canonical callables while implementation modules remain independently testable

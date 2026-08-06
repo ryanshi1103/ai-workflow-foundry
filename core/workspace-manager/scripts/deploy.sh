@@ -9,6 +9,14 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+MONOREPO_CANDIDATE="$(cd "$PROJECT_ROOT/../.." 2>/dev/null && pwd || true)"
+if [[ -f "$MONOREPO_CANDIDATE/pyproject.toml" ]] \
+        && [[ -d "$MONOREPO_CANDIDATE/src/flowfoundry" ]]; then
+    PACKAGE_ROOT="$MONOREPO_CANDIDATE"
+else
+    PACKAGE_ROOT="$PROJECT_ROOT"
+fi
+PYTHON_LAUNCHER_SOURCE="$PACKAGE_ROOT/src/flowfoundry/workspace/cli/launcher.py"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/cc-projects/backups/${TIMESTAMP}-cc-v31"
 
@@ -137,6 +145,8 @@ echo ""
 # ─── 2. Deploy Codex profiles ────────────────────────────────────────────────
 echo "2. Deploying Codex profiles..."
 
+mkdir -p "$HOME/.codex"
+
 extract_codex_project_sections() {
     local profile_file="$1"
     awk '
@@ -201,20 +211,19 @@ echo ""
 
 # ─── 4. Install FlowFoundry unified package ──────────────────────────────
 echo "4. Installing FlowFoundry unified package..."
-if [[ -f "$PROJECT_ROOT/pyproject.toml" ]]; then
+if [[ -f "$PACKAGE_ROOT/pyproject.toml" ]]; then
     if command -v pip3 &>/dev/null; then
-        pip3 install --user -e "$PROJECT_ROOT" 2>&1 | sed 's/^/   /'
+        pip3 install --user -e "$PACKAGE_ROOT" 2>&1 | sed 's/^/   /'
         echo "   ✓ FlowFoundry package installed (pip install --user -e)"
     else
         echo "   ~ pip3 not found, skipping"
     fi
-    # Legacy compat: also copy shim to old install location
+    # Legacy package maps old imports directly to canonical subpackages.
     PM_DST="$HOME/.local/share/ai-project-manager/ai_project_manager"
     mkdir -p "$PM_DST"
-    cp -v "$PROJECT_ROOT/src/ai_project_manager/"*.py "$PM_DST/" 2>/dev/null || true
-    cp -v "$PROJECT_ROOT/src/flowfoundry/workspace/"*.py "$PM_DST/" 2>/dev/null || true
+    cp -v "$PACKAGE_ROOT/src/ai_project_manager/"*.py "$PM_DST/" 2>/dev/null || true
 else
-    echo "   ~ Project root not found, skipping"
+    echo "   ~ FlowFoundry package root not found, skipping"
 fi
 echo ""
 
@@ -225,8 +234,11 @@ if [[ -d "$PROJECT_ROOT/config/systemd" ]]; then
     mkdir -p "$SYSTEMD_USER_DIR"
     cp -v "$PROJECT_ROOT/config/systemd/"*.service "$SYSTEMD_USER_DIR/" 2>/dev/null || true
     cp -v "$PROJECT_ROOT/config/systemd/"*.timer "$SYSTEMD_USER_DIR/" 2>/dev/null || true
-    systemctl --user daemon-reload
-    echo "   ✓ systemd units deployed"
+    if command -v systemctl &>/dev/null && systemctl --user daemon-reload 2>/dev/null; then
+        echo "   ✓ systemd units deployed and user manager reloaded"
+    else
+        echo "   ~ systemd units deployed; user manager unavailable, reload skipped"
+    fi
 else
     echo "   ~ No systemd configs found, skipping"
 fi
@@ -249,14 +261,17 @@ grep -q 'ai-workspace-manager.*managed.*true' "$HOME/.config/cc-projects/managed
     && verify_pass "managed project policy deployed" \
     || verify_fail "managed project policy missing"
 
-# Codex menu present
-grep -q 'o   OpenAI Codex' "$HOME/.local/bin/cc" && verify_pass "Codex menu entry present" || verify_fail "Codex menu entry MISSING"
+# Wrapper delegates to the unified public module.
+grep -q 'python3 -m flowfoundry.cc' "$HOME/.local/bin/cc" \
+    && verify_pass "cc delegates to flowfoundry.cc" \
+    || verify_fail "cc unified module delegation MISSING"
 
-# Claude preserved
-grep -q 'PROVIDER="claude"' "$HOME/.local/bin/cc" && verify_pass "Claude mode preserved" || verify_fail "Claude mode MISSING"
+# Provider menu and launch paths live in the Python runtime after unification.
+grep -q 'Claude' "$PYTHON_LAUNCHER_SOURCE" && verify_pass "Claude mode preserved" || verify_fail "Claude mode MISSING"
 
-# DeepSeek preserved
-grep -q 'PROVIDER="deepseek"' "$HOME/.local/bin/cc" && verify_pass "DeepSeek mode preserved" || verify_fail "DeepSeek mode MISSING"
+grep -q 'DeepSeek' "$PYTHON_LAUNCHER_SOURCE" && verify_pass "DeepSeek mode preserved" || verify_fail "DeepSeek mode MISSING"
+
+grep -q 'OpenAI Codex' "$PYTHON_LAUNCHER_SOURCE" && verify_pass "Codex mode preserved" || verify_fail "Codex mode MISSING"
 
 # Codex profiles deployed
 for profile in gpt56-sol-manual gpt56-sol-readonly gpt56-sol-auto gpt56-sol-full; do
@@ -287,17 +302,17 @@ done
 [[ -f "$HOME/.codex/AGENTS.md" ]] && verify_pass "AGENTS.md deployed" || verify_fail "AGENTS.md MISSING"
 
 # CC_ACTIVE_PROJECT preserved
-grep -q 'CC_ACTIVE_PROJECT' "$HOME/.local/bin/cc" && verify_pass "CC_ACTIVE_PROJECT preserved" || verify_fail "CC_ACTIVE_PROJECT MISSING"
+grep -q 'CC_ACTIVE_PROJECT' "$PYTHON_LAUNCHER_SOURCE" && verify_pass "CC_ACTIVE_PROJECT preserved" || verify_fail "CC_ACTIVE_PROJECT MISSING"
 
 # Codex launch path (resolved binary preserves the native Codex TUI)
-grep -q 'exec "$CODEX_BIN" --profile "$CODEX_PROFILE"' "$HOME/.local/bin/cc" && verify_pass "native Codex exec launch path" || verify_fail "native Codex exec MISSING"
+grep -q 'os.execv(codex_bin' "$PYTHON_LAUNCHER_SOURCE" && verify_pass "native Codex exec launch path" || verify_fail "native Codex exec MISSING"
 
-# No Claude env in Codex path (CLAUDE_CONFIG_DIR should exist but only for Claude/DeepSeek)
-CLAUDE_CONFIG_COUNT=$(grep -c 'CLAUDE_CONFIG_DIR' "$HOME/.local/bin/cc" || true)
-if [[ "$CLAUDE_CONFIG_COUNT" -le 2 ]]; then
-    verify_pass "CLAUDE_CONFIG_DIR only in Claude/DeepSeek path"
+# Installed package import verifies that the deployed wrappers can resolve the
+# same public modules exercised from a source checkout.
+if HOME="$HOME" python3 -c 'import flowfoundry.aiproj; import flowfoundry.workspace.cli.launcher' 2>/dev/null; then
+    verify_pass "FlowFoundry launcher modules import"
 else
-    verify_fail "CLAUDE_CONFIG_DIR may leak into Codex path"
+    verify_fail "FlowFoundry launcher modules are not importable"
 fi
 
 # Exclude documentation/verification lines, then reject any file operation that

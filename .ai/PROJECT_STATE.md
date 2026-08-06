@@ -18,27 +18,28 @@ in one monorepo.
 
 | Layer | Status |
 |---|---|
-| Catalog validator (`flowfoundry validate`) | ✅ 4 components + 16 capabilities + 1 workflow contract |
+| Catalog validator (`flowfoundry validate`) | ✅ 5 components + 17 capabilities + 3 workflow contracts |
 | CLI (`flowfoundry list/show/workflows/capabilities`) | ✅ functional |
-| Capability Registry (`src/flowfoundry/capability_registry.py`) | ✅ 16 capabilities registered |
+| Capability Registry (`src/flowfoundry/capability_registry.py`) | ✅ 17 capabilities registered |
 | Workflow Contract (`src/flowfoundry/workflow_contract.py`) | ✅ schema validation + CLI commands |
-| Foundation tests (51 tests) | ✅ all passing |
+| Foundation tests (94 tests) | ✅ all passing |
 | Workspace runtime tests | ✅ passing |
-| Confera media skills tests | ✅ passing |
-| Nameplate generator tests | ✅ passing |
-| Feedback application tests & lint | ✅ passing |
+| Confera media skills tests (3 tests) | ✅ all passing |
+| Nameplate generator tests (3 tests) | ✅ all passing |
+| Feedback application tests (101 tests) & lint | ✅ all passing |
 | CI pipeline (GitHub Actions) | ✅ 3 jobs defined |
 
-## Components bundled
+## Catalog components
 
 1. **AI Workspace Manager** (`core/workspace-manager/`) — beta core-runtime
 2. **Confera Media Skills** (`components/confera-media-skills/`) — beta workflow-pack
-3. **Feedback Analysis System** (`applications/feedback-analysis-system/`) — beta reference-application
+3. **Feedback Intelligence System** (`applications/feedback-intelligence-system/`) — beta reference-application
 4. **Print-ready Nameplate Generator** (`workflows/print-ready-nameplate-generator/`) — stable reference-workflow
+5. **Huiying / MediaFlow** (`applications/mediaflow/`) — beta compatible-extension (public contract only)
 
 ## Remaining issues
 
-- More workflow contracts needed for the other 3 components
+- Workflow contracts are still needed for AI Workspace Manager and Confera Media Skills
 - No local workflow runner (roadmap 0.3)
 - No unified operator dashboard (roadmap 0.4)
 - No model-provider independence layer
