@@ -9,3 +9,8 @@
 - docs/sessions/
 - docs/summary.md
 - docs/tasks.md
+## 20260805-151008-claude-198a0a (2026-08-06 06:36:44 UTC)
+
+- ocs/decisions.md
+- docs/summary.md
+- docs/tasks.md
