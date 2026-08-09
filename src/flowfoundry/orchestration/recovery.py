@@ -11,6 +11,16 @@ from .workspace import RunWorkspace, stable_hash, utc_now
 class RecoveryManager:
     def recover_interrupted(self, workspace: RunWorkspace) -> dict[str, Any]:
         def recover(manifest: dict[str, Any]) -> dict[str, Any]:
+            meeting = manifest.get("meeting")
+            if isinstance(meeting, dict) and meeting.get("state") in {
+                "completed",
+                "blocked",
+                "failed",
+                "cancelled",
+                "budget_exhausted",
+            }:
+                manifest["recovered_tasks"] = []
+                return manifest
             recovered: list[str] = []
             for task_id, state in manifest["tasks"].items():
                 if state["status"] == TaskStatus.RUNNING.value:

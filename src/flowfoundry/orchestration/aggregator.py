@@ -17,8 +17,11 @@ class ResultAggregator:
         commits: list[str] = []
         generated_files: list[str] = []
         risks: list[str] = []
+        task_usage: list[dict[str, Any]] = []
         for task in workspace.plan().tasks:
             state = manifest["tasks"][task.id]
+            if isinstance(state.get("usage"), dict):
+                task_usage.append(state["usage"])
             if state["status"] == TaskStatus.COMPLETED.value:
                 completed.append(task.id)
             else:
@@ -34,6 +37,23 @@ class ResultAggregator:
                 if commit:
                     commits.append(str(commit))
         human_path = workspace.contained("HUMAN_ACTIONS_REQUIRED.md")
+        meeting = manifest.get("meeting")
+        meeting_usage = meeting.get("usage") if isinstance(meeting, dict) else None
+        if isinstance(meeting_usage, dict):
+            usage = {
+                key: meeting_usage.get(key)
+                for key in (
+                    "provider_calls",
+                    "input_tokens",
+                    "output_tokens",
+                    "latency_ms",
+                    "estimated_cost_usd",
+                    "token_status",
+                    "cost_status",
+                )
+            }
+        else:
+            usage = self._aggregate_usage(task_usage)
         report = {
             "schema_version": 1,
             "run_id": workspace.run_id,
@@ -45,6 +65,8 @@ class ResultAggregator:
             "human_actions_required": human_path.exists(),
             "generated_files": generated_files,
             "commits": sorted(set(commits)),
+            "usage": usage,
+            "meeting": self._meeting_summary(meeting) if isinstance(meeting, dict) else None,
             "next_step": "inspect unfinished tasks" if unfinished else "review final artifacts",
             "created_at": utc_now(),
         }
@@ -60,3 +82,34 @@ class ResultAggregator:
         ]
         atomic_write_text(workspace.contained("final", "report.md"), "\n".join(lines))
         return report
+
+    @staticmethod
+    def _meeting_summary(meeting: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "state": meeting["state"],
+            "rounds_executed": list(meeting.get("rounds_executed", ())),
+            "conflicts_detected": len(meeting.get("conflicts", ())),
+            "early_stopped": bool(meeting.get("early_stopped", False)),
+            "dissent_count": len(meeting.get("dissent", ())),
+            "budget_status": meeting.get("budget_status", "unknown"),
+            "result_ref": meeting.get("result_ref"),
+            "experience_ref": meeting.get("experience_ref"),
+        }
+
+    @staticmethod
+    def _aggregate_usage(task_usage: list[dict[str, Any]]) -> dict[str, Any]:
+        def total(field: str) -> int | float | None:
+            values = [usage[field] for usage in task_usage if usage.get(field) is not None]
+            return sum(values) if values else None
+
+        token_statuses = {usage.get("token_status", "unavailable") for usage in task_usage}
+        cost_statuses = {usage.get("cost_status", "unavailable") for usage in task_usage}
+        return {
+            "provider_calls": int(total("provider_calls") or 0),
+            "input_tokens": total("input_tokens"),
+            "output_tokens": total("output_tokens"),
+            "latency_ms": total("latency_ms"),
+            "estimated_cost_usd": total("estimated_cost_usd"),
+            "token_status": next(iter(token_statuses)) if len(token_statuses) == 1 else "unavailable",
+            "cost_status": next(iter(cost_statuses)) if len(cost_statuses) == 1 else "unavailable",
+        }

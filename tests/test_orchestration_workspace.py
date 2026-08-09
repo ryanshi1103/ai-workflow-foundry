@@ -18,7 +18,7 @@ class RunWorkspaceTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
         self.root = Path(self.temp_dir.name) / "runs"
-        self.plan = RuleBasedPlanner().plan("Build safely")
+        self.plan = RuleBasedPlanner().plan("Build safely", execution_mode="multi_agent")
         self.workspace = RunWorkspace.create(self.root, "run-001", self.plan)
 
     def tearDown(self) -> None:
@@ -28,6 +28,8 @@ class RunWorkspaceTests(unittest.TestCase):
         manifest = self.workspace.manifest()
         self.assertEqual(manifest["schema_version"], 1)
         self.assertEqual(set(manifest["tasks"]), {"build", "review", "test"})
+        self.assertEqual(Path(manifest["project_root"]), Path.cwd())
+        self.assertEqual(self.workspace.project_root, Path.cwd())
         self.assertEqual(os.stat(self.workspace.path).st_mode & 0o777, 0o700)
         self.assertEqual(os.stat(self.workspace.path / "manifest.json").st_mode & 0o777, 0o600)
 

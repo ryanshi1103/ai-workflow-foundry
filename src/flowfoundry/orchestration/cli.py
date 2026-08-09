@@ -11,6 +11,8 @@ from pathlib import Path
 
 from .aggregator import ResultAggregator
 from .approvals import ApprovalGate
+from .discovery import ProviderDiscovery
+from .meeting import MeetingRuntime
 from .planner import RuleBasedPlanner
 from .providers import FakeProvider, LocalCommandProvider
 from .recovery import RecoveryManager
@@ -24,9 +26,15 @@ def add_team_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
     team = subparsers.add_parser("team", help="run resumable local multi-agent workflows")
     commands = team.add_subparsers(dest="team_command", required=True)
 
+    plan = commands.add_parser("plan", help="profile a goal and preview its minimum path")
+    plan.add_argument("task_file", type=Path)
+
+    commands.add_parser("providers", help="inspect runtime and authentication setup state")
+
     run = commands.add_parser("run", help="start an offline-safe task plan")
     run.add_argument("task_file", type=Path)
     run.add_argument("--run-id")
+    run.add_argument("--workspace", type=Path, default=Path.cwd())
     _add_root_and_provider(run)
 
     status = commands.add_parser("status", help="inspect persisted run state")
@@ -36,6 +44,10 @@ def add_team_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
     resume = commands.add_parser("resume", help="recover and continue an interrupted run")
     resume.add_argument("run_id")
     _add_root_and_provider(resume)
+
+    cancel = commands.add_parser("cancel", help="stop a bounded meeting before its next call")
+    cancel.add_argument("run_id")
+    _add_root(cancel)
 
     review = commands.add_parser("review", help="show persisted reviewer decisions")
     review.add_argument("run_id")
@@ -77,18 +89,36 @@ def _new_run_id() -> str:
 
 
 def _scheduler(real_provider: bool) -> RunScheduler:
-    registry = default_registry().synthetic()
+    base_registry = default_registry()
+    registry = ProviderDiscovery(base_registry).registry() if real_provider else base_registry.synthetic()
     provider = LocalCommandProvider(enabled=True) if real_provider else FakeProvider()
-    return RunScheduler(TaskRouter(registry), provider)
+    return RunScheduler(
+        TaskRouter(registry),
+        provider,
+        max_workers=1 if real_provider else 4,
+    )
 
 
 def dispatch_team(args: argparse.Namespace) -> int:
     try:
         command = args.team_command
+        if command == "plan":
+            plan = RuleBasedPlanner().load(args.task_file)
+            print(json.dumps(plan.to_dict(), indent=2, ensure_ascii=False))
+            return 0
+        if command == "providers":
+            statuses = ProviderDiscovery(default_registry()).inspect()
+            print(json.dumps([status.to_dict() for status in statuses], indent=2, ensure_ascii=False))
+            return 0
         if command == "run":
             plan = RuleBasedPlanner().load(args.task_file)
             run_id = args.run_id or _new_run_id()
-            workspace = RunWorkspace.create(args.runs_root, run_id, plan)
+            workspace = RunWorkspace.create(
+                args.runs_root,
+                run_id,
+                plan,
+                project_root=args.workspace,
+            )
             _scheduler(args.enable_real_provider).run(workspace)
             ResultAggregator().aggregate(workspace)
             print(json.dumps(workspace.manifest(), indent=2, ensure_ascii=False))
@@ -102,6 +132,12 @@ def dispatch_team(args: argparse.Namespace) -> int:
             _scheduler(args.enable_real_provider).run(workspace)
             ResultAggregator().aggregate(workspace)
             print(json.dumps(workspace.manifest(), indent=2, ensure_ascii=False))
+        elif command == "cancel":
+            manifest = MeetingRuntime(
+                TaskRouter(default_registry()),
+                FakeProvider(),
+            ).cancel(workspace)
+            print(json.dumps(manifest, indent=2, ensure_ascii=False))
         elif command == "review":
             reviews = [
                 workspace.read_json(str(path.relative_to(workspace.path)))

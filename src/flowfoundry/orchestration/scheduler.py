@@ -9,8 +9,11 @@ from typing import Any
 from .approvals import ApprovalGate
 from .evaluator import evaluate_review
 from .mailbox import Mailbox
+from .meeting import MeetingRuntime
+from .memory import AgentPerformanceMemory
 from .models import ProviderResult, ReviewDecision, TaskSpec, TaskStatus
 from .providers import Provider
+from .provider_setup import ProviderSetupFlow
 from .router import TaskRouter
 from .workspace import RunWorkspace, atomic_write_json, utc_now
 
@@ -42,6 +45,14 @@ class RunScheduler:
 
     def run(self, workspace: RunWorkspace) -> dict[str, Any]:
         plan = workspace.plan()
+        if plan.meeting_plan is not None:
+            return MeetingRuntime(
+                self.router,
+                self.provider,
+                approval_gate=self.approval_gate,
+            ).run(workspace)
+        performance = AgentPerformanceMemory(workspace.performance_memory_path)
+        self.router.history_scores = performance.routing_scores()
         tasks = {task.id: task for task in plan.tasks}
         while True:
             manifest = workspace.manifest()
@@ -125,9 +136,20 @@ class RunScheduler:
             )
             return
 
-        agent = self.router.route(task)
+        try:
+            agent = self.router.route(task)
+        except LookupError as exc:
+            ProviderSetupFlow(self.router.registry).record(workspace, task, str(exc))
+            workspace.update_task(
+                task.id,
+                status=TaskStatus.BLOCKED.value,
+                error=str(exc),
+                finished_at=utc_now(),
+            )
+            return
         current_attempts = int(workspace.manifest()["tasks"][task.id].get("attempts", 0))
         final_result: ProviderResult | None = None
+        attempt_usage: list[dict[str, Any]] = []
         with self._agent_slots[agent.id]:
             for attempt in range(current_attempts + 1, task.retry_limit + 2):
                 workspace.update_task(
@@ -137,11 +159,30 @@ class RunScheduler:
                     agent_id=agent.id,
                     started_at=utc_now(),
                 )
-                final_result = self.provider.execute(task, agent, workspace.task_dir(task.id))
+                final_result = self.provider.execute(
+                    task,
+                    agent,
+                    workspace.task_dir(task.id),
+                    workspace.project_root,
+                )
+                attempt_usage.append(final_result.usage.to_dict())
                 if final_result.success:
                     break
         assert final_result is not None
         workspace.write_task_result(task.id, final_result.to_dict())
+        usage = self._aggregate_usage(attempt_usage)
+        workspace.update_task(task.id, usage=usage)
+        profile = workspace.plan().task_profile
+        category = profile.task_type if profile is not None else task.role
+        memory = AgentPerformanceMemory(workspace.performance_memory_path)
+        try:
+            memory.record(agent, task, final_result, usage, category)
+            self.router.history_scores = memory.routing_scores()
+        except (OSError, TypeError, ValueError) as exc:
+            workspace.update_task(
+                task.id,
+                memory_warning=f"performance memory unavailable: {type(exc).__name__}",
+            )
         Mailbox(workspace).send(
             sender=agent.id,
             recipient="aggregator",
@@ -158,12 +199,30 @@ class RunScheduler:
             )
             return
 
-        if agent.role == "reviewer":
+        if task.role == "reviewer":
             self._persist_review(workspace, task, final_result)
             return
 
         status = TaskStatus.REVIEW_REQUIRED if task.review_required else TaskStatus.COMPLETED
         workspace.update_task(task.id, status=status.value, finished_at=utc_now(), error=None)
+
+    @staticmethod
+    def _aggregate_usage(attempts: list[dict[str, Any]]) -> dict[str, Any]:
+        def total(field: str) -> int | float | None:
+            values = [attempt[field] for attempt in attempts if attempt.get(field) is not None]
+            return sum(values) if values else None
+
+        token_statuses = {attempt.get("token_status", "unavailable") for attempt in attempts}
+        cost_statuses = {attempt.get("cost_status", "unavailable") for attempt in attempts}
+        return {
+            "provider_calls": len(attempts),
+            "input_tokens": total("input_tokens"),
+            "output_tokens": total("output_tokens"),
+            "latency_ms": total("latency_ms"),
+            "estimated_cost_usd": total("estimated_cost_usd"),
+            "token_status": next(iter(token_statuses)) if len(token_statuses) == 1 else "unavailable",
+            "cost_status": next(iter(cost_statuses)) if len(cost_statuses) == 1 else "unavailable",
+        }
 
     def _persist_review(
         self,

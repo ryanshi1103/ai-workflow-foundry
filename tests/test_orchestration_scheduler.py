@@ -1,21 +1,27 @@
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 
 from flowfoundry.orchestration.aggregator import ResultAggregator
 from flowfoundry.orchestration.approvals import ApprovalGate
 from flowfoundry.orchestration.models import (
+    AgentSpec,
     ReviewDecision,
     RiskLevel,
     TaskPlan,
     TaskSpec,
     TaskStatus,
+    UsageMetrics,
 )
 from flowfoundry.orchestration.planner import RuleBasedPlanner
-from flowfoundry.orchestration.providers import FakeProvider
+from flowfoundry.orchestration.providers import FakeProvider, LocalCommandProvider
 from flowfoundry.orchestration.recovery import RecoveryManager
 from flowfoundry.orchestration.registry import default_registry
 from flowfoundry.orchestration.router import TaskRouter
@@ -27,7 +33,10 @@ class SchedulerTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
         self.root = Path(self.temp_dir.name) / "runs"
-        self.plan = RuleBasedPlanner().plan("Offline collaboration")
+        self.plan = RuleBasedPlanner().plan(
+            "Implement offline collaboration",
+            execution_mode="multi_agent",
+        )
 
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
@@ -53,12 +62,154 @@ class SchedulerTests(unittest.TestCase):
         report = ResultAggregator().aggregate(workspace)
         self.assertEqual(report["completed_tasks"], ["build", "review", "test"])
         self.assertFalse(report["human_actions_required"])
+        self.assertEqual(
+            report["usage"],
+            {
+                "provider_calls": 3,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "latency_ms": 0,
+                "estimated_cost_usd": 0.0,
+                "token_status": "measured",
+                "cost_status": "measured",
+            },
+        )
+        memory = json.loads(
+            workspace.performance_memory_path.read_text(encoding="utf-8")
+        )
+        self.assertEqual(memory["agents"]["codex-builder"]["executions"], 1)
+        self.assertEqual(memory["agents"]["codex-builder"]["categories"]["coding"]["successes"], 1)
 
     def test_retry_succeeds_within_limit(self) -> None:
         provider = FakeProvider(failures_before_success={"build": 1})
         workspace = self.run_plan(provider)
         self.assertEqual(provider.calls["build"], 2)
         self.assertEqual(workspace.manifest()["tasks"]["build"]["status"], "completed")
+        self.assertEqual(
+            workspace.manifest()["tasks"]["build"]["usage"]["provider_calls"],
+            2,
+        )
+
+    def test_usage_metrics_reject_invented_negative_values(self) -> None:
+        with self.assertRaises(ValueError):
+            UsageMetrics(input_tokens=-1)
+
+    def test_local_command_provider_executes_in_shared_project_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_root = Path(temp_dir) / "project"
+            task_dir = Path(temp_dir) / "run" / "task"
+            project_root.mkdir()
+            task_dir.mkdir(parents=True)
+            agent = AgentSpec(
+                id="cwd-probe",
+                display_name="CWD Probe",
+                provider="local",
+                role="builder",
+                capabilities=("implementation",),
+                command_template=(sys.executable, "-c", "import os; print(os.getcwd())"),
+                cost_class="free",
+                concurrency_limit=1,
+                permission_profile=("read_workspace",),
+                context_limit=1000,
+                availability=True,
+                workspace_mode="shared",
+                local=True,
+            )
+            task = TaskSpec(
+                id="probe",
+                title="Probe",
+                role="builder",
+                required_capabilities=("implementation",),
+            )
+            result = LocalCommandProvider(enabled=True).execute(
+                task,
+                agent,
+                task_dir,
+                project_root,
+            )
+            self.assertTrue(result.success)
+            self.assertEqual(result.outputs["stdout"].strip(), str(project_root))
+            self.assertIsNotNone(result.usage.latency_ms)
+
+    def test_codex_adapter_uses_stdin_schema_and_structured_result(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_root = Path(temp_dir) / "project"
+            task_dir = Path(temp_dir) / "run" / "tasks" / "build"
+            project_root.mkdir()
+            task_dir.mkdir(parents=True)
+            task = RuleBasedPlanner().plan("Implement one code fix").tasks[0]
+            agent = default_registry().synthetic().get("codex-builder")
+
+            def complete(command: list[str], **kwargs: object) -> object:
+                output_path = Path(command[command.index("--output-last-message") + 1])
+                output_path.write_text(
+                    '{"success":true,"summary":"done","outputs":{},'
+                    '"review":null,"findings":[]}',
+                    encoding="utf-8",
+                )
+                return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+            with patch("flowfoundry.orchestration.providers.subprocess.run", side_effect=complete) as run:
+                result = LocalCommandProvider(enabled=True).execute(
+                    task,
+                    agent,
+                    task_dir,
+                    project_root,
+                )
+            self.assertTrue(result.success)
+            command = run.call_args.args[0]
+            self.assertIn("--output-schema", command)
+            self.assertEqual(command[-1], "-")
+            self.assertIn("FlowFoundry task", run.call_args.kwargs["input"])
+            self.assertEqual(run.call_args.kwargs["cwd"], project_root)
+
+    def test_deepseek_adapter_reuses_isolated_claude_runtime_and_parses_review(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_root = Path(temp_dir) / "project"
+            task_dir = Path(temp_dir) / "run" / "tasks" / "review"
+            project_root.mkdir()
+            task_dir.mkdir(parents=True)
+            task = TaskSpec(
+                id="review",
+                title="Review",
+                role="reviewer",
+                required_capabilities=("review",),
+            )
+            agent = default_registry().synthetic().get("deepseek-reviewer")
+            wrapper = {
+                "structured_output": {
+                    "success": True,
+                    "summary": "approved",
+                    "outputs": {},
+                    "review": "APPROVED",
+                    "findings": [],
+                },
+                "usage": {"input_tokens": 12, "output_tokens": 4},
+                "total_cost_usd": 0.002,
+            }
+            completed = subprocess.CompletedProcess(
+                ["claude"],
+                0,
+                stdout=json.dumps(wrapper),
+                stderr="",
+            )
+            with patch(
+                "flowfoundry.orchestration.providers.subprocess.run",
+                return_value=completed,
+            ) as run:
+                result = LocalCommandProvider(enabled=True).execute(
+                    task,
+                    agent,
+                    task_dir,
+                    project_root,
+                )
+            self.assertEqual(result.review, ReviewDecision.APPROVED)
+            self.assertEqual(result.usage.input_tokens, 12)
+            self.assertEqual(result.usage.estimated_cost_usd, 0.002)
+            command = run.call_args.args[0]
+            self.assertEqual(command[0], "claude")
+            self.assertIn("--json-schema", command)
+            self.assertIn(".claude-deepseek", run.call_args.kwargs["env"]["CLAUDE_CONFIG_DIR"])
 
     def test_blocked_review_blocks_source_and_skips_test(self) -> None:
         provider = FakeProvider(reviews={"review": ReviewDecision.BLOCKED})
@@ -105,11 +256,25 @@ class SchedulerTests(unittest.TestCase):
         )
         self.assertTrue(workspace.contained("HUMAN_ACTIONS_REQUIRED.md").exists())
 
+    def test_missing_provider_enters_setup_flow_instead_of_crashing(self) -> None:
+        plan = RuleBasedPlanner().plan("Implement one small code change")
+        workspace = RunWorkspace.create(self.root, "provider-setup", plan)
+        scheduler = RunScheduler(TaskRouter(default_registry()), FakeProvider())
+        scheduler.run(workspace)
+        manifest = workspace.manifest()
+        self.assertEqual(manifest["status"], "completed_with_blockers")
+        self.assertEqual(manifest["tasks"]["build"]["status"], TaskStatus.BLOCKED.value)
+        setup = workspace.read_json("provider-setup/build.json")
+        self.assertEqual(setup["status"], "setup_required")
+        self.assertEqual(setup["candidates"][0]["agent_id"], "codex-builder")
+        self.assertNotIn("credential_value", setup["candidates"][0])
+        self.assertTrue(workspace.contained("HUMAN_ACTIONS_REQUIRED.md").exists())
+
 
 class RecoveryTests(unittest.TestCase):
     def test_resume_resets_interrupted_but_not_completed_task(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            plan = RuleBasedPlanner().plan("Recover")
+            plan = RuleBasedPlanner().plan("Recover", execution_mode="single_agent_reviewer")
             workspace = RunWorkspace.create(Path(temp_dir), "recover", plan)
             workspace.update_task("build", status=TaskStatus.COMPLETED.value)
             workspace.update_task("review", status=TaskStatus.RUNNING.value)

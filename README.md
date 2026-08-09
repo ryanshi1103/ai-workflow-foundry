@@ -26,8 +26,9 @@ lifecycle shared by useful AI work.
 - A sanitized application contract for the private Huiying / MediaFlow product;
   its commercial implementation, real media, configuration, and release assets
   remain outside this public repository.
-- A resumable multi-agent MVP with capability routing, offline fake providers,
-  atomic local mailboxes, review decisions, and human approval gates.
+- A resumable bounded Meeting runtime with capability routing, one shared
+  Context Pack, deterministic conflict detection, early stop, targeted
+  cross-review, hard budgets, preserved dissent, and offline fake providers.
 - A dependency-free catalog validator and CLI that verifies bundled paths,
   maturity declarations, and safety boundaries.
 - A generic component schema, product architecture, project-pattern audit, and
@@ -92,6 +93,17 @@ PYTHONPATH=src python3 -m flowfoundry project launch
 # Offline multi-agent example (Codex Builder + DeepSeek Reviewer identities)
 PYTHONPATH=src python3 -m flowfoundry team run \
   examples/orchestration/codex-builder-deepseek-reviewer.json
+
+# Offline adaptive Meeting (no network or billed provider call)
+printf '%s\n' '{"goal":"Design a system architecture"}' > /tmp/meeting-goal.json
+PYTHONPATH=src python3 -m flowfoundry team run /tmp/meeting-goal.json
+
+# Profile a goal without a provider call or run-state write
+printf '%s\n' '{"goal":"Update one README heading"}' | \
+  PYTHONPATH=src python3 -m flowfoundry team plan /dev/stdin
+
+# Inspect installed runtimes and auth state (credential names only, never values)
+PYTHONPATH=src python3 -m flowfoundry team providers
 ```
 
 Install the CLI to use anywhere:
@@ -111,6 +123,8 @@ flowfoundry project launch
 - Human review is separate from export or destructive approval.
 - Originals and AI source results remain available for comparison.
 - Artifacts are addressable, validated, and written atomically where possible.
+- Team size follows an explainable minimum-sufficient-path decision.
+- Missing token, cost, authentication, or quota data remains explicitly unavailable.
 - Every component declares maturity honestly: experimental is not production.
 - Separate products may reuse contracts without pretending to share one runtime.
 

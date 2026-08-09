@@ -14,10 +14,19 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from ..workspace.policy.redact import redact_text
-from .models import TaskPlan, TaskStatus
+from .models import MeetingState, TaskPlan, TaskStatus
 
 SCHEMA_VERSION = 1
-RUN_DIRECTORIES = ("tasks", "artifacts", "messages", "reviews", "logs", "approvals", "final")
+RUN_DIRECTORIES = (
+    "tasks",
+    "artifacts",
+    "messages",
+    "reviews",
+    "logs",
+    "approvals",
+    "provider-setup",
+    "final",
+)
 _SAFE_ID = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")
 
 
@@ -86,8 +95,18 @@ class RunWorkspace:
             raise ValueError("run path escapes configured root")
 
     @classmethod
-    def create(cls, root: Path | str, run_id: str, plan: TaskPlan) -> RunWorkspace:
+    def create(
+        cls,
+        root: Path | str,
+        run_id: str,
+        plan: TaskPlan,
+        *,
+        project_root: Path | str | None = None,
+    ) -> RunWorkspace:
         workspace = cls(root, run_id)
+        resolved_project = Path.cwd().resolve() if project_root is None else Path(project_root).resolve()
+        if not resolved_project.is_dir():
+            raise ValueError(f"project workspace does not exist or is not a directory: {resolved_project}")
         workspace.root.mkdir(parents=True, exist_ok=True, mode=0o700)
         os.chmod(workspace.root, 0o700)
         try:
@@ -100,6 +119,7 @@ class RunWorkspace:
             "schema_version": SCHEMA_VERSION,
             "run_id": run_id,
             "goal": plan.goal,
+            "project_root": str(resolved_project),
             "plan": plan.to_dict(),
             "input_hash": stable_hash(plan.to_dict()),
             "status": "running",
@@ -115,6 +135,48 @@ class RunWorkspace:
                 for task in plan.tasks
             },
         }
+        if plan.meeting_plan is not None:
+            manifest["meeting"] = {
+                "state": MeetingState.PLANNED.value,
+                "plan": plan.meeting_plan.to_dict(),
+                "participants": {
+                    task_id: {
+                        "status": TaskStatus.PENDING.value,
+                        "agent_id": None,
+                        "attempted_agents": [],
+                        "call_ids": [],
+                    }
+                    for task_id in plan.meeting_plan.participant_task_ids
+                },
+                "validation": {
+                    task_id: {"status": TaskStatus.PENDING.value}
+                    for task_id in plan.meeting_plan.validation_task_ids
+                },
+                "context_pack_ref": None,
+                "conflicts": [],
+                "cross_reviews": {},
+                "rounds_executed": [],
+                "early_stopped": False,
+                "early_stop_reason": None,
+                "dissent": [],
+                "result_ref": None,
+                "cancel_requested": False,
+                "budget_status": "active",
+                "budget_exhaustion_reason": None,
+                "budget_consumed": {
+                    "agent_calls": 0,
+                    "known_input_tokens": 0,
+                    "known_output_tokens": 0,
+                    "known_total_tokens": 0,
+                    "known_cost_usd": 0.0,
+                    "known_latency_ms": 0,
+                    "token_measurement_complete": True,
+                    "cost_measurement_complete": True,
+                    "latency_measurement_complete": True,
+                    "accounted_call_ids": [],
+                },
+                "started_at": utc_now(),
+            }
         atomic_write_json(workspace.path / "manifest.json", manifest)
         for task in plan.tasks:
             task_dir = workspace.task_dir(task.id)
@@ -171,6 +233,25 @@ class RunWorkspace:
 
     def plan(self) -> TaskPlan:
         return TaskPlan.from_dict(self.manifest()["plan"])
+
+    @property
+    def project_root(self) -> Path:
+        manifest = self.manifest()
+        configured = manifest.get("project_root")
+        if configured is None:
+            return self.path
+        project_root = Path(str(configured)).resolve()
+        if not project_root.is_dir():
+            raise ValueError(f"persisted project workspace is unavailable: {project_root}")
+        return project_root
+
+    @property
+    def performance_memory_path(self) -> Path:
+        return self.root.parent / "agent-performance.json"
+
+    @property
+    def meeting_experience_path(self) -> Path:
+        return self.root.parent / "meeting-experience.json"
 
     @classmethod
     def open(cls, root: Path | str, run_id: str) -> RunWorkspace:

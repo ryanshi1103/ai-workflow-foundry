@@ -28,6 +28,9 @@ and a host can reject unsafe or incompatible declarations before execution.
 - Persisted state machine with retry, cancel, interrupt, and resume.
 - Content-addressed artifacts, idempotency keys, and immutable approval records.
 - Local secret provider and deny-by-default network policy.
+- Bounded adaptive Meeting with a shared context pack, deterministic conflict
+  gate, early convergence, selective cross-review, hard budgets, durable
+  dissent, call receipts, and experience records.
 
 Acceptance: an interrupted sample workflow resumes without modifying its inputs
 or duplicating a completed side effect.

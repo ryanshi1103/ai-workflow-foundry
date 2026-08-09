@@ -8,6 +8,8 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 from flowfoundry.cli import main
+from flowfoundry.orchestration.planner import RuleBasedPlanner
+from flowfoundry.orchestration.workspace import RunWorkspace
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples/orchestration/codex-builder-deepseek-reviewer.json"
@@ -58,6 +60,92 @@ class TeamCliTests(unittest.TestCase):
         )
         self.assertEqual(result, 0)
         self.assertEqual(json.loads(output)["completed_tasks"], ["build", "review", "test"])
+
+    def test_plan_previews_profile_without_creating_a_run(self) -> None:
+        task_file = Path(self.temp_dir.name) / "simple-goal.json"
+        task_file.write_text(json.dumps({"goal": "Update one README heading"}), encoding="utf-8")
+        result, output, error = self.call("team", "plan", str(task_file))
+        self.assertEqual((result, error), (0, ""))
+        plan = json.loads(output)
+        self.assertEqual(plan["routing_decision"]["mode"], "single_agent")
+        self.assertEqual(plan["routing_decision"]["estimated_agent_calls"], 1)
+        self.assertEqual([task["id"] for task in plan["tasks"]], ["build"])
+        self.assertFalse(self.runs_root.exists())
+
+    def test_provider_status_is_structured_and_contains_no_credentials(self) -> None:
+        result, output, error = self.call("team", "providers")
+        self.assertEqual((result, error), (0, ""))
+        statuses = json.loads(output)
+        self.assertEqual(
+            {status["agent_id"] for status in statuses},
+            {"claude-architect", "codex-builder", "deepseek-reviewer", "local-tester"},
+        )
+        for status in statuses:
+            self.assertIn(status["authentication_state"], {"configured", "unconfigured", "unverified", "not_required"})
+            self.assertNotIn("credential_value", status)
+
+    def test_run_persists_explicit_shared_workspace(self) -> None:
+        task_file = Path(self.temp_dir.name) / "workspace-goal.json"
+        project_root = Path(self.temp_dir.name) / "project"
+        project_root.mkdir()
+        task_file.write_text(json.dumps({"goal": "Update one README heading"}), encoding="utf-8")
+        result, output, error = self.call(
+            "team",
+            "run",
+            str(task_file),
+            "--run-id",
+            "workspace-run",
+            "--workspace",
+            str(project_root),
+            "--runs-root",
+            str(self.runs_root),
+        )
+        self.assertEqual((result, error), (0, ""))
+        self.assertEqual(Path(json.loads(output)["project_root"]), project_root)
+
+    def test_adaptive_meeting_plan_run_status_and_cancel_are_observable(self) -> None:
+        task_file = Path(self.temp_dir.name) / "meeting-goal.json"
+        task_file.write_text(
+            json.dumps(
+                {
+                    "goal": "Research and implement a new architecture",
+                    "profile": {"complexity": 5, "uncertainty": 4},
+                }
+            ),
+            encoding="utf-8",
+        )
+        result, output, error = self.call("team", "plan", str(task_file))
+        self.assertEqual((result, error), (0, ""))
+        preview = json.loads(output)
+        self.assertEqual(preview["routing_decision"]["mode"], "multi_agent")
+        self.assertEqual(preview["meeting_plan"]["budget"]["max_rounds"], 3)
+
+        result, output, error = self.call(
+            "team",
+            "run",
+            str(task_file),
+            "--run-id",
+            "meeting-cli",
+            "--runs-root",
+            str(self.runs_root),
+        )
+        self.assertEqual((result, error), (0, ""))
+        manifest = json.loads(output)
+        self.assertEqual(manifest["meeting"]["state"], "completed")
+        self.assertTrue(manifest["meeting"]["early_stopped"])
+        self.assertIsNotNone(manifest["meeting"]["result_ref"])
+
+        pending = RunWorkspace.create(
+            self.runs_root,
+            "cancel-cli",
+            RuleBasedPlanner().plan("Design a system architecture"),
+        )
+        self.assertEqual(pending.manifest()["meeting"]["state"], "planned")
+        result, output, error = self.call(
+            "team", "cancel", "cancel-cli", "--runs-root", str(self.runs_root)
+        )
+        self.assertEqual((result, error), (0, ""))
+        self.assertEqual(json.loads(output)["meeting"]["state"], "cancelled")
 
     def test_resume_recovers_running_task(self) -> None:
         result, _, _ = self.call(

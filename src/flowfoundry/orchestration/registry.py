@@ -30,18 +30,35 @@ class AgentRegistry:
     def list(self) -> tuple[AgentSpec, ...]:
         return tuple(self._agents[key] for key in sorted(self._agents))
 
+    def compatible(self, task: TaskSpec) -> tuple[AgentSpec, ...]:
+        """Return structurally capable agents even when runtime setup is missing."""
+
+        required = set(task.required_capabilities)
+        permissions = set(task.required_permissions)
+        return tuple(
+            agent
+            for agent in self.list()
+            if agent.enabled
+            and required.issubset(agent.capabilities)
+            and permissions.issubset(agent.permission_profile)
+        )
+
     def match(
         self,
         task: TaskSpec,
         running_counts: dict[str, int] | None = None,
+        history_scores: dict[str, float] | None = None,
+        excluded_agent_ids: set[str] | frozenset[str] | None = None,
     ) -> AgentSpec:
         running = running_counts or {}
+        history = history_scores or {}
         required = set(task.required_capabilities)
         permissions = set(task.required_permissions)
         preferred = set(task.preferred_capabilities)
+        excluded = excluded_agent_ids or set()
         candidates: list[AgentSpec] = []
         for agent in self._agents.values():
-            if not agent.enabled or not agent.availability or agent.role != task.role:
+            if agent.id in excluded or not agent.enabled or not agent.availability:
                 continue
             if running.get(agent.id, 0) >= agent.concurrency_limit:
                 continue
@@ -56,6 +73,7 @@ class AgentRegistry:
             if (
                 fallback.enabled
                 and fallback.availability
+                and fallback.id not in excluded
                 and running.get(fallback.id, 0) < fallback.concurrency_limit
                 and permissions.issubset(fallback.permission_profile)
             ):
@@ -67,6 +85,8 @@ class AgentRegistry:
             candidates,
             key=lambda agent: (
                 -len(preferred.intersection(agent.capabilities)),
+                -int(agent.role == task.role),
+                -history.get(agent.id, 0.5),
                 _COST_ORDER.get(agent.cost_class, 99),
                 agent.id,
             ),
@@ -99,6 +119,12 @@ def default_registry() -> AgentRegistry:
                 context_limit=200_000,
                 availability=False,
                 workspace_mode="isolated_worktree",
+                model="configured-by-codex-cli",
+                mode="native_cli",
+                tools=("files", "git", "shell"),
+                coding_ability=5,
+                reasoning_ability=4,
+                privacy_level="remote-provider",
             ),
             AgentSpec(
                 id="deepseek-reviewer",
@@ -106,13 +132,19 @@ def default_registry() -> AgentRegistry:
                 provider="deepseek",
                 role="reviewer",
                 capabilities=("review", "security_review", "python"),
-                command_template=("deepseek", "review", "{task_file}"),
+                command_template=("claude",),
                 cost_class="low",
                 concurrency_limit=2,
                 permission_profile=common_read,
                 context_limit=128_000,
                 availability=False,
                 workspace_mode="read_only_worktree",
+                model="configured-by-deepseek-cli",
+                mode="native_cli",
+                tools=("files",),
+                coding_ability=3,
+                reasoning_ability=4,
+                privacy_level="remote-provider",
             ),
             AgentSpec(
                 id="claude-architect",
@@ -127,6 +159,12 @@ def default_registry() -> AgentRegistry:
                 context_limit=200_000,
                 availability=False,
                 workspace_mode="read_only_worktree",
+                model="configured-by-claude-cli",
+                mode="native_cli",
+                tools=("files",),
+                coding_ability=3,
+                reasoning_ability=5,
+                privacy_level="remote-provider",
             ),
             AgentSpec(
                 id="local-tester",
@@ -141,6 +179,15 @@ def default_registry() -> AgentRegistry:
                 context_limit=32_000,
                 availability=False,
                 workspace_mode="isolated_worktree",
+                model="python-runtime",
+                mode="deterministic_command",
+                tools=("python", "shell"),
+                coding_ability=1,
+                reasoning_ability=1,
+                local=True,
+                privacy_level="local",
+                authentication_state="not_required",
+                reliability=1.0,
             ),
         )
     )
