@@ -1,6 +1,7 @@
 """Local-first, resumable multi-agent orchestration primitives."""
 
 from .discovery import ProviderDiscovery, ProviderStatus
+from .execution import ProviderExecutionHandle
 from .memory import AgentPerformanceMemory
 from .models import (
     AgentSpec,
@@ -32,6 +33,7 @@ __all__ = [
     "MeetingPlan",
     "MeetingState",
     "ProviderDiscovery",
+    "ProviderExecutionHandle",
     "ProviderSetupFlow",
     "ProviderStatus",
     "ReviewDecision",

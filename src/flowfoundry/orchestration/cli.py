@@ -12,6 +12,7 @@ from pathlib import Path
 from .aggregator import ResultAggregator
 from .approvals import ApprovalGate
 from .discovery import ProviderDiscovery
+from .execution import ProviderExecutionHandle
 from .meeting import MeetingRuntime
 from .planner import RuleBasedPlanner
 from .providers import FakeProvider, LocalCommandProvider
@@ -45,7 +46,7 @@ def add_team_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
     resume.add_argument("run_id")
     _add_root_and_provider(resume)
 
-    cancel = commands.add_parser("cancel", help="stop a bounded meeting before its next call")
+    cancel = commands.add_parser("cancel", help="cancel scheduling and terminate an active provider")
     cancel.add_argument("run_id")
     _add_root(cancel)
 
@@ -126,7 +127,16 @@ def dispatch_team(args: argparse.Namespace) -> int:
 
         workspace = RunWorkspace.open(args.runs_root, args.run_id)
         if command == "status":
-            print(json.dumps(workspace.manifest(), indent=2, ensure_ascii=False))
+            status = workspace.manifest()
+            executions = ProviderExecutionHandle.status_for_run(workspace.path)
+            active = [
+                execution
+                for execution in executions
+                if execution.get("state")
+                in {"running", "cancel_requested", "terminating", "killing"}
+            ]
+            status["provider_executions"] = active or executions[-1:]
+            print(json.dumps(status, indent=2, ensure_ascii=False))
         elif command == "resume":
             RecoveryManager().recover_interrupted(workspace)
             _scheduler(args.enable_real_provider).run(workspace)

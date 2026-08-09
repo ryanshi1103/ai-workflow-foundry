@@ -123,10 +123,13 @@ class MeetingExperienceLedger:
 
     def record(self, experience: dict[str, Any]) -> None:
         run_id = str(experience["run_id"])
+        record_id = str(experience.get("experience_id", run_id))
         with secure_file_lock(self.path.with_suffix(".lock")):
             data = self._read()
             records = data.setdefault("records", {})
-            records[run_id] = experience
+            if record_id in records:
+                return
+            records[record_id] = experience
             data["updated_at"] = utc_now()
             atomic_write_json(self.path, data)
 

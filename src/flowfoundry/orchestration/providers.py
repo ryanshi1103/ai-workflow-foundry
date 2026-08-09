@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Protocol
 
 from ..workspace.providers.config import prepare_claude_environment
+from .execution import ManagedProcessResult, ProviderExecutionHandle
 from .models import (
     AgentSpec,
     MeetingContribution,
@@ -195,28 +195,55 @@ class LocalCommandProvider:
             for part in agent.command_template
         ]
         started = time.monotonic()
-        try:
-            completed = subprocess.run(
-                command,
-                cwd=project_root,
-                capture_output=True,
-                check=False,
-                text=True,
-                timeout=task.timeout_seconds,
+        completed = self._execute_managed(
+            command,
+            task=task,
+            agent=agent,
+            task_dir=task_dir,
+            project_root=project_root,
+        )
+        latency_ms = round((time.monotonic() - started) * 1000)
+        if completed.cancelled or completed.state == "cancel_unverified":
+            return ProviderResult(
+                False,
+                (
+                    "local command cancellation could not verify process identity"
+                    if completed.state == "cancel_unverified"
+                    else "local command cancelled"
+                ),
+                outputs={
+                    "stdout": completed.stdout[-40_000:],
+                    "stderr": completed.stderr[-40_000:],
+                    "execution_ref": completed.execution_ref,
+                },
+                usage=UsageMetrics(latency_ms=latency_ms),
+                cancelled=completed.cancelled,
+                partial_result=completed.partial_result,
+                termination=completed.termination,
             )
-        except subprocess.TimeoutExpired:
-            latency_ms = round((time.monotonic() - started) * 1000)
+        if completed.timed_out:
             return ProviderResult(
                 False,
                 f"local command timed out after {task.timeout_seconds} seconds",
+                outputs={
+                    "stdout": completed.stdout[-40_000:],
+                    "stderr": completed.stderr[-40_000:],
+                    "execution_ref": completed.execution_ref,
+                },
                 usage=UsageMetrics(latency_ms=latency_ms),
+                partial_result=completed.partial_result,
+                termination=completed.termination,
             )
-        latency_ms = round((time.monotonic() - started) * 1000)
         return ProviderResult(
             completed.returncode == 0,
             f"local command exited {completed.returncode}",
-            outputs={"stdout": completed.stdout, "stderr": completed.stderr},
+            outputs={
+                "stdout": completed.stdout,
+                "stderr": completed.stderr,
+                "execution_ref": completed.execution_ref,
+            },
             usage=UsageMetrics(latency_ms=latency_ms),
+            termination=completed.termination,
         )
 
     def _execute_native(
@@ -237,25 +264,49 @@ class LocalCommandProvider:
             prepare_claude_environment(agent.provider, child_env)
 
         started = time.monotonic()
-        try:
-            completed = subprocess.run(
-                command,
-                cwd=project_root,
-                env=child_env,
-                input=prompt,
-                capture_output=True,
-                check=False,
-                text=True,
-                timeout=task.timeout_seconds,
+        completed = self._execute_managed(
+            command,
+            task=task,
+            agent=agent,
+            task_dir=task_dir,
+            project_root=project_root,
+            env=child_env,
+            input_text=prompt,
+        )
+        latency_ms = round((time.monotonic() - started) * 1000)
+        if completed.cancelled or completed.state == "cancel_unverified":
+            partial = self._native_result(completed.stdout, result_path, latency_ms)
+            return replace(
+                partial,
+                success=False,
+                summary=(
+                    f"{agent.provider} cancellation could not verify process identity"
+                    if completed.state == "cancel_unverified"
+                    else f"{agent.provider} command cancelled"
+                ),
+                outputs={
+                    **partial.outputs,
+                    "stdout": completed.stdout[-40_000:],
+                    "stderr": completed.stderr[-40_000:],
+                    "execution_ref": completed.execution_ref,
+                },
+                cancelled=completed.cancelled,
+                partial_result=completed.partial_result or result_path.is_file(),
+                termination=completed.termination,
             )
-        except subprocess.TimeoutExpired:
-            latency_ms = round((time.monotonic() - started) * 1000)
+        if completed.timed_out:
             return ProviderResult(
                 False,
                 f"{agent.provider} timed out after {task.timeout_seconds} seconds",
+                outputs={
+                    "stdout": completed.stdout[-40_000:],
+                    "stderr": completed.stderr[-40_000:],
+                    "execution_ref": completed.execution_ref,
+                },
                 usage=UsageMetrics(latency_ms=latency_ms),
+                partial_result=completed.partial_result or result_path.is_file(),
+                termination=completed.termination,
             )
-        latency_ms = round((time.monotonic() - started) * 1000)
         if completed.returncode != 0:
             return ProviderResult(
                 False,
@@ -263,10 +314,39 @@ class LocalCommandProvider:
                 outputs={
                     "stdout": completed.stdout[-40_000:],
                     "stderr": completed.stderr[-40_000:],
+                    "execution_ref": completed.execution_ref,
                 },
                 usage=UsageMetrics(latency_ms=latency_ms),
+                termination=completed.termination,
             )
-        return self._native_result(completed.stdout, result_path, latency_ms)
+        result = self._native_result(completed.stdout, result_path, latency_ms)
+        return replace(
+            result,
+            outputs={**result.outputs, "execution_ref": completed.execution_ref},
+            termination=completed.termination,
+        )
+
+    @staticmethod
+    def _execute_managed(
+        command: list[str],
+        *,
+        task: TaskSpec,
+        agent: AgentSpec,
+        task_dir: Path,
+        project_root: Path,
+        env: dict[str, str] | None = None,
+        input_text: str | None = None,
+    ) -> ManagedProcessResult:
+        handle = ProviderExecutionHandle.start(
+            command,
+            provider=agent.provider,
+            task_id=task.id,
+            participant_id=agent.id,
+            task_dir=task_dir,
+            project_root=project_root,
+            env=env,
+        )
+        return handle.communicate(input_text, timeout_seconds=task.timeout_seconds)
 
     @staticmethod
     def _native_command(

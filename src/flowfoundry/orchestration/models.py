@@ -16,6 +16,7 @@ class TaskStatus(StrEnum):
     BLOCKED = "blocked"
     SKIPPED = "skipped"
     SKIPPED_PENDING_HUMAN = "skipped_pending_human"
+    CANCELLED = "cancelled"
 
 
 class ReviewDecision(StrEnum):
@@ -52,6 +53,7 @@ class MeetingState(StrEnum):
     BLOCKED = "blocked"
     FAILED = "failed"
     CANCELLED = "cancelled"
+    CANCEL_UNVERIFIED = "cancel_unverified"
     BUDGET_EXHAUSTED = "budget_exhausted"
 
 
@@ -405,6 +407,9 @@ class ProviderResult:
     findings: tuple[str, ...] = ()
     usage: UsageMetrics = field(default_factory=lambda: UsageMetrics())
     contribution: MeetingContribution | None = None
+    cancelled: bool = False
+    partial_result: bool = False
+    termination: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -427,6 +432,13 @@ class ProviderResult:
                 MeetingContribution.from_dict(contribution)
                 if isinstance(contribution, dict)
                 else None
+            ),
+            cancelled=bool(data.get("cancelled", False)),
+            partial_result=bool(data.get("partial_result", False)),
+            termination=(
+                dict(data.get("termination", {}))
+                if isinstance(data.get("termination"), dict)
+                else {}
             ),
         )
 

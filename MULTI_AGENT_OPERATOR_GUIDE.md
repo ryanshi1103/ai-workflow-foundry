@@ -76,8 +76,17 @@ can be regenerated from persisted state.
 
 Meeting status is embedded in the run manifest, including current state,
 participants, completed rounds, conflicts, budget consumption, dissent, and
-result references. `cancel` durably stops a meeting before its next provider
-call. It does not yet kill an already-running native provider subprocess.
+result references. `cancel` durably prevents the next call and, when a verified
+native execution is active, requests process-group termination, waits a grace
+period, and escalates only when needed. Status shows the provider, cancellation
+and termination states, and partial-result flag without exposing the full
+command. An unverifiable persisted process enters `cancel_unverified` and is
+not signalled.
+
+A cancelled run remains terminal under `resume`. To authorize a new provider
+attempt, use `retry` for the cancelled task and then `resume`; the new attempt
+receives a new execution identity and receipt while the cancellation experience
+remains preserved.
 
 To retry a task after investigating its failure:
 

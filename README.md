@@ -28,7 +28,8 @@ lifecycle shared by useful AI work.
   remain outside this public repository.
 - A resumable bounded Meeting runtime with capability routing, one shared
   Context Pack, deterministic conflict detection, early stop, targeted
-  cross-review, hard budgets, preserved dissent, and offline fake providers.
+  cross-review, hard budgets, preserved dissent, durable process-group
+  cancellation, and offline fake providers.
 - A dependency-free catalog validator and CLI that verifies bundled paths,
   maturity declarations, and safety boundaries.
 - A generic component schema, product architecture, project-pattern audit, and

@@ -22,6 +22,7 @@ _DEPENDENCY_FAILURE = {
     TaskStatus.FAILED.value,
     TaskStatus.SKIPPED.value,
     TaskStatus.SKIPPED_PENDING_HUMAN.value,
+    TaskStatus.CANCELLED.value,
 }
 
 
@@ -57,6 +58,16 @@ class RunScheduler:
         while True:
             manifest = workspace.manifest()
             states = manifest["tasks"]
+            if manifest.get("cancel_requested"):
+                for task in plan.tasks:
+                    if states[task.id]["status"] == TaskStatus.PENDING.value:
+                        workspace.update_task(
+                            task.id,
+                            status=TaskStatus.CANCELLED.value,
+                            error="operator cancellation",
+                            finished_at=utc_now(),
+                        )
+                break
             pending = [task for task in plan.tasks if states[task.id]["status"] == TaskStatus.PENDING.value]
             if not pending:
                 break
@@ -126,6 +137,14 @@ class RunScheduler:
         return changed
 
     def _execute_task(self, workspace: RunWorkspace, task: TaskSpec) -> None:
+        if workspace.manifest().get("cancel_requested"):
+            workspace.update_task(
+                task.id,
+                status=TaskStatus.CANCELLED.value,
+                error="operator cancellation",
+                finished_at=utc_now(),
+            )
+            return
         decision = self.approval_gate.evaluate(workspace, task)
         if not decision.allowed:
             workspace.update_task(
@@ -151,7 +170,20 @@ class RunScheduler:
         final_result: ProviderResult | None = None
         attempt_usage: list[dict[str, Any]] = []
         with self._agent_slots[agent.id]:
-            for attempt in range(current_attempts + 1, task.retry_limit + 2):
+            state = workspace.manifest()["tasks"][task.id]
+            max_attempt = max(
+                task.retry_limit + 1,
+                int(state.get("manual_attempt_limit", 0)),
+            )
+            for attempt in range(current_attempts + 1, max_attempt + 1):
+                if workspace.manifest().get("cancel_requested"):
+                    workspace.update_task(
+                        task.id,
+                        status=TaskStatus.CANCELLED.value,
+                        error="operator cancellation",
+                        finished_at=utc_now(),
+                    )
+                    return
                 workspace.update_task(
                     task.id,
                     status=TaskStatus.RUNNING.value,
@@ -190,6 +222,15 @@ class RunScheduler:
             kind="task_result",
             payload=final_result.to_dict(),
         )
+        if final_result.cancelled or final_result.termination.get("status") == "cancel_unverified":
+            workspace.update_task(
+                task.id,
+                status=TaskStatus.CANCELLED.value,
+                error=final_result.summary,
+                finished_at=utc_now(),
+                partial_result=final_result.partial_result,
+            )
+            return
         if not final_result.success:
             workspace.update_task(
                 task.id,
@@ -251,7 +292,9 @@ class RunScheduler:
     ) -> dict[str, Any]:
         def finalize(manifest: dict[str, Any]) -> dict[str, Any]:
             statuses = {state["status"] for state in manifest["tasks"].values()}
-            if statuses <= {TaskStatus.COMPLETED.value}:
+            if manifest.get("cancel_requested") or TaskStatus.CANCELLED.value in statuses:
+                manifest["status"] = "cancelled"
+            elif statuses <= {TaskStatus.COMPLETED.value}:
                 manifest["status"] = "completed"
             elif TaskStatus.REVIEW_REQUIRED.value in statuses or TaskStatus.PENDING.value in statuses:
                 manifest["status"] = "review_pending"

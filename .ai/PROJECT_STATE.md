@@ -24,13 +24,13 @@ code take precedence over older migration reports.
 | Agent registry | Capability, tool, context, privacy, availability, auth-state, cost-class, and reliability metadata |
 | Provider discovery | Runtime discovery without reading or printing credential values |
 | Planner and DAG | Explicit JSON plans plus adaptive bounded plans |
-| Team runtime | Atomic tasks, dependency scheduling, mailbox, review, approval, aggregation, retry, and resume |
+| Team runtime | Atomic tasks, dependency scheduling, mailbox, review, approval, aggregation, retry, resume, and durable provider cancellation |
 | Bounded Meeting | Durable state machine, one Context Pack, independent views, deterministic conflict gate, early stop, targeted cross-review, convergence with dissent, hard budgets, validation, cancellation, and resume receipts |
 | Shared workspace | Persisted project root; real commands run from the selected project workspace |
-| Provider adapters | Structured Codex and Claude-compatible CLI envelopes; real execution remains explicit opt-in |
+| Provider adapters | Structured Codex and Claude-compatible CLI envelopes with durable process handles and POSIX process-group cancellation; real execution remains explicit opt-in |
 | Cost and performance | Per-attempt calls/token/latency/cost plus project-local agent statistics |
 | Provider setup | Missing runtime becomes a persisted `setup_required` artifact instead of a crash |
-| Foundation tests | 125 passed after the bounded Meeting slice |
+| Foundation tests | 136 passed after durable native cancellation |
 
 ## Honest v1 boundary
 
@@ -43,10 +43,12 @@ standalone executable.
 
 Adaptive `multi_agent` plans now enter a bounded Meeting; explicit legacy DAG
 plans remain compatible. No billed provider call was made, so native structured
-Meeting responses remain unverified against live models. Cancellation is
-durable between calls but does not yet terminate an already-running native
-provider subprocess. Worktree-level isolation for parallel writers,
-local-model hardware selection, and plugin loading from external registry files
-also remain post-current-slice work.
+Meeting responses remain unverified against live models. Cancellation now
+stops scheduling, verifies the persisted process identity, requests graceful
+process-group termination, escalates only after a grace period, and preserves
+partial output and accounting. Cross-process physical cancellation currently
+depends on Linux `/proc` identity metadata; an unverifiable PID is never
+signalled. Worktree-level isolation for parallel writers, local-model hardware
+selection, and plugin loading from external registry files remain later work.
 
 See `docs/V1-AUDIT.md` for the capability map and prioritized shortest path.

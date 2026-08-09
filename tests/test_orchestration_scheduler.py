@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -21,6 +20,7 @@ from flowfoundry.orchestration.models import (
     UsageMetrics,
 )
 from flowfoundry.orchestration.planner import RuleBasedPlanner
+from flowfoundry.orchestration.execution import ManagedProcessResult
 from flowfoundry.orchestration.providers import FakeProvider, LocalCommandProvider
 from flowfoundry.orchestration.recovery import RecoveryManager
 from flowfoundry.orchestration.registry import default_registry
@@ -147,9 +147,19 @@ class SchedulerTests(unittest.TestCase):
                     '"review":null,"findings":[]}',
                     encoding="utf-8",
                 )
-                return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+                return ManagedProcessResult(
+                    0,
+                    "",
+                    "",
+                    "executions/test/execution.json",
+                    "completed",
+                    False,
+                    False,
+                    False,
+                    {"status": "completed", "exit_code": 0},
+                )
 
-            with patch("flowfoundry.orchestration.providers.subprocess.run", side_effect=complete) as run:
+            with patch.object(LocalCommandProvider, "_execute_managed", side_effect=complete) as run:
                 result = LocalCommandProvider(enabled=True).execute(
                     task,
                     agent,
@@ -160,8 +170,8 @@ class SchedulerTests(unittest.TestCase):
             command = run.call_args.args[0]
             self.assertIn("--output-schema", command)
             self.assertEqual(command[-1], "-")
-            self.assertIn("FlowFoundry task", run.call_args.kwargs["input"])
-            self.assertEqual(run.call_args.kwargs["cwd"], project_root)
+            self.assertIn("FlowFoundry task", run.call_args.kwargs["input_text"])
+            self.assertEqual(run.call_args.kwargs["project_root"], project_root)
 
     def test_deepseek_adapter_reuses_isolated_claude_runtime_and_parses_review(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -187,14 +197,19 @@ class SchedulerTests(unittest.TestCase):
                 "usage": {"input_tokens": 12, "output_tokens": 4},
                 "total_cost_usd": 0.002,
             }
-            completed = subprocess.CompletedProcess(
-                ["claude"],
+            completed = ManagedProcessResult(
                 0,
-                stdout=json.dumps(wrapper),
-                stderr="",
+                json.dumps(wrapper),
+                "",
+                "executions/test/execution.json",
+                "completed",
+                False,
+                False,
+                False,
+                {"status": "completed", "exit_code": 0},
             )
             with patch(
-                "flowfoundry.orchestration.providers.subprocess.run",
+                "flowfoundry.orchestration.providers.LocalCommandProvider._execute_managed",
                 return_value=completed,
             ) as run:
                 result = LocalCommandProvider(enabled=True).execute(

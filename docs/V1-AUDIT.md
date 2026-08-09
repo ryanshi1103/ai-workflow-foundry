@@ -35,7 +35,7 @@ probed with a billed or network call.
 | Team | EXISTS | bounded offline teams execute and recover; real shared writers are intentionally serialized |
 | Meeting | EXISTS | adaptive multi-agent plans use one bounded Context Pack, independent structured views, deterministic conflict detection, early stop, one selective cross-review, convergence with dissent, hard budgets, call receipts, validation, cancellation, and experience records |
 | Messaging | PARTIAL | atomic mailbox and bounded dependency artifacts exist; providers do not yet consume a general inbox protocol |
-| Executor | PARTIAL | fake, deterministic command, Codex, and Claude-compatible structured seams exist; no process cancellation or container quotas |
+| Executor | PARTIAL | fake, deterministic command, Codex, and Claude-compatible structured seams use durable execution handles, verified POSIX process-group cancellation, graceful escalation, and partial-output preservation; no container quotas |
 | Reviewer | EXISTS | stable decisions, persisted findings, source blocking, and dependent propagation |
 | Human Approval | EXISTS | hazardous action classes create scoped, persisted gates |
 | Cost | PARTIAL | calls, token fields, latency, and cost are aggregated without inventing unavailable values; provider pricing is not configured |
@@ -78,20 +78,19 @@ when one Agent was sufficient. The implemented shortest path was:
 
 ## Highest-value next actions
 
-1. Add provider-native process termination so `team cancel` can interrupt an
-   already-running real provider command, not only prevent the next call.
-2. Add project-local registry configuration and adapter entry points so a new
+1. Validate native adapters with operator-approved, capped-cost smoke calls;
+   until then their live auth/model and termination behavior is `unverified`.
+2. Add real writer worktree provisioning before enabling parallel provider
+   edits in one project.
+3. Add project-local registry configuration and adapter entry points so a new
    OpenAI-compatible or local provider does not require core edits.
-3. Validate native adapters with operator-approved, capped-cost smoke calls;
-   until then their live auth/model status is `unverified`.
-4. Add worktree provisioning before enabling parallel real writers.
 
 Local-model hardware discovery, dashboard work, and broad provider coverage are
 deferred until this v1 path is proven with real bounded tasks.
 
 ## Validation
 
-- FlowFoundry foundation: 125 tests passed.
+- FlowFoundry foundation: 136 tests passed, including 11 native cancellation tests.
 - Workspace manager runtime: 66 tests passed.
 - Confera Media Skills contracts: 3 tests passed.
 - Print-ready Nameplate Generator: 3 tests passed.

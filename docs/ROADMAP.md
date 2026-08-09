@@ -26,6 +26,8 @@ and a host can reject unsafe or incompatible declarations before execution.
 
 - Plan-only mode before any side effect.
 - Persisted state machine with retry, cancel, interrupt, and resume.
+- Durable native execution handles with verified process-group cancellation,
+  graceful termination, bounded escalation, and partial-result preservation.
 - Content-addressed artifacts, idempotency keys, and immutable approval records.
 - Local secret provider and deny-by-default network policy.
 - Bounded adaptive Meeting with a shared context pack, deterministic conflict

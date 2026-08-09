@@ -85,6 +85,8 @@ class ResultAggregator:
 
     @staticmethod
     def _meeting_summary(meeting: dict[str, Any]) -> dict[str, Any]:
+        cancellation = meeting.get("cancellation")
+        cancellation = cancellation if isinstance(cancellation, dict) else {}
         return {
             "state": meeting["state"],
             "rounds_executed": list(meeting.get("rounds_executed", ())),
@@ -94,6 +96,18 @@ class ResultAggregator:
             "budget_status": meeting.get("budget_status", "unknown"),
             "result_ref": meeting.get("result_ref"),
             "experience_ref": meeting.get("experience_ref"),
+            "cancel_requested": bool(meeting.get("cancel_requested", False)),
+            "termination_status": cancellation.get("termination_status"),
+            "active_provider": next(
+                (
+                    execution.get("provider")
+                    for execution in cancellation.get("executions", ())
+                    if isinstance(execution, dict)
+                ),
+                None,
+            ),
+            "forced_termination": bool(cancellation.get("forced_termination", False)),
+            "partial_result": bool(cancellation.get("partial_result", False)),
         }
 
     @staticmethod

@@ -25,6 +25,7 @@ RUN_DIRECTORIES = (
     "logs",
     "approvals",
     "provider-setup",
+    "executions",
     "final",
 )
 _SAFE_ID = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")
@@ -123,6 +124,7 @@ class RunWorkspace:
             "plan": plan.to_dict(),
             "input_hash": stable_hash(plan.to_dict()),
             "status": "running",
+            "cancel_requested": False,
             "created_at": utc_now(),
             "updated_at": utc_now(),
             "tasks": {
@@ -161,6 +163,8 @@ class RunWorkspace:
                 "dissent": [],
                 "result_ref": None,
                 "cancel_requested": False,
+                "cancellation": None,
+                "attempt": 1,
                 "budget_status": "active",
                 "budget_exhaustion_reason": None,
                 "budget_consumed": {

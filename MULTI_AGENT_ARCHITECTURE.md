@@ -49,6 +49,7 @@ flowchart LR
 | `planner` | Adaptive bounded plans and explicit JSON DAG loading |
 | `router` | Deterministic task-to-agent selection |
 | `providers` | Fake/dry, deterministic local command, Codex, and Claude-compatible structured seams |
+| `execution` | Durable per-attempt native process identity, process-group lifecycle, graceful cancellation, escalation, and safe status projection |
 | `discovery` / `provider_setup` | Runtime/auth-state inspection and on-demand setup artifacts without credential values |
 | `workspace` | Contained run paths, schema version, 0700 directories, 0600 atomic redacted files, and manifest locking |
 | `mailbox` | Locked, ordered, schema-versioned agent messages |
@@ -107,7 +108,8 @@ PLANNED → CONTEXT_READY → ROUND1_RUNNING → ROUND1_COMPLETE
         → CONVERGING → [VALIDATING] → COMPLETED
 ```
 
-`BLOCKED`, `FAILED`, `CANCELLED`, and `BUDGET_EXHAUSTED` are terminal exits.
+`BLOCKED`, `FAILED`, `CANCELLED`, `CANCEL_UNVERIFIED`, and
+`BUDGET_EXHAUSTED` are terminal exits.
 Transitions are validated and persisted. Round 1 participants receive the same
 addressable Context Pack and cannot see peer outputs. Structured position,
 confidence, reasons, risk, assumptions, blockers, and evidence drive a
@@ -120,8 +122,9 @@ owns hard round, Agent-call, token, wall-time, and optional cost budgets.
 Unknown usage remains unavailable rather than becoming zero.
 
 `REVIEW_PENDING` stops dependents without discarding state. `BLOCKED` blocks the
-reviewed source and skips tasks that depend on it. A retry never exceeds the
-task's declared limit.
+reviewed source and skips tasks that depend on it. Automatic retries never
+exceed the task's declared limit; an operator-authorized retry adds one new
+execution attempt with a new identity and receipt.
 
 ## Durable run layout
 
@@ -136,6 +139,7 @@ task's declared limit.
 ├── logs/
 ├── approvals/
 ├── provider-setup/
+├── executions/<execution-id>/{execution.json,partial-output.json}
 ├── final/{meeting-result.json,meeting-experience.json,report.json,report.md}
 └── HUMAN_ACTIONS_REQUIRED.md  # only when a gate is encountered
 ```
@@ -152,9 +156,11 @@ Memory.
 
 The provider protocol is intentionally small: execute one structured task
 against a persisted project root, retain private metadata in its task directory,
-and return a serializable result. Native commands remain explicit opt-in. Real
-tasks are serialized until worktree isolation exists. Future adapters can add
-streaming, provider-process termination, and worktree/container provisioning
-without changing task, review, mailbox, or report schemas. `team cancel`
-prevents the next meeting call; it does not yet terminate an already-running
-native provider process.
+and return a serializable result. Native commands remain explicit opt-in. Each
+command runs in one durable execution boundary; on supported POSIX systems it
+owns a new session/process group. `team cancel` first prevents new calls, then
+validates Linux process start, group, session, and command fingerprints before
+signalling the group. It requests termination, waits a bounded grace period,
+and escalates only when members remain. Unverifiable persisted identities enter
+`CANCEL_UNVERIFIED` and are not signalled. Real writer tasks remain serialized
+until worktree isolation exists.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from collections import Counter
 from dataclasses import replace
 from datetime import datetime, timezone
@@ -11,6 +12,7 @@ from typing import Any
 
 from .approvals import ApprovalGate
 from .evaluator import evaluate_review
+from .execution import ProviderExecutionHandle
 from .mailbox import Mailbox
 from .memory import AgentPerformanceMemory, MeetingExperienceLedger
 from .models import (
@@ -33,6 +35,7 @@ _TERMINAL_STATES = {
     MeetingState.BLOCKED,
     MeetingState.FAILED,
     MeetingState.CANCELLED,
+    MeetingState.CANCEL_UNVERIFIED,
     MeetingState.BUDGET_EXHAUSTED,
 }
 
@@ -53,6 +56,7 @@ for _state in tuple(_TRANSITIONS):
             MeetingState.BLOCKED,
             MeetingState.FAILED,
             MeetingState.CANCELLED,
+            MeetingState.CANCEL_UNVERIFIED,
             MeetingState.BUDGET_EXHAUSTED,
         }
     )
@@ -88,7 +92,7 @@ class MeetingRuntime:
             state = MeetingState(meeting["state"])
             if state in _TERMINAL_STATES:
                 return self._finalize(workspace)
-            if meeting.get("cancel_requested"):
+            if meeting.get("cancel_requested") or manifest.get("cancel_requested"):
                 self.transition(workspace, MeetingState.CANCELLED, reason="operator cancellation")
                 continue
             reason = self._budget_reason(meeting_plan, meeting, before_agent_call=False)
@@ -125,21 +129,128 @@ class MeetingRuntime:
             elif state == MeetingState.VALIDATING:
                 self._validate(workspace, meeting_plan, tasks)
 
-    def cancel(self, workspace: RunWorkspace) -> dict[str, Any]:
+    def cancel(
+        self,
+        workspace: RunWorkspace,
+        *,
+        grace_period_seconds: float = 2.0,
+    ) -> dict[str, Any]:
+        current = workspace.manifest()
+        meeting = current.get("meeting")
+        if not isinstance(meeting, dict):
+            raise ValueError("run does not contain a meeting")
+        state = MeetingState(meeting["state"])
+        if state in _TERMINAL_STATES:
+            return self._finalize(workspace)
+        active = ProviderExecutionHandle.active_for_run(workspace.path)
+        provider_starting = any(
+            task.get("status") == TaskStatus.RUNNING.value
+            for task in current["tasks"].values()
+        )
+        requested_at = utc_now()
+
         def request(manifest: dict[str, Any]) -> dict[str, Any]:
             meeting = manifest.get("meeting")
             if not isinstance(meeting, dict):
                 raise ValueError("run does not contain a meeting")
             state = MeetingState(meeting["state"])
             if state in _TERMINAL_STATES:
-                raise ValueError(f"meeting is already terminal: {state.value}")
+                return manifest
+            manifest["cancel_requested"] = True
             meeting["cancel_requested"] = True
-            meeting["cancel_requested_at"] = utc_now()
+            meeting["cancel_requested_at"] = meeting.get("cancel_requested_at") or requested_at
+            meeting["cancellation"] = {
+                "requested_at": meeting["cancel_requested_at"],
+                "provider_running_at_cancel": bool(active) or provider_starting,
+                "termination_status": "requested",
+                "graceful_termination": False,
+                "forced_termination": False,
+                "partial_result": False,
+                "executions": [],
+            }
             return manifest
 
         workspace.update_manifest(request)
-        self.transition(workspace, MeetingState.CANCELLED, reason="operator cancellation")
+        if provider_starting and not active:
+            startup_deadline = time.monotonic() + 0.5
+            while time.monotonic() < startup_deadline and not active:
+                active = ProviderExecutionHandle.active_for_run(workspace.path)
+                if not active:
+                    time.sleep(0.01)
+        outcomes = ProviderExecutionHandle.cancel_active(
+            workspace.path,
+            grace_seconds=grace_period_seconds,
+        )
+
+        def record_outcomes(manifest: dict[str, Any]) -> dict[str, Any]:
+            cancellation = manifest["meeting"].setdefault("cancellation", {})
+            records = [outcome.to_dict() for outcome in outcomes]
+            cancellation["executions"] = records
+            cancellation["graceful_termination"] = any(
+                outcome.graceful is True and not outcome.forced for outcome in outcomes
+            )
+            cancellation["forced_termination"] = any(outcome.forced for outcome in outcomes)
+            cancellation["partial_result"] = any(outcome.partial_result for outcome in outcomes)
+            if any(outcome.state == "cancel_unverified" for outcome in outcomes):
+                cancellation["termination_status"] = "cancel_unverified"
+            elif any(outcome.forced for outcome in outcomes):
+                cancellation["termination_status"] = "forced"
+            elif outcomes and all(outcome.action == "already_exited" for outcome in outcomes):
+                cancellation["termination_status"] = "completion_race"
+            elif outcomes:
+                cancellation["termination_status"] = "graceful"
+            else:
+                cancellation["termination_status"] = "no_active_process"
+            return manifest
+
+        workspace.update_manifest(record_outcomes)
+        if any(outcome.state == "cancel_unverified" for outcome in outcomes):
+            self.transition(
+                workspace,
+                MeetingState.CANCEL_UNVERIFIED,
+                reason="provider process identity could not be verified",
+            )
+            return self._finalize(workspace)
+        if not active:
+            self._mark_pending_tasks_cancelled(workspace)
+            self.transition(workspace, MeetingState.CANCELLED, reason="operator cancellation")
+            return self._finalize(workspace)
+
+        deadline = time.monotonic() + 3.0
+        while time.monotonic() < deadline:
+            manifest = workspace.manifest()
+            if MeetingState(manifest["meeting"]["state"]) in _TERMINAL_STATES:
+                return self._finalize(workspace)
+            time.sleep(0.05)
+        manifest = workspace.manifest()
+        if MeetingState(manifest["meeting"]["state"]) not in _TERMINAL_STATES:
+            self.transition(workspace, MeetingState.CANCELLED, reason="operator cancellation")
         return self._finalize(workspace)
+
+    @staticmethod
+    def _mark_pending_tasks_cancelled(workspace: RunWorkspace) -> None:
+        def mark(manifest: dict[str, Any]) -> dict[str, Any]:
+            finished_at = utc_now()
+            for task_id, task in manifest["tasks"].items():
+                if task["status"] == TaskStatus.PENDING.value:
+                    task.update(
+                        {
+                            "status": TaskStatus.CANCELLED.value,
+                            "error": "operator cancellation before provider start",
+                            "finished_at": finished_at,
+                        }
+                    )
+                    participant = manifest["meeting"].get("participants", {}).get(task_id)
+                    if isinstance(participant, dict):
+                        participant.update(
+                            {
+                                "status": TaskStatus.CANCELLED.value,
+                                "finished_at": finished_at,
+                            }
+                        )
+            return manifest
+
+        workspace.update_manifest(mark)
 
     def transition(
         self,
@@ -172,6 +283,8 @@ class MeetingRuntime:
             return "failed"
         if state == MeetingState.CANCELLED:
             return "cancelled"
+        if state == MeetingState.CANCEL_UNVERIFIED:
+            return "cancel_unverified"
         if state == MeetingState.BUDGET_EXHAUSTED:
             return "budget_exhausted"
         return "running"
@@ -324,7 +437,11 @@ class MeetingRuntime:
     def _execute_round1_participant(self, workspace: RunWorkspace, task: TaskSpec) -> None:
         meeting_record = workspace.manifest()["meeting"]["participants"][task.id]
         attempted = set(str(item) for item in meeting_record.get("attempted_agents", ()))
-        max_attempts = task.retry_limit + 2
+        task_record = workspace.manifest()["tasks"][task.id]
+        max_attempts = max(
+            task.retry_limit + 2,
+            int(task_record.get("manual_attempt_limit", 0)),
+        )
         final_result: ProviderResult | None = None
         final_agent_id: str | None = None
         while int(workspace.manifest()["tasks"][task.id].get("attempts", 0)) < max_attempts:
@@ -407,6 +524,20 @@ class MeetingRuntime:
     ) -> ProviderResult | None:
         receipt_ref = f"artifacts/meeting/calls/{call_id}.json"
         receipt_path = workspace.contained(receipt_ref)
+        manifest = workspace.manifest()
+        if (
+            not receipt_path.is_file()
+            and (manifest.get("cancel_requested") or manifest["meeting"].get("cancel_requested"))
+        ):
+            state = MeetingState(manifest["meeting"]["state"])
+            if state not in _TERMINAL_STATES:
+                self.transition(
+                    workspace,
+                    MeetingState.CANCELLED,
+                    reason="operator cancellation",
+                )
+            self._finalize(workspace)
+            return None
         attempt = int(call_id.rsplit("-", 1)[-1])
         if phase in {"round1", "validation"}:
             workspace.update_task(
@@ -454,6 +585,21 @@ class MeetingRuntime:
                 },
             )
         self._account_call(workspace, call_id, task.id, agent_id, phase, result)
+        termination_status = result.termination.get("status")
+        if result.cancelled or termination_status == "cancel_unverified":
+            target = (
+                MeetingState.CANCEL_UNVERIFIED
+                if termination_status == "cancel_unverified"
+                else MeetingState.CANCELLED
+            )
+            self._record_cancelled_call(
+                workspace,
+                task,
+                agent_id,
+                result,
+                target=target,
+            )
+            return None
         active_plan = workspace.plan().meeting_plan
         assert active_plan is not None
         reason = self._budget_reason(
@@ -464,6 +610,68 @@ class MeetingRuntime:
         if reason:
             self._exhaust(workspace, reason)
         return result
+
+    def _record_cancelled_call(
+        self,
+        workspace: RunWorkspace,
+        task: TaskSpec,
+        agent_id: str,
+        result: ProviderResult,
+        *,
+        target: MeetingState,
+    ) -> None:
+        workspace.write_task_result(task.id, result.to_dict())
+        workspace.update_task(
+            task.id,
+            status=TaskStatus.CANCELLED.value,
+            agent_id=agent_id,
+            usage={"provider_calls": 1, **result.usage.to_dict()},
+            error=result.summary,
+            finished_at=utc_now(),
+            partial_result=result.partial_result,
+        )
+
+        def record(manifest: dict[str, Any]) -> dict[str, Any]:
+            meeting = manifest["meeting"]
+            participant = meeting.get("participants", {}).get(task.id)
+            if isinstance(participant, dict):
+                participant.update(
+                    {
+                        "status": TaskStatus.CANCELLED.value,
+                        "agent_id": agent_id,
+                        "finished_at": utc_now(),
+                        "partial_result": result.partial_result,
+                    }
+                )
+            cancellation = meeting.setdefault(
+                "cancellation",
+                {
+                    "requested_at": meeting.get("cancel_requested_at"),
+                    "provider_running_at_cancel": True,
+                    "executions": [],
+                },
+            )
+            termination = result.termination
+            cancellation["partial_result"] = bool(result.partial_result)
+            cancellation["graceful_termination"] = bool(termination.get("graceful", False))
+            cancellation["forced_termination"] = bool(termination.get("forced", False))
+            if target == MeetingState.CANCEL_UNVERIFIED:
+                cancellation["termination_status"] = "cancel_unverified"
+            elif termination.get("forced"):
+                cancellation["termination_status"] = "forced"
+            elif termination.get("graceful"):
+                cancellation["termination_status"] = "graceful"
+            else:
+                cancellation["termination_status"] = str(
+                    termination.get("status", target.value)
+                )
+            return manifest
+
+        workspace.update_manifest(record)
+        state = MeetingState(workspace.manifest()["meeting"]["state"])
+        if state not in _TERMINAL_STATES:
+            self.transition(workspace, target, reason="operator cancellation")
+        self._finalize(workspace)
 
     def _account_call(
         self,
@@ -1023,7 +1231,11 @@ class MeetingRuntime:
         attempted: set[str] = set()
         final_result: ProviderResult | None = None
         final_agent_id: str | None = None
-        max_attempts = task.retry_limit + 2
+        task_record = workspace.manifest()["tasks"][task.id]
+        max_attempts = max(
+            task.retry_limit + 2,
+            int(task_record.get("manual_attempt_limit", 0)),
+        )
         while int(workspace.manifest()["tasks"][task.id].get("attempts", 0)) < max_attempts:
             attempt = int(workspace.manifest()["tasks"][task.id].get("attempts", 0)) + 1
             exclusions = attempted if attempt > task.retry_limit + 1 else set()
@@ -1210,9 +1422,15 @@ class MeetingRuntime:
             "token_status": "measured" if consumed["token_measurement_complete"] else "unavailable",
             "cost_status": "measured" if consumed["cost_measurement_complete"] else "unavailable",
         }
+        meeting_attempt = int(meeting.get("attempt", 1))
+        finished_at = utc_now()
+        cancellation = meeting.get("cancellation")
+        cancellation = cancellation if isinstance(cancellation, dict) else {}
         experience = {
             "schema_version": 1,
+            "experience_id": f"{workspace.run_id}:meeting:{meeting_attempt}",
             "run_id": workspace.run_id,
+            "meeting_attempt": meeting_attempt,
             "task_class": (
                 workspace.plan().task_profile.task_type
                 if workspace.plan().task_profile is not None
@@ -1241,14 +1459,30 @@ class MeetingRuntime:
             "cost": usage["estimated_cost_usd"],
             "cost_status": usage["cost_status"],
             "latency_ms": usage["latency_ms"],
+            "elapsed_time": self._elapsed_seconds(meeting["started_at"], finished_at),
             "budget_status": budget_status,
             "budget_exhaustion_reason": meeting.get("budget_exhaustion_reason"),
             "final_success": state == MeetingState.COMPLETED and run_status == "completed",
             "meeting_state": state.value,
+            "cancellation_requested": bool(meeting.get("cancel_requested")),
+            "cancellation_time": meeting.get("cancel_requested_at"),
+            "provider_running_at_cancel": bool(
+                cancellation.get("provider_running_at_cancel", False)
+            ),
+            "graceful_termination": bool(cancellation.get("graceful_termination", False)),
+            "forced_termination": bool(cancellation.get("forced_termination", False)),
+            "partial_result": bool(cancellation.get("partial_result", False)),
+            "termination_status": cancellation.get("termination_status"),
+            "final_state": state.value,
             "validation": self._validation_status(workspace),
-            "created_at": utc_now(),
+            "created_at": finished_at,
         }
-        atomic_write_json(workspace.contained("final", "meeting-experience.json"), experience)
+        experience_ref = (
+            "final/meeting-experience.json"
+            if meeting_attempt == 1
+            else f"final/meeting-experience-attempt-{meeting_attempt}.json"
+        )
+        atomic_write_json(workspace.contained(experience_ref), experience)
         MeetingExperienceLedger(workspace.meeting_experience_path).record(experience)
         self._record_meeting_memory(workspace)
 
@@ -1256,12 +1490,21 @@ class MeetingRuntime:
             run_manifest["status"] = run_status
             run_manifest["meeting"]["usage"] = usage
             run_manifest["meeting"]["budget_status"] = budget_status
-            run_manifest["meeting"]["experience_ref"] = "final/meeting-experience.json"
-            run_manifest["meeting"]["finished_at"] = utc_now()
+            run_manifest["meeting"]["experience_ref"] = experience_ref
+            run_manifest["meeting"]["finished_at"] = finished_at
             run_manifest["finished_at"] = run_manifest["meeting"]["finished_at"]
             return run_manifest
 
         return workspace.update_manifest(finish)
+
+    @staticmethod
+    def _elapsed_seconds(started_at: str, finished_at: str) -> float | None:
+        try:
+            start = datetime.fromisoformat(started_at)
+            finish = datetime.fromisoformat(finished_at)
+        except (TypeError, ValueError):
+            return None
+        return max(0.0, round((finish - start).total_seconds(), 3))
 
     @staticmethod
     def _validation_status(workspace: RunWorkspace) -> str:

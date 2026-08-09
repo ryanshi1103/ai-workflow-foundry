@@ -17,6 +17,7 @@ class RecoveryManager:
                 "blocked",
                 "failed",
                 "cancelled",
+                "cancel_unverified",
                 "budget_exhausted",
             }:
                 manifest["recovered_tasks"] = []
@@ -41,14 +42,21 @@ class RecoveryManager:
             TaskStatus.BLOCKED.value,
             TaskStatus.SKIPPED.value,
             TaskStatus.SKIPPED_PENDING_HUMAN.value,
+            TaskStatus.CANCELLED.value,
         }:
             raise ValueError(f"task is not retryable from status: {current}")
 
         plan = workspace.plan()
 
         def reset_retry_chain(run_manifest: dict[str, Any]) -> dict[str, Any]:
+            current_attempts = int(run_manifest["tasks"][task_id].get("attempts", 0))
             run_manifest["tasks"][task_id].update(
-                {"status": TaskStatus.PENDING.value, "error": None}
+                {
+                    "status": TaskStatus.PENDING.value,
+                    "error": None,
+                    "manual_attempt_limit": current_attempts + 1,
+                    "retry_requested_at": utc_now(),
+                }
             )
             revived = {task_id}
             for task in plan.tasks:
@@ -67,6 +75,39 @@ class RecoveryManager:
                     )
                     revived.add(task.id)
             run_manifest["status"] = "running"
+            run_manifest["cancel_requested"] = False
+            meeting = run_manifest.get("meeting")
+            if isinstance(meeting, dict) and meeting.get("state") in {
+                "cancelled",
+                "cancel_unverified",
+            }:
+                meeting["attempt"] = int(meeting.get("attempt", 1)) + 1
+                meeting["cancel_requested"] = False
+                meeting["cancel_requested_at"] = None
+                meeting["cancellation"] = None
+                meeting["experience_ref"] = None
+                meeting.pop("usage", None)
+                meeting.pop("finished_at", None)
+                meeting.pop("terminal_reason", None)
+                meeting["started_at"] = utc_now()
+                if task_id in meeting.get("participants", {}):
+                    meeting["state"] = "round1_running"
+                    meeting["participants"][task_id].update(
+                        {
+                            "status": TaskStatus.PENDING.value,
+                            "finished_at": None,
+                            "partial_result": False,
+                        }
+                    )
+                elif task_id in meeting.get("validation", {}):
+                    meeting["state"] = "validating"
+                    meeting["validation"][task_id] = {
+                        "status": TaskStatus.PENDING.value
+                    }
+                else:
+                    meeting["state"] = "planned"
+                meeting["state_updated_at"] = utc_now()
+                run_manifest.pop("finished_at", None)
             run_manifest["revived_tasks"] = sorted(revived)
             return run_manifest
 
