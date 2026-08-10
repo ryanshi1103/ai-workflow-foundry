@@ -286,12 +286,22 @@ class LocalCommandProvider:
         result_path = task_dir / "provider-output.json"
         atomic_write_json(schema_path, _RESULT_SCHEMA)
         result_path.unlink(missing_ok=True)
-        prompt = self._task_prompt(task, task_dir)
+        prompt, task_context, dependency_context = self._task_prompt_components(task, task_dir)
         command = self._native_command(agent, task, schema_path, result_path)
         child_env = os.environ.copy()
         if agent.provider in {"claude", "deepseek"}:
             prepare_claude_environment(agent.provider, child_env)
 
+        request_metrics_ref = "provider-request-metrics.json"
+        atomic_write_json(
+            task_dir / request_metrics_ref,
+            self._request_metrics(
+                agent.provider,
+                prompt,
+                task_context,
+                dependency_context,
+            ),
+        )
         started = time.monotonic()
         completed = self._execute_managed(
             command,
@@ -315,6 +325,7 @@ class LocalCommandProvider:
                 ),
                 outputs={
                     **partial.outputs,
+                    "request_metrics_ref": request_metrics_ref,
                     "stdout": completed.stdout[-40_000:],
                     "stderr": completed.stderr[-40_000:],
                     "execution_ref": completed.execution_ref,
@@ -328,6 +339,7 @@ class LocalCommandProvider:
                 False,
                 f"{agent.provider} timed out after {task.timeout_seconds} seconds",
                 outputs={
+                    "request_metrics_ref": request_metrics_ref,
                     "stdout": completed.stdout[-40_000:],
                     "stderr": completed.stderr[-40_000:],
                     "execution_ref": completed.execution_ref,
@@ -341,6 +353,7 @@ class LocalCommandProvider:
                 False,
                 f"{agent.provider} command exited {completed.returncode}",
                 outputs={
+                    "request_metrics_ref": request_metrics_ref,
                     "stdout": completed.stdout[-40_000:],
                     "stderr": completed.stderr[-40_000:],
                     "execution_ref": completed.execution_ref,
@@ -351,7 +364,11 @@ class LocalCommandProvider:
         result = self._native_result(completed.stdout, result_path, latency_ms)
         return replace(
             result,
-            outputs={**result.outputs, "execution_ref": completed.execution_ref},
+            outputs={
+                **result.outputs,
+                "request_metrics_ref": request_metrics_ref,
+                "execution_ref": completed.execution_ref,
+            },
             termination=completed.termination,
         )
 
@@ -425,6 +442,11 @@ class LocalCommandProvider:
 
     @staticmethod
     def _task_prompt(task: TaskSpec, task_dir: Path) -> str:
+        prompt, _, _ = LocalCommandProvider._task_prompt_components(task, task_dir)
+        return prompt
+
+    @staticmethod
+    def _task_prompt_components(task: TaskSpec, task_dir: Path) -> tuple[str, str, str]:
         dependency_artifacts: dict[str, object] = {}
         run_root = task_dir.parent.parent
         for dependency in task.dependencies:
@@ -447,6 +469,8 @@ class LocalCommandProvider:
             "task": task.to_dict(),
             "dependency_artifacts": dependency_artifacts,
         }
+        task_context = json.dumps(context["task"], indent=2, ensure_ascii=False)
+        dependency_context = json.dumps(dependency_artifacts, indent=2, ensure_ascii=False)
         meeting_instruction = ""
         if task.inputs.get("meeting_round") == 1:
             meeting_instruction = (
@@ -459,7 +483,7 @@ class LocalCommandProvider:
                 " This is a targeted cross-review: read only conflict_pack_ref and relevant evidence, "
                 "then defend, revise, reject, or combine; populate all cross-review contribution fields."
             )
-        return (
+        prompt = (
             "Execute this bounded FlowFoundry task in the current project workspace. "
             "Inspect only the context needed, respect the declared permissions, and do not "
             "expose credentials. Return only a JSON object matching the requested schema. "
@@ -469,6 +493,47 @@ class LocalCommandProvider:
             + " Context:\n"
             + json.dumps(context, indent=2, ensure_ascii=False)
         )
+        return prompt, task_context, dependency_context
+
+    @staticmethod
+    def _request_metrics(
+        provider: str,
+        prompt: str,
+        task_context: str,
+        dependency_context: str,
+    ) -> dict[str, object]:
+        schema = json.dumps(_RESULT_SCHEMA, separators=(",", ":"))
+
+        def sizes(value: str) -> tuple[int, int]:
+            return len(value), len(value.encode("utf-8"))
+
+        prompt_chars, prompt_bytes = sizes(prompt)
+        task_chars, task_bytes = sizes(task_context)
+        schema_chars, schema_bytes = sizes(schema)
+        dependencies = json.loads(dependency_context)
+        dependency_values = (
+            [json.dumps(value, indent=2, ensure_ascii=False) for value in dependencies.values()]
+            if isinstance(dependencies, dict)
+            else []
+        )
+        dependency_chars = sum(len(value) for value in dependency_values)
+        dependency_bytes = sum(len(value.encode("utf-8")) for value in dependency_values)
+        dependency_count = len(dependency_values)
+        return {
+            "schema_version": 1,
+            "metric_kind": "native_provider_request_envelope",
+            "provider": provider,
+            "prompt_chars": prompt_chars,
+            "prompt_bytes": prompt_bytes,
+            "task_context_chars": task_chars,
+            "task_context_bytes": task_bytes,
+            "schema_chars": schema_chars,
+            "schema_bytes": schema_bytes,
+            "dependency_artifact_count": dependency_count,
+            "dependency_artifact_chars": dependency_chars,
+            "dependency_artifact_bytes": dependency_bytes,
+            "tokens_comparable": False,
+        }
 
     @staticmethod
     def _native_result(stdout: str, result_path: Path, latency_ms: int) -> ProviderResult:

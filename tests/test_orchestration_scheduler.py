@@ -224,6 +224,89 @@ class SchedulerTests(unittest.TestCase):
             self.assertEqual(command[-1], "-")
             self.assertIn("FlowFoundry task", run.call_args.kwargs["input_text"])
             self.assertEqual(run.call_args.kwargs["project_root"], project_root)
+            self.assertEqual(result.outputs["request_metrics_ref"], "provider-request-metrics.json")
+
+    def test_native_request_metrics_are_safe_exact_and_written_before_execution(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_root = Path(temp_dir) / "run"
+            project_root = Path(temp_dir) / "project"
+            task_dir = run_root / "tasks" / "build"
+            dependency_dir = run_root / "tasks" / "source"
+            project_root.mkdir()
+            task_dir.mkdir(parents=True)
+            dependency_dir.mkdir(parents=True)
+            sentinel = "UNIQUE_SECRET_LIKE_SENTINEL_9f4a"
+            (dependency_dir / "result.json").write_text(
+                json.dumps({"content": sentinel}), encoding="utf-8"
+            )
+            task = TaskSpec(
+                id="build",
+                title="Unicode 修复 🛠️",
+                role="builder",
+                required_capabilities=("implementation",),
+                dependencies=("source",),
+                inputs={"instruction": f"Do not persist {sentinel}"},
+            )
+            agent = default_registry().synthetic().get("codex-builder")
+            expected_prompt = LocalCommandProvider._task_prompt(task, task_dir)
+
+            def complete(command: list[str], **kwargs: object) -> ManagedProcessResult:
+                metrics_path = task_dir / "provider-request-metrics.json"
+                self.assertTrue(metrics_path.is_file())
+                self.assertEqual(kwargs["input_text"], expected_prompt)
+                output_path = Path(command[command.index("--output-last-message") + 1])
+                output_path.write_text(
+                    '{"success":true,"summary":"done","outputs":{"details":null,'
+                    '"artifact_refs":[]},"review":null,"findings":[],"contribution":null}',
+                    encoding="utf-8",
+                )
+                return ManagedProcessResult(
+                    0, "", "", "executions/test/execution.json", "completed",
+                    False, False, False, {"status": "completed", "exit_code": 0},
+                )
+
+            with patch.object(LocalCommandProvider, "_execute_managed", side_effect=complete):
+                result = LocalCommandProvider(enabled=True).execute(
+                    task, agent, task_dir, project_root
+                )
+
+            metrics_text = (task_dir / "provider-request-metrics.json").read_text(
+                encoding="utf-8"
+            )
+            metrics = json.loads(metrics_text)
+            self.assertNotIn(sentinel, metrics_text)
+            self.assertNotIn("Unicode", metrics_text)
+            self.assertEqual(metrics["prompt_chars"], len(expected_prompt))
+            self.assertEqual(metrics["prompt_bytes"], len(expected_prompt.encode("utf-8")))
+            self.assertGreater(metrics["prompt_bytes"], metrics["prompt_chars"])
+            self.assertEqual(metrics["dependency_artifact_count"], 1)
+            self.assertIs(metrics["tokens_comparable"], False)
+            self.assertEqual(result.outputs["request_metrics_ref"], "provider-request-metrics.json")
+
+    def test_native_failures_preserve_request_metrics_reference(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_root = Path(temp_dir) / "project"
+            task_dir = Path(temp_dir) / "run" / "tasks" / "build"
+            project_root.mkdir()
+            task_dir.mkdir(parents=True)
+            task = RuleBasedPlanner().plan("Implement one code fix").tasks[0]
+            agent = default_registry().synthetic().get("codex-builder")
+            cases = (
+                ManagedProcessResult(2, "", "failed", "exec.json", "completed", False, False, False, {}),
+                ManagedProcessResult(None, "", "", "exec.json", "timed_out", True, False, True, {}),
+                ManagedProcessResult(None, "partial", "", "exec.json", "cancelled", False, True, True, {}),
+                ManagedProcessResult(None, "", "", "exec.json", "cancel_unverified", False, False, True, {}),
+            )
+            for completed in cases:
+                with self.subTest(state=completed.state), patch.object(
+                    LocalCommandProvider, "_execute_managed", return_value=completed
+                ):
+                    result = LocalCommandProvider(enabled=True).execute(
+                        task, agent, task_dir, project_root
+                    )
+                self.assertEqual(
+                    result.outputs["request_metrics_ref"], "provider-request-metrics.json"
+                )
 
     def test_deepseek_adapter_reuses_isolated_claude_runtime_and_parses_review(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
