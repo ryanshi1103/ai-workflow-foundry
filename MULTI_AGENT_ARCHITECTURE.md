@@ -50,11 +50,12 @@ flowchart LR
 | `router` | Deterministic task-to-agent selection |
 | `providers` | Fake/dry, deterministic local command, Codex, and Claude-compatible structured seams |
 | `execution` | Durable per-attempt native process identity, process-group lifecycle, graceful cancellation, escalation, and safe status projection |
+| `isolation` | Immutable-base Git worktree allocation, durable ownership, exclusive writer leases, candidate diffs, reconciliation, and conservative cleanup |
 | `discovery` / `provider_setup` | Runtime/auth-state inspection and on-demand setup artifacts without credential values |
 | `workspace` | Contained run paths, schema version, 0700 directories, 0600 atomic redacted files, and manifest locking |
 | `mailbox` | Locked, ordered, schema-versioned agent messages |
 | `approvals` / `policies` | Default human gates for dangerous action classes |
-| `scheduler` | Dependency readiness, parallel independent tasks, per-agent concurrency, retry, review transitions, and skip propagation |
+| `scheduler` | Dependency readiness, parallel independent tasks, writer assignment, candidate handoff/validation, per-agent concurrency, retry, review transitions, and skip propagation |
 | `meeting` | Durable states, one bounded context pack, independent views, zero-model conflict rules, selective cross-review, convergence, budgets, cancellation, and resume receipts |
 | `evaluator` | `APPROVED`, `APPROVED_WITH_NOTES`, `BLOCKED`, and `REVIEW_PENDING` record protocol |
 | `recovery` | Interrupted-state repair, explicit retry, and input-hash reconciliation |
@@ -85,7 +86,10 @@ dependencies, role, required/preferred capabilities, inputs, expected outputs,
 risk, approval requirements, validation commands, retry bound, timeout metadata,
 and optional fallback agent. Explicit plans may include independent tasks; the
 scheduler executes ready tasks in parallel while a semaphore enforces each
-agent's concurrency limit.
+agent's concurrency limit. A concrete execution policy resolves to `none`,
+`read_only`, or `managed_worktree`. Real tasks requiring `write_workspace`
+receive a managed worktree; read-only tasks do not allocate one. Meeting rounds
+remain read-oriented and do not allocate worktrees.
 
 A generated plan is selected from:
 
@@ -140,6 +144,8 @@ execution attempt with a new identity and receipt.
 ├── approvals/
 ├── provider-setup/
 ├── executions/<execution-id>/{execution.json,partial-output.json}
+├── worktrees/<worktree-id>.json
+├── artifacts/candidates/<worktree-id>.{json,patch}
 ├── final/{meeting-result.json,meeting-experience.json,report.json,report.md}
 └── HUMAN_ACTIONS_REQUIRED.md  # only when a gate is encountered
 ```
@@ -152,15 +158,29 @@ repeating completed calls. Meeting summaries are upserted into a project-local
 experience ledger, and small usefulness counters extend Agent Performance
 Memory.
 
+Managed source worktrees are execution spaces belonging to the authoritative
+project, not new projects. Each starts from a recorded commit SHA on a unique
+local `flowfoundry/...` branch. Dirty main-worktree changes are neither copied
+nor stashed. Builder, reviewer, tester, and revision steps may hand off one
+candidate, but only one mutating attempt can hold its durable writer lease.
+Independent writers receive independent worktrees even when they edit the same
+file. Candidate results record base SHA, branch, changed files, bounded status
+and diff summary, validation, provider outcome, and a patch artifact reference.
+
 ## Extension boundary
 
 The provider protocol is intentionally small: execute one structured task
-against a persisted project root, retain private metadata in its task directory,
+against an assigned execution workspace, retain private metadata in its task directory,
 and return a serializable result. Native commands remain explicit opt-in. Each
 command runs in one durable execution boundary; on supported POSIX systems it
 owns a new session/process group. `team cancel` first prevents new calls, then
 validates Linux process start, group, session, and command fingerprints before
 signalling the group. It requests termination, waits a bounded grace period,
 and escalates only when members remain. Unverifiable persisted identities enter
-`CANCEL_UNVERIFIED` and are not signalled. Real writer tasks remain serialized
-until worktree isolation exists.
+`CANCEL_UNVERIFIED` and are not signalled. Cancellation releases the writer
+lease after process termination and retains a dirty candidate; it never means
+deleting that candidate. Recovery reconciles durable ownership, Git porcelain
+state, and verified process liveness. Normal cleanup uses no force and removes
+only FlowFoundry-owned, clean, terminal worktrees whose branch still points at
+the recorded base. Automatic merge, rebase, cherry-pick, push, and PR publishing
+are outside this layer.

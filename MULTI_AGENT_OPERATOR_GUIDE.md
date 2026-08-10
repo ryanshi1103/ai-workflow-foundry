@@ -74,6 +74,12 @@ flowfoundry team cancel <run-id>
 completed tasks, and continues only ready work. `report` is deterministic and
 can be regenerated from persisted state.
 
+For a managed writer, `status` and `report` show the isolation mode, worktree
+state, abbreviated base commit, candidate branch, dirty/clean state, and whether
+the candidate was retained or removed. They intentionally show only a safe
+directory label, not the full managed-worktree path. Full candidate evidence is
+stored under `artifacts/candidates/` as a bounded JSON result plus a patch.
+
 Meeting status is embedded in the run manifest, including current state,
 participants, completed rounds, conflicts, budget consumption, dissent, and
 result references. `cancel` durably prevents the next call and, when a verified
@@ -127,9 +133,20 @@ already be configured through the provider's approved operator environment.
 The current local-command seam is for controlled development, not unattended
 production use. Prefer the offline provider for CI and examples.
 
-Real runs use the current directory as their shared project workspace. Supply
-`--workspace PATH` to select another project explicitly. Real provider tasks are
-currently serialized because worktree isolation is not yet implemented.
+Supply `--workspace PATH` to select the authoritative project explicitly. A
+real write-capable task is executed from a managed Git worktree based on the
+recorded `HEAD` commit; the provider does not receive the main worktree as its
+write workspace. Existing tracked and untracked changes in the main worktree
+remain untouched and are not copied. If a task explicitly depends on those
+uncommitted changes, it stops with `DIRTY_BASE_REQUIRES_SNAPSHOT`; FlowFoundry
+does not stash, temporary-commit, or bulk-copy them.
+
+Read-only tasks use the authoritative workspace or a handed-off candidate
+without creating another worktree. A reviewer and validator can inspect the
+Builder candidate, and a revision writer can reacquire it only after the prior
+writer has stopped. Independent writers receive separate branches/worktrees.
+Non-Git projects retain serial write behavior; a task explicitly requiring
+parallel write isolation stops with `WORKTREE_UNAVAILABLE`.
 
 Codex and Claude-compatible adapters request a structured result envelope.
 DeepSeek reuses the workspace manager's isolated Claude-compatible runtime.
@@ -147,10 +164,16 @@ format.
 
 1. Inspect `manifest.json` and the exact task result/review.
 2. Run `team status` and `team review` before retrying.
-3. Confirm no completed task's input changed unexpectedly.
-4. Resolve a `BLOCKED` review rather than bypassing it.
-5. Record human approval only for a reviewed hazardous action.
-6. Run `team resume`, then regenerate `team report`.
+3. Inspect candidate base, branch, dirty state, diff artifact, and validation.
+4. Confirm no completed task's input changed unexpectedly.
+5. Resolve a `BLOCKED` review rather than bypassing it.
+6. Record human approval only for a reviewed hazardous action.
+7. Run `team resume`, then regenerate `team report`.
+
+Dirty, failed, and cancelled candidates are retained by default. FlowFoundry
+does not take ownership of user-created worktrees and does not force-remove any
+worktree. There is no automatic candidate merge or publish command in this
+phase.
 
 For meetings, also inspect `meeting.state`, `budget_status`, conflict packs, and
 the final dissent list. A `budget_exhausted` run is intentionally partial and

@@ -176,6 +176,10 @@ class DryRunProvider(FakeProvider):
 
 
 class LocalCommandProvider:
+    # Scheduler contract: any task that is allowed to mutate files must receive
+    # a managed execution workspace before this provider is invoked.
+    requires_managed_worktree = True
+
     def __init__(self, *, enabled: bool = False) -> None:
         self.enabled = enabled
 
@@ -358,7 +362,8 @@ class LocalCommandProvider:
         if agent.provider == "codex":
             sandbox = (
                 "read-only"
-                if task.role in {"architect", "reviewer"} or task.inputs.get("meeting_round")
+                if "write_workspace" not in task.required_permissions
+                or task.inputs.get("meeting_round")
                 else "workspace-write"
             )
             return [
@@ -377,7 +382,8 @@ class LocalCommandProvider:
             ]
         permission = (
             "plan"
-            if task.role in {"architect", "reviewer"} or task.inputs.get("meeting_round")
+            if "write_workspace" not in task.required_permissions
+            or task.inputs.get("meeting_round")
             else "acceptEdits"
         )
         return [

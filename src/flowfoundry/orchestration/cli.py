@@ -13,6 +13,7 @@ from .aggregator import ResultAggregator
 from .approvals import ApprovalGate
 from .discovery import ProviderDiscovery
 from .execution import ProviderExecutionHandle
+from .isolation import WorktreeError, WorktreeManager
 from .meeting import MeetingRuntime
 from .planner import RuleBasedPlanner
 from .providers import FakeProvider, LocalCommandProvider
@@ -136,6 +137,16 @@ def dispatch_team(args: argparse.Namespace) -> int:
                 in {"running", "cancel_requested", "terminating", "killing"}
             ]
             status["provider_executions"] = active or executions[-1:]
+            if any(workspace.contained("worktrees").glob("wt-*.json")):
+                try:
+                    status["workspace_isolation"] = WorktreeManager(
+                        workspace
+                    ).status_records()
+                except WorktreeError as exc:
+                    status["workspace_isolation"] = {
+                        "status": "unavailable",
+                        "reason": exc.code,
+                    }
             print(json.dumps(status, indent=2, ensure_ascii=False))
         elif command == "resume":
             RecoveryManager().recover_interrupted(workspace)

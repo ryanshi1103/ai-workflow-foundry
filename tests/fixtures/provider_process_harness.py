@@ -40,6 +40,17 @@ def main() -> int:
         mark_ready(ready_path)
         sleep_forever()
 
+    if mode == "write-graceful":
+        def stop_writer(_signum: int, _frame: object) -> None:
+            print("graceful-writer-stop", flush=True)
+            raise SystemExit(0)
+
+        signal.signal(signal.SIGTERM, stop_writer)
+        Path("base.txt").write_text("partial-candidate\n", encoding="utf-8")
+        print("partial-candidate-written", flush=True)
+        mark_ready(ready_path)
+        sleep_forever()
+
     if mode == "ignore":
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         print("partial-before-force", flush=True)

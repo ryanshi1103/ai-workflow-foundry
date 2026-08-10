@@ -9,7 +9,7 @@ code take precedence over older migration reports.
 - **Repository:** `ai-workflow-foundry`
 - **Version:** 0.2.0 (pre-v1 orchestration hardening)
 - **Branch:** `portfolio-migration`
-- **HEAD at audit start:** `8285a60c54c3b2dfb30b1092aa82322d00273574`
+- **HEAD at Phase 4 start:** `f194dc3a88a9fea47631ffe139ecdbd79dc90bde`
 - **Upstream:** `origin/portfolio-migration`
 - **Working tree at audit start:** dirty; one pre-existing `.gitignore` change and
   multiple untracked owner reports were preserved.
@@ -26,11 +26,11 @@ code take precedence over older migration reports.
 | Planner and DAG | Explicit JSON plans plus adaptive bounded plans |
 | Team runtime | Atomic tasks, dependency scheduling, mailbox, review, approval, aggregation, retry, resume, and durable provider cancellation |
 | Bounded Meeting | Durable state machine, one Context Pack, independent views, deterministic conflict gate, early stop, targeted cross-review, convergence with dissent, hard budgets, validation, cancellation, and resume receipts |
-| Shared workspace | Persisted project root; real commands run from the selected project workspace |
+| Workspace isolation | Authoritative project root plus immutable-base managed Git worktrees for real writers; durable ownership, exclusive leases, candidate diff/validation, cancellation retention, recovery, and safe clean-only cleanup |
 | Provider adapters | Structured Codex and Claude-compatible CLI envelopes with durable process handles and POSIX process-group cancellation; real execution remains explicit opt-in |
 | Cost and performance | Per-attempt calls/token/latency/cost plus project-local agent statistics |
 | Provider setup | Missing runtime becomes a persisted `setup_required` artifact instead of a crash |
-| Foundation tests | 136 passed after durable native cancellation |
+| Foundation tests | 160 passed after managed writer isolation, including 24 Phase 4 fixture/integration tests |
 
 ## Honest v1 boundary
 
@@ -48,7 +48,11 @@ stops scheduling, verifies the persisted process identity, requests graceful
 process-group termination, escalates only after a grace period, and preserves
 partial output and accounting. Cross-process physical cancellation currently
 depends on Linux `/proc` identity metadata; an unverifiable PID is never
-signalled. Worktree-level isolation for parallel writers, local-model hardware
+signalled and its writer lease is not released automatically. Real write-capable
+DAG tasks now run in FlowFoundry-owned Git worktrees and validators reuse the
+exact candidate. Dirty main-worktree state is left untouched; tasks that
+explicitly depend on it require a future snapshot capability. Automatic
+candidate merge/push/PR, full submodule lifecycle support, local-model hardware
 selection, and plugin loading from external registry files remain later work.
 
 See `docs/V1-AUDIT.md` for the capability map and prioritized shortest path.

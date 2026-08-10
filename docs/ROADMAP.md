@@ -33,6 +33,9 @@ and a host can reject unsafe or incompatible declarations before execution.
 - Bounded adaptive Meeting with a shared context pack, deterministic conflict
   gate, early convergence, selective cross-review, hard budgets, durable
   dissent, call receipts, and experience records.
+- Managed Git worktree isolation for write-capable tasks, including immutable
+  bases, durable ownership/leases, candidate-local validation, recovery,
+  cancellation retention, and conservative clean-only cleanup.
 
 Acceptance: an interrupted sample workflow resumes without modifying its inputs
 or duplicating a completed side effect.

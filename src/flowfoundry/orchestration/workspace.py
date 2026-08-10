@@ -26,6 +26,7 @@ RUN_DIRECTORIES = (
     "approvals",
     "provider-setup",
     "executions",
+    "worktrees",
     "final",
 )
 _SAFE_ID = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")

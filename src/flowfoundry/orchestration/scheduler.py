@@ -8,10 +8,11 @@ from typing import Any
 
 from .approvals import ApprovalGate
 from .evaluator import evaluate_review
+from .isolation import WorktreeError, WorktreeManager
 from .mailbox import Mailbox
 from .meeting import MeetingRuntime
 from .memory import AgentPerformanceMemory
-from .models import ProviderResult, ReviewDecision, TaskSpec, TaskStatus
+from .models import IsolationMode, ProviderResult, ReviewDecision, TaskSpec, TaskStatus
 from .providers import Provider
 from .provider_setup import ProviderSetupFlow
 from .router import TaskRouter
@@ -43,6 +44,7 @@ class RunScheduler:
             agent.id: Semaphore(agent.concurrency_limit)
             for agent in self.router.registry.list()
         }
+        self._shared_writer_slot = Semaphore(1)
 
     def run(self, workspace: RunWorkspace) -> dict[str, Any]:
         plan = workspace.plan()
@@ -169,7 +171,105 @@ class RunScheduler:
         current_attempts = int(workspace.manifest()["tasks"][task.id].get("attempts", 0))
         final_result: ProviderResult | None = None
         attempt_usage: list[dict[str, Any]] = []
-        with self._agent_slots[agent.id]:
+        execution_workspace = workspace.project_root
+        manager: WorktreeManager | None = None
+        worktree: dict[str, Any] | None = None
+        source_task = task.inputs.get("source_task")
+        source_state = (
+            workspace.manifest()["tasks"].get(source_task, {})
+            if isinstance(source_task, str)
+            else {}
+        )
+        source_worktree_id = source_state.get("worktree_id")
+        provider_requires = bool(
+            getattr(self.provider, "requires_managed_worktree", False)
+        )
+        mode = WorktreeManager.isolation_mode(
+            required_permissions=task.required_permissions,
+            agent_permissions=agent.permission_profile,
+            provider_requires_isolation=provider_requires,
+        )
+        if source_worktree_id or mode == IsolationMode.MANAGED_WORKTREE:
+            try:
+                manager = WorktreeManager(workspace)
+                if source_worktree_id:
+                    worktree = manager.record(str(source_worktree_id))
+                else:
+                    worktree = manager.allocate(
+                        task_id=task.id,
+                        participant_id=agent.id,
+                        attempt_id=current_attempts + 1,
+                        base_commit=str(task.inputs.get("base_commit", "HEAD")),
+                        dirty_base_required=bool(
+                            task.inputs.get("requires_uncommitted_state", False)
+                        ),
+                    )
+                execution_workspace = manager._validated_path(worktree)
+                workspace.update_task(
+                    task.id,
+                    isolation_mode=(
+                        IsolationMode.MANAGED_WORKTREE.value
+                        if mode == IsolationMode.MANAGED_WORKTREE
+                        else IsolationMode.READ_ONLY.value
+                    ),
+                    worktree_id=worktree["worktree_id"],
+                    base_commit=worktree["base_commit"],
+                    candidate_branch=worktree["branch"],
+                )
+            except WorktreeError as exc:
+                if exc.code == "WORKTREE_UNAVAILABLE" and not task.inputs.get(
+                    "parallel_write_required", False
+                ):
+                    manager = None
+                    worktree = None
+                    execution_workspace = workspace.project_root
+                    mode = IsolationMode.NONE
+                    workspace.update_task(
+                        task.id,
+                        isolation_mode=IsolationMode.NONE.value,
+                        isolation_limitation="non_git_serial_execution",
+                    )
+                else:
+                    workspace.update_task(
+                        task.id,
+                        status=TaskStatus.BLOCKED.value,
+                        isolation_mode=mode.value,
+                        error=f"{exc.code}: {exc}",
+                        finished_at=utc_now(),
+                    )
+                    return
+        else:
+            workspace.update_task(task.id, isolation_mode=mode.value)
+
+        is_validation = bool(
+            worktree
+            and source_worktree_id
+            and (
+                "testing" in task.required_capabilities
+                or bool(task.validation_commands)
+                or bool(task.inputs.get("validation", False))
+            )
+        )
+        serial_slot = (
+            self._shared_writer_slot
+            if mode == IsolationMode.NONE
+            and "write_workspace" in task.required_permissions
+            and provider_requires
+            else _NullSemaphore()
+        )
+        if manager and worktree and is_validation:
+            try:
+                manager.begin_validation(str(worktree["worktree_id"]))
+            except WorktreeError as exc:
+                workspace.update_task(
+                    task.id,
+                    status=TaskStatus.BLOCKED.value,
+                    error=f"{exc.code}: {exc}",
+                    finished_at=utc_now(),
+                )
+                return
+
+        with self._agent_slots[agent.id], serial_slot:
             state = workspace.manifest()["tasks"][task.id]
             max_attempt = max(
                 task.retry_limit + 1,
@@ -177,6 +277,14 @@ class RunScheduler:
             )
             for attempt in range(current_attempts + 1, max_attempt + 1):
                 if workspace.manifest().get("cancel_requested"):
+                    if manager and worktree:
+                        try:
+                            manager.retain(
+                                str(worktree["worktree_id"]),
+                                reason="operator cancellation before provider execution",
+                            )
+                        except WorktreeError:
+                            pass
                     workspace.update_task(
                         task.id,
                         status=TaskStatus.CANCELLED.value,
@@ -191,12 +299,49 @@ class RunScheduler:
                     agent_id=agent.id,
                     started_at=utc_now(),
                 )
-                final_result = self.provider.execute(
-                    task,
-                    agent,
-                    workspace.task_dir(task.id),
-                    workspace.project_root,
-                )
+                writer_acquired = False
+                if manager and worktree and mode == IsolationMode.MANAGED_WORKTREE and not is_validation:
+                    try:
+                        manager.acquire_writer(
+                            str(worktree["worktree_id"]),
+                            participant_id=agent.id,
+                            attempt_id=attempt,
+                        )
+                        writer_acquired = True
+                    except WorktreeError as exc:
+                        final_result = ProviderResult(False, f"{exc.code}: {exc}")
+                        break
+                try:
+                    try:
+                        final_result = self.provider.execute(
+                            task,
+                            agent,
+                            workspace.task_dir(task.id),
+                            execution_workspace,
+                        )
+                    except Exception as exc:
+                        final_result = ProviderResult(
+                            False,
+                            f"{type(exc).__name__}: {exc}",
+                        )
+                finally:
+                    if writer_acquired and manager and worktree:
+                        if final_result is None:
+                            outcome = "failed"
+                        elif final_result.cancelled:
+                            outcome = "cancelled"
+                        elif final_result.success:
+                            outcome = "success"
+                        elif attempt < max_attempt:
+                            outcome = "retry"
+                        else:
+                            outcome = "failed"
+                        manager.release_writer(
+                            str(worktree["worktree_id"]),
+                            participant_id=agent.id,
+                            attempt_id=attempt,
+                            outcome=outcome,
+                        )
                 attempt_usage.append(final_result.usage.to_dict())
                 if final_result.success:
                     break
@@ -204,6 +349,68 @@ class RunScheduler:
         workspace.write_task_result(task.id, final_result.to_dict())
         usage = self._aggregate_usage(attempt_usage)
         workspace.update_task(task.id, usage=usage)
+        if manager and worktree and (
+            mode == IsolationMode.MANAGED_WORKTREE or is_validation
+        ):
+            validation = (
+                {
+                    "success": final_result.success,
+                    "task_id": task.id,
+                    "provider_summary": final_result.summary,
+                }
+                if is_validation
+                else dict(worktree.get("validation", {}))
+            )
+            if is_validation:
+                manager.finish_validation(str(worktree["worktree_id"]), validation)
+            candidate = manager.candidate_result(
+                str(worktree["worktree_id"]),
+                provider_result={
+                    "success": final_result.success,
+                    "cancelled": final_result.cancelled,
+                    "summary": final_result.summary,
+                },
+                validation=validation,
+            )
+            candidate_ref = workspace.contained(
+                "artifacts", "candidates", f"{worktree['worktree_id']}.json"
+            )
+            candidate_payload = candidate.to_dict()
+            existing_candidate: dict[str, Any] = {}
+            if is_validation and candidate_ref.is_file():
+                existing_candidate = workspace.read_json(
+                    str(candidate_ref.relative_to(workspace.path))
+                )
+                existing_provider = existing_candidate.get("provider_result")
+                if isinstance(existing_provider, dict):
+                    candidate_payload["provider_result"] = existing_provider
+            writer_task_id = (
+                str(source_task)
+                if is_validation and isinstance(source_task, str)
+                else task.id
+            )
+            candidate_payload["experience"] = {
+                "experience_id": f"{workspace.run_id}:candidate:{worktree['worktree_id']}",
+                "isolation_mode": IsolationMode.MANAGED_WORKTREE.value,
+                "worktree_id": worktree["worktree_id"],
+                "base_commit": worktree["base_commit"],
+                "writer_attempts": int(
+                    workspace.manifest()["tasks"][writer_task_id].get("attempts", 0)
+                ),
+                "changed_files_count": len(candidate.changed_files),
+                "validation": validation,
+                "retained_after_run": manager.is_dirty(
+                    manager.record(str(worktree["worktree_id"]))
+                ),
+            }
+            atomic_write_json(candidate_ref, candidate_payload)
+            workspace.update_task(
+                task.id,
+                candidate_result_ref=str(candidate_ref.relative_to(workspace.path)),
+                changed_files_count=len(candidate.changed_files),
+                retained_after_run=manager.is_dirty(manager.record(str(worktree["worktree_id"]))),
+                validation=validation,
+            )
         profile = workspace.plan().task_profile
         category = profile.task_type if profile is not None else task.role
         memory = AgentPerformanceMemory(workspace.performance_memory_path)
@@ -306,3 +513,11 @@ class RunScheduler:
             return manifest
 
         return workspace.update_manifest(finalize)
+
+
+class _NullSemaphore:
+    def __enter__(self) -> _NullSemaphore:
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        return None

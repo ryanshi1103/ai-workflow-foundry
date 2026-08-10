@@ -30,6 +30,10 @@ lifecycle shared by useful AI work.
   Context Pack, deterministic conflict detection, early stop, targeted
   cross-review, hard budgets, preserved dissent, durable process-group
   cancellation, and offline fake providers.
+- Managed Git worktree isolation for real write-capable executions, with an
+  immutable base commit, exclusive writer leases, candidate diff evidence,
+  candidate-local validation, cancellation retention, recovery, and
+  ownership-safe cleanup.
 - A dependency-free catalog validator and CLI that verifies bundled paths,
   maturity declarations, and safety boundaries.
 - A generic component schema, product architecture, project-pattern audit, and
@@ -141,6 +145,9 @@ See [Architecture](docs/ARCHITECTURE.md),
 
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s tests -v
+
+# Managed-writer isolation fixture (no provider/network call)
+PYTHONPATH=src python3 -m unittest tests.test_orchestration_isolation -v
 
 # Bundled workspace runtime regression suite
 cd core/workspace-manager

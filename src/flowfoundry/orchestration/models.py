@@ -39,6 +39,27 @@ class ExecutionMode(StrEnum):
     MULTI_AGENT = "multi_agent"
 
 
+class IsolationMode(StrEnum):
+    """Filesystem isolation required by one concrete execution."""
+
+    NONE = "none"
+    READ_ONLY = "read_only"
+    MANAGED_WORKTREE = "managed_worktree"
+
+
+class WorktreeStatus(StrEnum):
+    ALLOCATING = "allocating"
+    READY = "ready"
+    IN_USE = "in_use"
+    VALIDATING = "validating"
+    COMPLETED = "completed"
+    RETAINED = "retained"
+    REMOVED = "removed"
+    FAILED = "failed"
+    ORPHANED = "orphaned"
+    BLOCKED = "blocked"
+
+
 class MeetingState(StrEnum):
     PLANNED = "planned"
     CONTEXT_READY = "context_ready"

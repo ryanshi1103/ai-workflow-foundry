@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .execution import ProviderExecutionHandle
+from .isolation import WorktreeError, WorktreeManager
 from .models import TaskPlan, TaskStatus
 from .workspace import RunWorkspace, stable_hash, utc_now
 
@@ -32,9 +34,48 @@ class RecoveryManager:
             manifest["status"] = "running"
             return manifest
 
-        return workspace.update_manifest(recover)
+        recovered_manifest = workspace.update_manifest(recover)
+        if any(workspace.contained("worktrees").glob("wt-*.json")):
+            try:
+                manager = WorktreeManager(workspace)
+                records = manager.reconcile(
+                    active_executions=ProviderExecutionHandle.recovery_status_for_run(
+                        workspace.path
+                    )
+                )
+
+                def record_worktrees(manifest: dict[str, Any]) -> dict[str, Any]:
+                    manifest["worktree_recovery"] = [
+                        {
+                            "worktree_id": record["worktree_id"],
+                            "status": record["status"],
+                            "retained_after_run": bool(
+                                record.get("retained_after_run", False)
+                            ),
+                        }
+                        for record in records
+                    ]
+                    return manifest
+
+                recovered_manifest = workspace.update_manifest(record_worktrees)
+            except WorktreeError as exc:
+                def warning(manifest: dict[str, Any]) -> dict[str, Any]:
+                    manifest["worktree_recovery_warning"] = f"{exc.code}: {exc}"
+                    return manifest
+
+                recovered_manifest = workspace.update_manifest(warning)
+        return recovered_manifest
 
     def retry_failed_task(self, workspace: RunWorkspace, task_id: str) -> dict[str, Any]:
+        active = [
+            record
+            for record in ProviderExecutionHandle.status_for_run(workspace.path)
+            if record.get("task_id") == task_id
+            and record.get("state")
+            in {"running", "cancel_requested", "terminating", "killing"}
+        ]
+        if active:
+            raise ValueError("task still has an active native provider execution")
         manifest = workspace.manifest()
         current = manifest["tasks"][task_id]["status"]
         if current not in {

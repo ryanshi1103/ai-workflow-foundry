@@ -13,6 +13,7 @@ from typing import Any
 from .approvals import ApprovalGate
 from .evaluator import evaluate_review
 from .execution import ProviderExecutionHandle
+from .isolation import WorktreeError, WorktreeManager
 from .mailbox import Mailbox
 from .memory import AgentPerformanceMemory, MeetingExperienceLedger
 from .models import (
@@ -138,7 +139,10 @@ class MeetingRuntime:
         current = workspace.manifest()
         meeting = current.get("meeting")
         if not isinstance(meeting, dict):
-            raise ValueError("run does not contain a meeting")
+            return self._cancel_task_run(
+                workspace,
+                grace_period_seconds=grace_period_seconds,
+            )
         state = MeetingState(meeting["state"])
         if state in _TERMINAL_STATES:
             return self._finalize(workspace)
@@ -226,6 +230,85 @@ class MeetingRuntime:
         if MeetingState(manifest["meeting"]["state"]) not in _TERMINAL_STATES:
             self.transition(workspace, MeetingState.CANCELLED, reason="operator cancellation")
         return self._finalize(workspace)
+
+    @staticmethod
+    def _cancel_task_run(
+        workspace: RunWorkspace,
+        *,
+        grace_period_seconds: float,
+    ) -> dict[str, Any]:
+        """Cancel an explicit DAG run and retain any managed candidate."""
+
+        current = workspace.manifest()
+        if current.get("status") == "cancelled" and current.get("cancel_requested"):
+            return current
+        active = ProviderExecutionHandle.active_for_run(workspace.path)
+        provider_starting = any(
+            task.get("status") == TaskStatus.RUNNING.value
+            for task in current["tasks"].values()
+        )
+        requested_at = utc_now()
+
+        def request(manifest: dict[str, Any]) -> dict[str, Any]:
+            manifest["cancel_requested"] = True
+            manifest["cancel_requested_at"] = manifest.get("cancel_requested_at") or requested_at
+            manifest["cancellation"] = manifest.get("cancellation") or {
+                "requested_at": manifest["cancel_requested_at"],
+                "provider_running_at_cancel": bool(active) or provider_starting,
+                "termination_status": "requested",
+                "executions": [],
+            }
+            return manifest
+
+        workspace.update_manifest(request)
+        if provider_starting and not active:
+            deadline = time.monotonic() + 0.5
+            while time.monotonic() < deadline and not active:
+                active = ProviderExecutionHandle.active_for_run(workspace.path)
+                if not active:
+                    time.sleep(0.01)
+        outcomes = ProviderExecutionHandle.cancel_active(
+            workspace.path,
+            grace_seconds=grace_period_seconds,
+        )
+        retained: list[str] = []
+        if any(workspace.contained("worktrees").glob("wt-*.json")):
+            try:
+                retained = [
+                    str(record["worktree_id"])
+                    for record in WorktreeManager(workspace).release_cancelled_leases()
+                ]
+            except WorktreeError:
+                retained = []
+
+        def finish(manifest: dict[str, Any]) -> dict[str, Any]:
+            records = [outcome.to_dict() for outcome in outcomes]
+            cancellation = manifest.setdefault("cancellation", {})
+            cancellation["executions"] = records
+            cancellation["graceful_termination"] = any(
+                outcome.graceful is True and not outcome.forced for outcome in outcomes
+            )
+            cancellation["forced_termination"] = any(outcome.forced for outcome in outcomes)
+            cancellation["partial_result"] = any(outcome.partial_result for outcome in outcomes)
+            cancellation["retained_worktrees"] = sorted(set(retained))
+            if any(outcome.state == "cancel_unverified" for outcome in outcomes):
+                cancellation["termination_status"] = "cancel_unverified"
+            elif any(outcome.forced for outcome in outcomes):
+                cancellation["termination_status"] = "forced"
+            elif outcomes:
+                cancellation["termination_status"] = "graceful"
+            else:
+                cancellation["termination_status"] = "no_active_process"
+            for task in manifest["tasks"].values():
+                if task["status"] in {TaskStatus.PENDING.value, TaskStatus.RUNNING.value}:
+                    task["status"] = TaskStatus.CANCELLED.value
+                    task["error"] = "operator cancellation"
+                    task["finished_at"] = utc_now()
+            manifest["status"] = "cancelled"
+            manifest["finished_at"] = utc_now()
+            return manifest
+
+        return workspace.update_manifest(finish)
 
     @staticmethod
     def _mark_pending_tasks_cancelled(workspace: RunWorkspace) -> None:

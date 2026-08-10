@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .isolation import WorktreeError, WorktreeManager
 from .models import TaskStatus
 from .workspace import RunWorkspace, atomic_write_json, atomic_write_text, utc_now
 
@@ -54,6 +55,12 @@ class ResultAggregator:
             }
         else:
             usage = self._aggregate_usage(task_usage)
+        isolation: list[dict[str, Any]] = []
+        if any(workspace.contained("worktrees").glob("wt-*.json")):
+            try:
+                isolation = WorktreeManager(workspace).status_records()
+            except WorktreeError:
+                isolation = []
         report = {
             "schema_version": 1,
             "run_id": workspace.run_id,
@@ -67,6 +74,7 @@ class ResultAggregator:
             "commits": sorted(set(commits)),
             "usage": usage,
             "meeting": self._meeting_summary(meeting) if isinstance(meeting, dict) else None,
+            "workspace_isolation": isolation,
             "next_step": "inspect unfinished tasks" if unfinished else "review final artifacts",
             "created_at": utc_now(),
         }

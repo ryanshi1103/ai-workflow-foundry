@@ -35,6 +35,14 @@ review decision ----> human action gate ----> explicitly enabled side effect
 - `.flowfoundry/runs/` is ignored by Git; transcript and credentials are not run
   artifacts by default.
 - Completed input hashes prevent accidental duplicate execution after recovery.
+- Real write-capable provider tasks receive a FlowFoundry-owned Git worktree at
+  an immutable commit SHA. Main-worktree dirt is never stashed, copied, reset,
+  cleaned, or committed by allocation.
+- Worktree paths and branches use sanitized, hashed components; resolved paths
+  must remain under the recorded managed root.
+- A durable writer lease permits at most one mutating execution per candidate.
+  Cleanup requires matching ownership/repository/path/Git state and never uses
+  force removal. Unknown and user-created worktrees are report-only.
 
 ## Human-gated actions
 
@@ -65,16 +73,17 @@ release, deployment, push, or external message.
 
 - Redaction is defense in depth, not a substitute for excluding secrets from
   task inputs.
-- The local-command adapter does not yet provide an OS sandbox, resource quota,
-  or provider-native cancellation. It is disabled unless explicitly selected.
+- The local-command adapter does not provide an OS sandbox or resource quota.
+  It is disabled unless explicitly selected; native process-group cancellation
+  is implemented only where process identity can be verified safely.
 - File locks coordinate processes on the same compatible local filesystem; the
   MVP is not a distributed scheduler.
-- Task directories isolate orchestration state, not a complete source worktree.
-  A production provider adapter should provision an approved worktree/container
-  matching the agent's declared workspace mode.
-- Timeout is persisted and applied by the local command adapter, but remote
-  provider cancellation semantics are future adapter work.
+- Git worktrees isolate source mutations but are not containers; trusted local
+  deterministic commands and provider-native sandboxes remain responsible for
+  network, CPU, memory, and ignored build-artifact behavior.
+- Explicit dirty-state snapshots, automatic integration, submodule lifecycle
+  management, and distributed writer locking are not implemented. Submodules
+  are detected but not initialized or claimed as fully isolated.
 
 These limits are reasons to keep real execution opt-in; they do not affect the
 offline deterministic test workflow.
-

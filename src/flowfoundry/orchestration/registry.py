@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Iterable
 
-from .models import AgentSpec, TaskSpec
+from .models import AgentSpec, IsolationMode, TaskSpec
 
 _COST_ORDER = {"free": 0, "low": 1, "medium": 2, "high": 3}
 
@@ -118,7 +118,7 @@ def default_registry() -> AgentRegistry:
                 permission_profile=write,
                 context_limit=200_000,
                 availability=False,
-                workspace_mode="isolated_worktree",
+                workspace_mode=IsolationMode.MANAGED_WORKTREE.value,
                 model="configured-by-codex-cli",
                 mode="native_cli",
                 tools=("files", "git", "shell"),
@@ -138,7 +138,7 @@ def default_registry() -> AgentRegistry:
                 permission_profile=common_read,
                 context_limit=128_000,
                 availability=False,
-                workspace_mode="read_only_worktree",
+                workspace_mode=IsolationMode.READ_ONLY.value,
                 model="configured-by-deepseek-cli",
                 mode="native_cli",
                 tools=("files",),
@@ -158,7 +158,7 @@ def default_registry() -> AgentRegistry:
                 permission_profile=common_read,
                 context_limit=200_000,
                 availability=False,
-                workspace_mode="read_only_worktree",
+                workspace_mode=IsolationMode.READ_ONLY.value,
                 model="configured-by-claude-cli",
                 mode="native_cli",
                 tools=("files",),
@@ -178,7 +178,7 @@ def default_registry() -> AgentRegistry:
                 permission_profile=write,
                 context_limit=32_000,
                 availability=False,
-                workspace_mode="isolated_worktree",
+                workspace_mode=IsolationMode.MANAGED_WORKTREE.value,
                 model="python-runtime",
                 mode="deterministic_command",
                 tools=("python", "shell"),

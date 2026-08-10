@@ -157,6 +157,24 @@ class ProviderExecutionHandle:
         return statuses
 
     @classmethod
+    def recovery_status_for_run(cls, run_path: Path) -> list[dict[str, Any]]:
+        """Include verified native-process liveness for worktree reconciliation."""
+
+        statuses: list[dict[str, Any]] = []
+        for path in sorted((run_path / "executions").glob("*/execution.json")):
+            try:
+                record = _read_json(path)
+            except (OSError, json.JSONDecodeError, ValueError):
+                continue
+            status = cls._safe_status(record)
+            if record.get("state") in _ACTIVE_STATES:
+                status["liveness"] = _verify_process(record)
+            else:
+                status["liveness"] = "terminal"
+            statuses.append(status)
+        return statuses
+
+    @classmethod
     def cancel_active(
         cls,
         run_path: Path,

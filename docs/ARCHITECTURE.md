@@ -16,9 +16,13 @@ The repository currently contains these implemented layers:
 4. The deterministic CSV-to-PPTX nameplate workflow.
 5. The FlowFoundry catalog contract: machine-readable declarations and a
    dependency-free validator for every physically bundled component.
+6. The bounded orchestration runtime: adaptive task routing, meetings, durable
+   provider cancellation, and managed Git worktrees for write-capable candidate
+   execution.
 
-The future workflow execution layer is deliberately documented as a roadmap,
-not presented as completed code.
+Automatic candidate integration and publication remain roadmap capabilities;
+the implemented writer-isolation layer deliberately stops at candidate diff and
+validation.
 
 ## Shared lifecycle
 

@@ -28,19 +28,19 @@ probed with a billed or network call.
 | Area | State | Repository fact and v1 boundary |
 |---|---|---|
 | Runtime | PARTIAL | `cc` compatibility and explicit native CLI seam exist; live provider calls remain unverified |
-| Workspace | EXISTS | project root, Git context, private run state, artifacts, logs, outputs, and recovery state are local and shared |
+| Workspace | EXISTS | authoritative project root plus FlowFoundry-owned managed Git worktrees; immutable base SHA, durable leases, candidate artifacts, validation handoff, and conservative cleanup are local |
 | Registry | PARTIAL | rich static metadata and runtime discovery exist; external plugin-file loading and quota probes do not |
 | Router | PARTIAL | capabilities, permissions, availability, role preference, cost class, and mature history are used; no full price/latency optimizer |
 | Planner / DAG | EXISTS | explicit schema plus adaptive minimum-path plans and dependency validation |
-| Team | EXISTS | bounded offline teams execute and recover; real shared writers are intentionally serialized |
+| Team | EXISTS | bounded offline teams execute and recover; independent real writers receive separate managed worktrees |
 | Meeting | EXISTS | adaptive multi-agent plans use one bounded Context Pack, independent structured views, deterministic conflict detection, early stop, one selective cross-review, convergence with dissent, hard budgets, call receipts, validation, cancellation, and experience records |
 | Messaging | PARTIAL | atomic mailbox and bounded dependency artifacts exist; providers do not yet consume a general inbox protocol |
-| Executor | PARTIAL | fake, deterministic command, Codex, and Claude-compatible structured seams use durable execution handles, verified POSIX process-group cancellation, graceful escalation, and partial-output preservation; no container quotas |
+| Executor | PARTIAL | fake, deterministic command, Codex, and Claude-compatible structured seams use managed writer cwd, durable execution handles, verified POSIX process-group cancellation, graceful escalation, and partial-output preservation; no container quotas |
 | Reviewer | EXISTS | stable decisions, persisted findings, source blocking, and dependent propagation |
 | Human Approval | EXISTS | hazardous action classes create scoped, persisted gates |
 | Cost | PARTIAL | calls, token fields, latency, and cost are aggregated without inventing unavailable values; provider pricing is not configured |
 | Memory | EXISTS | simple per-agent/category success, retry, latency, token, cost, and review statistics; no ML |
-| Recovery | EXISTS | interrupted repair, input reconciliation, bounded retry, approval retry chain, and resume |
+| Recovery | EXISTS | interrupted repair, Git/process/lease reconciliation, input reconciliation, bounded retry, approval retry chain, and resume |
 | Provider Setup | PARTIAL | executable/auth-state discovery and on-demand setup artifacts exist; automated install/login is not implemented |
 | CLI | EXISTS | catalog, workflow, project, adaptive plan, provider status, team run/status/review/report/retry/resume/cancel/approve |
 
@@ -68,8 +68,8 @@ when one Agent was sufficient. The implemented shortest path was:
 3. Record real call/token/latency/cost fields, leaving unknown data unknown.
 4. Discover provider/runtime state and persist setup requirements only when a
    task actually needs an unavailable provider.
-5. Bind real commands to one persisted project workspace and serialize real
-   writers until worktree isolation exists.
+5. Bind real writers to immutable-base managed worktrees and bind validation to
+   the same candidate without copying dirty main-worktree state.
 6. Reuse native Codex and Claude-compatible structured-output features and pass
    bounded dependency artifacts instead of repeated full context.
 7. Make capabilities the routing gate and roles a preference rather than a
@@ -80,9 +80,7 @@ when one Agent was sufficient. The implemented shortest path was:
 
 1. Validate native adapters with operator-approved, capped-cost smoke calls;
    until then their live auth/model and termination behavior is `unverified`.
-2. Add real writer worktree provisioning before enabling parallel provider
-   edits in one project.
-3. Add project-local registry configuration and adapter entry points so a new
+2. Add project-local registry configuration and adapter entry points so a new
    OpenAI-compatible or local provider does not require core edits.
 
 Local-model hardware discovery, dashboard work, and broad provider coverage are
@@ -90,7 +88,8 @@ deferred until this v1 path is proven with real bounded tasks.
 
 ## Validation
 
-- FlowFoundry foundation: 136 tests passed, including 11 native cancellation tests.
+- FlowFoundry foundation: 160 tests passed, including 24 managed-worktree tests
+  and 11 native cancellation tests.
 - Workspace manager runtime: 66 tests passed.
 - Confera Media Skills contracts: 3 tests passed.
 - Print-ready Nameplate Generator: 3 tests passed.
