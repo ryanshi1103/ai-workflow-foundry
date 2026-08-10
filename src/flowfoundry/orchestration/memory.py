@@ -21,6 +21,8 @@ class AgentPerformanceMemory:
         result: ProviderResult,
         usage: dict[str, Any],
         category: str,
+        *,
+        execution_kind: str = "unknown",
     ) -> None:
         with secure_file_lock(self.path.with_suffix(".lock")):
             data = self._read()
@@ -58,17 +60,31 @@ class AgentPerformanceMemory:
             )
             category_stats["executions"] += 1
             category_stats["successes" if result.success else "failures"] += 1
+            kind_stats = stats.setdefault("execution_kinds", {}).setdefault(
+                execution_kind,
+                {"executions": 0, "successes": 0, "failures": 0},
+            )
+            kind_stats["executions"] += 1
+            kind_stats["successes" if result.success else "failures"] += 1
             stats["last_task_role"] = task.role
             stats["updated_at"] = utc_now()
             data["updated_at"] = utc_now()
             atomic_write_json(self.path, data)
 
-    def routing_scores(self, *, minimum_samples: int = 3) -> dict[str, float]:
+    def routing_scores(
+        self,
+        *,
+        minimum_samples: int = 3,
+        execution_kind: str | None = None,
+    ) -> dict[str, float]:
         scores: dict[str, float] = {}
         for agent_id, stats in self._read().get("agents", {}).items():
-            executions = int(stats.get("executions", 0))
+            selected = stats
+            if execution_kind is not None:
+                selected = stats.get("execution_kinds", {}).get(execution_kind, {})
+            executions = int(selected.get("executions", 0))
             if executions >= minimum_samples:
-                scores[str(agent_id)] = int(stats.get("successes", 0)) / executions
+                scores[str(agent_id)] = int(selected.get("successes", 0)) / executions
         return scores
 
     def record_meeting_contribution(

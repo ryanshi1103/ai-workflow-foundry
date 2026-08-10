@@ -28,7 +28,15 @@ _RESULT_SCHEMA = {
     "properties": {
         "success": {"type": "boolean"},
         "summary": {"type": "string"},
-        "outputs": {"type": "object"},
+        "outputs": {
+            "type": "object",
+            "properties": {
+                "details": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                "artifact_refs": {"type": "array", "items": {"type": "string"}},
+            },
+            "required": ["details", "artifact_refs"],
+            "additionalProperties": False,
+        },
         "review": {
             "anyOf": [
                 {
@@ -69,14 +77,29 @@ _RESULT_SCHEMA = {
                         "remaining_dissent": {"type": "boolean"},
                         "new_evidence": {"type": "array", "items": {"type": "string"}},
                     },
-                    "required": ["position", "confidence"],
+                    "required": [
+                        "position",
+                        "confidence",
+                        "key_reasons",
+                        "risks",
+                        "assumptions",
+                        "blocking_concerns",
+                        "evidence_refs",
+                        "acceptance_constraints_met",
+                        "dissent",
+                        "action",
+                        "position_changed",
+                        "resolved",
+                        "remaining_dissent",
+                        "new_evidence",
+                    ],
                     "additionalProperties": False,
                 },
                 {"type": "null"},
             ]
         },
     },
-    "required": ["success", "summary", "outputs", "review", "findings"],
+    "required": ["success", "summary", "outputs", "review", "findings", "contribution"],
     "additionalProperties": False,
 }
 
@@ -95,6 +118,7 @@ class Provider(Protocol):
 class FakeProvider:
     """Deterministic provider used by tests and the public example."""
 
+    execution_kind = "mock"
     failures_before_success: dict[str, int] = field(default_factory=dict)
     reviews: dict[str, ReviewDecision] = field(default_factory=dict)
     meeting_positions: dict[str, str] = field(default_factory=dict)
@@ -179,6 +203,7 @@ class LocalCommandProvider:
     # Scheduler contract: any task that is allowed to mutate files must receive
     # a managed execution workspace before this provider is invoked.
     requires_managed_worktree = True
+    execution_kind = "real"
 
     def __init__(self, *, enabled: bool = False) -> None:
         self.enabled = enabled

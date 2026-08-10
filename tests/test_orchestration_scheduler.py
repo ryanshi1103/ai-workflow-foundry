@@ -12,6 +12,7 @@ from flowfoundry.orchestration.aggregator import ResultAggregator
 from flowfoundry.orchestration.approvals import ApprovalGate
 from flowfoundry.orchestration.models import (
     AgentSpec,
+    ProviderResult,
     ReviewDecision,
     RiskLevel,
     TaskPlan,
@@ -19,6 +20,7 @@ from flowfoundry.orchestration.models import (
     TaskStatus,
     UsageMetrics,
 )
+from flowfoundry.orchestration.memory import AgentPerformanceMemory
 from flowfoundry.orchestration.planner import RuleBasedPlanner
 from flowfoundry.orchestration.execution import ManagedProcessResult
 from flowfoundry.orchestration.providers import FakeProvider, LocalCommandProvider
@@ -94,6 +96,39 @@ class SchedulerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             UsageMetrics(input_tokens=-1)
 
+    def test_real_routing_scores_exclude_mock_experience(self) -> None:
+        path = self.root / "performance.json"
+        memory = AgentPerformanceMemory(path)
+        agent = default_registry().synthetic().get("codex-builder")
+        task = RuleBasedPlanner().plan("Implement one code fix").tasks[0]
+        usage = {"provider_calls": 1, "latency_ms": 1}
+        for _ in range(3):
+            memory.record(
+                agent,
+                task,
+                ProviderResult(False, "mock failure"),
+                usage,
+                "coding",
+                execution_kind="mock",
+            )
+        memory.record(
+            agent,
+            task,
+            ProviderResult(True, "real success"),
+            usage,
+            "coding",
+            execution_kind="real",
+        )
+
+        self.assertEqual(
+            memory.routing_scores(minimum_samples=1, execution_kind="mock")[agent.id],
+            0.0,
+        )
+        self.assertEqual(
+            memory.routing_scores(minimum_samples=1, execution_kind="real")[agent.id],
+            1.0,
+        )
+
     def test_local_command_provider_executes_in_shared_project_workspace(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             project_root = Path(temp_dir) / "project"
@@ -141,10 +176,27 @@ class SchedulerTests(unittest.TestCase):
             agent = default_registry().synthetic().get("codex-builder")
 
             def complete(command: list[str], **kwargs: object) -> object:
+                schema_path = Path(command[command.index("--output-schema") + 1])
+                schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+                def assert_strict_objects(node: object) -> None:
+                    if isinstance(node, dict):
+                        if node.get("type") == "object":
+                            self.assertIs(node.get("additionalProperties"), False)
+                            properties = node.get("properties", {})
+                            self.assertEqual(set(node.get("required", [])), set(properties))
+                        for value in node.values():
+                            assert_strict_objects(value)
+                    elif isinstance(node, list):
+                        for value in node:
+                            assert_strict_objects(value)
+
+                assert_strict_objects(schema)
                 output_path = Path(command[command.index("--output-last-message") + 1])
                 output_path.write_text(
-                    '{"success":true,"summary":"done","outputs":{},'
-                    '"review":null,"findings":[]}',
+                    '{"success":true,"summary":"done","outputs":{'
+                    '"details":"fixed","artifact_refs":[]},"review":null,'
+                    '"findings":[],"contribution":null}',
                     encoding="utf-8",
                 )
                 return ManagedProcessResult(

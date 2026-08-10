@@ -18,16 +18,16 @@ The audit-start worktree was not clean. A `.gitignore` addition for
 present. They were preserved. No private session content or Codex auth file was
 read.
 
-Executable discovery at audit time found Codex and Claude. DeepSeek is provided
-through the workspace manager's isolated Claude-compatible configuration, not
-through a separate `deepseek` command. Authentication was deliberately not
-probed with a billed or network call.
+Executable discovery found Codex and Claude. DeepSeek is provided through the
+workspace manager's isolated Claude-compatible configuration, not through a
+separate `deepseek` command. A later four-call controlled smoke verified a
+Codex writer and DeepSeek-compatible reviewer without reading credential files.
 
 ## Capability Map
 
 | Area | State | Repository fact and v1 boundary |
 |---|---|---|
-| Runtime | PARTIAL | `cc` compatibility and explicit native CLI seam exist; live provider calls remain unverified |
+| Runtime | PARTIAL | `cc` compatibility and explicit native CLI seam exist; Codex writing and DeepSeek-compatible review are live-verified, while direct Claude, Meeting, and live cancel remain unverified |
 | Workspace | EXISTS | authoritative project root plus FlowFoundry-owned managed Git worktrees; immutable base SHA, durable leases, candidate artifacts, validation handoff, and conservative cleanup are local |
 | Registry | PARTIAL | rich static metadata and runtime discovery exist; external plugin-file loading and quota probes do not |
 | Router | PARTIAL | capabilities, permissions, availability, role preference, cost class, and mature history are used; no full price/latency optimizer |
@@ -78,8 +78,8 @@ when one Agent was sufficient. The implemented shortest path was:
 
 ## Highest-value next actions
 
-1. Validate native adapters with operator-approved, capped-cost smoke calls;
-   until then their live auth/model and termination behavior is `unverified`.
+1. Run SELF-BOOTSTRAP #1 as a candidate-only improvement using the now
+   live-verified writer/reviewer substrate.
 2. Add project-local registry configuration and adapter entry points so a new
    OpenAI-compatible or local provider does not require core edits.
 
@@ -88,7 +88,7 @@ deferred until this v1 path is proven with real bounded tasks.
 
 ## Validation
 
-- FlowFoundry foundation: 160 tests passed, including 24 managed-worktree tests
+- FlowFoundry foundation: 164 tests passed, including 27 managed-worktree tests
   and 11 native cancellation tests.
 - Workspace manager runtime: 66 tests passed.
 - Confera Media Skills contracts: 3 tests passed.

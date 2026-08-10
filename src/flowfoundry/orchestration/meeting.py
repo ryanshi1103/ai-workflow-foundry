@@ -84,7 +84,9 @@ class MeetingRuntime:
             raise ValueError("task plan does not contain a meeting plan")
 
         performance = AgentPerformanceMemory(workspace.performance_memory_path)
-        self.router.history_scores = performance.routing_scores()
+        self.router.history_scores = performance.routing_scores(
+            execution_kind=self._execution_kind()
+        )
         tasks = {task.id: task for task in plan.tasks}
 
         while True:
@@ -840,8 +842,17 @@ class MeetingRuntime:
         profile = workspace.plan().task_profile
         category = profile.task_type if profile is not None else task.role
         try:
-            memory.record(self.router.registry.get(agent_id), task, result, usage, category)
-            self.router.history_scores = memory.routing_scores()
+            memory.record(
+                self.router.registry.get(agent_id),
+                task,
+                result,
+                usage,
+                category,
+                execution_kind=self._execution_kind(),
+            )
+            self.router.history_scores = memory.routing_scores(
+                execution_kind=self._execution_kind()
+            )
         except (OSError, TypeError, ValueError) as exc:
             workspace.update_task(
                 task.id,
@@ -1512,6 +1523,7 @@ class MeetingRuntime:
         experience = {
             "schema_version": 1,
             "experience_id": f"{workspace.run_id}:meeting:{meeting_attempt}",
+            "execution_kind": self._execution_kind(),
             "run_id": workspace.run_id,
             "meeting_attempt": meeting_attempt,
             "task_class": (
@@ -1579,6 +1591,9 @@ class MeetingRuntime:
             return run_manifest
 
         return workspace.update_manifest(finish)
+
+    def _execution_kind(self) -> str:
+        return str(getattr(self.provider, "execution_kind", "unknown"))
 
     @staticmethod
     def _elapsed_seconds(started_at: str, finished_at: str) -> float | None:

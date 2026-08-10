@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import subprocess
@@ -615,13 +616,16 @@ class WorktreeManager:
                     "candidate_branch": record.get("branch"),
                     "directory": Path(str(record.get("path", "candidate"))).name,
                     "dirty": dirty,
-                    "retained_after_run": bool(record.get("retained_after_run", False)),
+                    "retained_after_run": bool(record.get("retained_after_run", False) or dirty),
                     "allocation_latency_ms": record.get("allocation_latency_ms"),
                     "cleanup_latency_ms": record.get("cleanup_latency_ms"),
                     "active_writer": record.get("active_writer") is not None,
                 }
             )
-        owned_paths = {Path(str(record["path"])).resolve() for record in self.records()}
+        owned_paths = {
+            Path(str(record["path"])).resolve()
+            for record in self.records()
+        } | self._owned_paths_across_runs()
         for item in self.discover():
             if item.path in owned_paths:
                 continue
@@ -640,6 +644,24 @@ class WorktreeManager:
                     }
                 )
         return statuses
+
+    def _owned_paths_across_runs(self) -> set[Path]:
+        """Recognize other runs' leases without taking ownership of them."""
+
+        owned: set[Path] = set()
+        for path in self.workspace.root.glob("*/worktrees/wt-*.json"):
+            try:
+                content = path.read_text(encoding="utf-8")
+                if len(content) > 1_000_000:
+                    continue
+                record = json.loads(content)
+                if not isinstance(record, dict):
+                    continue
+                self._validate_owned_record(record)
+            except (OSError, json.JSONDecodeError, KeyError, WorktreeError):
+                continue
+            owned.add(Path(str(record["path"])).resolve())
+        return owned
 
     def record(self, worktree_id: str) -> dict[str, Any]:
         path = self._record_path(worktree_id)

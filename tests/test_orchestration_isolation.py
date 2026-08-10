@@ -373,6 +373,27 @@ class WorktreeIsolationTests(unittest.TestCase):
             git(self.fixture.project, "worktree", "remove", str(orphan_path))
             git(self.fixture.project, "branch", "-d", "user/inside-managed-root")
 
+    def test_status_does_not_claim_another_runs_owned_worktree_as_orphaned(self) -> None:
+        other_workspace = self.fixture.workspace("other-run")
+        other_manager = WorktreeManager(
+            other_workspace,
+            managed_root=self.fixture.managed,
+        )
+        other = other_manager.allocate(
+            task_id="other",
+            participant_id="writer",
+            attempt_id=1,
+            base_commit=self.fixture.base,
+        )
+        (Path(other["path"]) / "dirty.txt").write_text("retained\n", encoding="utf-8")
+        other["status"] = WorktreeStatus.COMPLETED.value
+        other_manager._write_record(other)
+
+        self.assertEqual(self.manager.status_records(), [])
+        other_status = other_manager.status_records()[0]
+        self.assertTrue(other_status["dirty"])
+        self.assertTrue(other_status["retained_after_run"])
+
     def test_non_git_workspace_reports_unavailable(self) -> None:
         non_git = self.root / "plain"
         non_git.mkdir()
@@ -413,6 +434,7 @@ class WorktreeIsolationTests(unittest.TestCase):
 
 class MutatingFixtureProvider:
     requires_managed_worktree = True
+    execution_kind = "mock"
 
     def __init__(self, failures_before_success: int = 0) -> None:
         self.failures_before_success = failures_before_success
@@ -573,6 +595,72 @@ class SchedulerIsolationIntegrationTests(unittest.TestCase):
         candidate = workspace.read_json(states["test"]["candidate_result_ref"])
         self.assertEqual(candidate["provider_result"]["summary"], "wrote candidate")
         self.assertEqual(candidate["experience"]["writer_attempts"], 1)
+        self.assertEqual((self.fixture.project / "base.txt").read_text(), "original\n")
+
+    def test_writer_validation_commands_execute_in_candidate_worktree(self) -> None:
+        validation_command = (
+            f"{sys.executable} -c "
+            "\"from pathlib import Path; "
+            "print(Path.cwd()); "
+            "assert Path('base.txt').read_text() == 'validated\\n'\""
+        )
+        task = TaskSpec(
+            id="build",
+            title="build",
+            role="builder",
+            required_capabilities=("implementation",),
+            inputs={"value": "validated"},
+            required_permissions=("read_workspace", "write_workspace"),
+            validation_commands=(validation_command,),
+            retry_limit=0,
+        )
+        workspace = self.workspace("writer-validation", (task,))
+
+        RunScheduler(
+            TaskRouter(self.registry),
+            MutatingFixtureProvider(),
+        ).run(workspace)
+
+        state = workspace.manifest()["tasks"]["build"]
+        candidate_path = Path(WorktreeManager(workspace).records()[0]["path"])
+        self.assertEqual(state["status"], TaskStatus.COMPLETED.value)
+        self.assertTrue(state["validation"]["success"])
+        self.assertEqual(
+            Path(state["validation"]["commands"][0]["stdout"].strip()),
+            candidate_path,
+        )
+        candidate = workspace.read_json(state["candidate_result_ref"])
+        self.assertTrue(candidate["validation"]["success"])
+        self.assertEqual(candidate["experience"]["execution_kind"], "mock")
+        self.assertEqual((self.fixture.project / "base.txt").read_text(), "original\n")
+
+    def test_failed_candidate_validation_overrides_provider_success(self) -> None:
+        task = TaskSpec(
+            id="build",
+            title="build",
+            role="builder",
+            required_capabilities=("implementation",),
+            inputs={"value": "provider-succeeded"},
+            required_permissions=("read_workspace", "write_workspace"),
+            validation_commands=(f"{sys.executable} -c \"raise SystemExit(7)\"",),
+            retry_limit=0,
+        )
+        workspace = self.workspace("failed-writer-validation", (task,))
+
+        RunScheduler(
+            TaskRouter(self.registry),
+            MutatingFixtureProvider(),
+        ).run(workspace)
+
+        state = workspace.manifest()["tasks"]["build"]
+        result = workspace.read_json("tasks/build/result.json")
+        candidate = workspace.read_json(state["candidate_result_ref"])
+        self.assertEqual(state["status"], TaskStatus.FAILED.value)
+        self.assertFalse(state["validation"]["success"])
+        self.assertEqual(state["validation"]["commands"][0]["exit_code"], 7)
+        self.assertFalse(result["success"])
+        self.assertTrue(candidate["provider_result"]["success"])
+        self.assertFalse(candidate["validation"]["success"])
         self.assertEqual((self.fixture.project / "base.txt").read_text(), "original\n")
 
     def test_transient_retry_reuses_candidate_with_new_execution_attempt(self) -> None:

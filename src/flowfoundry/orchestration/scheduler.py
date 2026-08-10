@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import os
+import shlex
+import subprocess
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import replace
 from threading import Semaphore
 from typing import Any
 
@@ -55,7 +60,9 @@ class RunScheduler:
                 approval_gate=self.approval_gate,
             ).run(workspace)
         performance = AgentPerformanceMemory(workspace.performance_memory_path)
-        self.router.history_scores = performance.routing_scores()
+        self.router.history_scores = performance.routing_scores(
+            execution_kind=self._execution_kind()
+        )
         tasks = {task.id: task for task in plan.tasks}
         while True:
             manifest = workspace.manifest()
@@ -346,6 +353,45 @@ class RunScheduler:
                 if final_result.success:
                     break
         assert final_result is not None
+        provider_result = final_result
+        validation: dict[str, Any] = {}
+        if (
+            final_result.success
+            and manager
+            and worktree
+            and mode == IsolationMode.MANAGED_WORKTREE
+            and not is_validation
+            and task.validation_commands
+        ):
+            try:
+                manager.begin_validation(str(worktree["worktree_id"]))
+                validation = self._run_validation_commands(
+                    task.validation_commands,
+                    execution_workspace,
+                    timeout_seconds=task.timeout_seconds,
+                )
+                manager.finish_validation(str(worktree["worktree_id"]), validation)
+            except WorktreeError as exc:
+                validation = {
+                    "success": False,
+                    "error": f"{exc.code}: {exc}",
+                    "commands": [],
+                }
+            if not validation.get("success"):
+                failed_command = next(
+                    (
+                        str(item.get("command"))
+                        for item in validation.get("commands", ())
+                        if isinstance(item, dict) and not item.get("success")
+                    ),
+                    "candidate validation",
+                )
+                final_result = replace(
+                    final_result,
+                    success=False,
+                    summary=f"validation failed: {failed_command}",
+                    outputs={**final_result.outputs, "validation": validation},
+                )
         workspace.write_task_result(task.id, final_result.to_dict())
         usage = self._aggregate_usage(attempt_usage)
         workspace.update_task(task.id, usage=usage)
@@ -359,16 +405,16 @@ class RunScheduler:
                     "provider_summary": final_result.summary,
                 }
                 if is_validation
-                else dict(worktree.get("validation", {}))
+                else validation or dict(manager.record(str(worktree["worktree_id"])).get("validation", {}))
             )
             if is_validation:
                 manager.finish_validation(str(worktree["worktree_id"]), validation)
             candidate = manager.candidate_result(
                 str(worktree["worktree_id"]),
                 provider_result={
-                    "success": final_result.success,
-                    "cancelled": final_result.cancelled,
-                    "summary": final_result.summary,
+                    "success": provider_result.success,
+                    "cancelled": provider_result.cancelled,
+                    "summary": provider_result.summary,
                 },
                 validation=validation,
             )
@@ -391,6 +437,13 @@ class RunScheduler:
             )
             candidate_payload["experience"] = {
                 "experience_id": f"{workspace.run_id}:candidate:{worktree['worktree_id']}",
+                "execution_kind": self._execution_kind(),
+                "provider": agent.provider,
+                "strategy": (
+                    workspace.plan().routing_decision.mode.value
+                    if workspace.plan().routing_decision is not None
+                    else "unspecified"
+                ),
                 "isolation_mode": IsolationMode.MANAGED_WORKTREE.value,
                 "worktree_id": worktree["worktree_id"],
                 "base_commit": worktree["base_commit"],
@@ -415,8 +468,17 @@ class RunScheduler:
         category = profile.task_type if profile is not None else task.role
         memory = AgentPerformanceMemory(workspace.performance_memory_path)
         try:
-            memory.record(agent, task, final_result, usage, category)
-            self.router.history_scores = memory.routing_scores()
+            memory.record(
+                agent,
+                task,
+                final_result,
+                usage,
+                category,
+                execution_kind=self._execution_kind(),
+            )
+            self.router.history_scores = memory.routing_scores(
+                execution_kind=self._execution_kind()
+            )
         except (OSError, TypeError, ValueError) as exc:
             workspace.update_task(
                 task.id,
@@ -453,6 +515,73 @@ class RunScheduler:
 
         status = TaskStatus.REVIEW_REQUIRED if task.review_required else TaskStatus.COMPLETED
         workspace.update_task(task.id, status=status.value, finished_at=utc_now(), error=None)
+
+    def _execution_kind(self) -> str:
+        return str(getattr(self.provider, "execution_kind", "unknown"))
+
+    @staticmethod
+    def _run_validation_commands(
+        commands: tuple[str, ...],
+        project_root: Any,
+        *,
+        timeout_seconds: int,
+    ) -> dict[str, Any]:
+        results: list[dict[str, Any]] = []
+        environment = os.environ.copy()
+        environment["PYTHONDONTWRITEBYTECODE"] = "1"
+        for command in commands:
+            started = time.monotonic()
+            try:
+                argv = shlex.split(command)
+                if not argv:
+                    raise ValueError("validation command is empty")
+                completed = subprocess.run(
+                    argv,
+                    cwd=project_root,
+                    env=environment,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=timeout_seconds,
+                    check=False,
+                )
+                result = {
+                    "command": command,
+                    "success": completed.returncode == 0,
+                    "exit_code": completed.returncode,
+                    "stdout": completed.stdout[-40_000:],
+                    "stderr": completed.stderr[-40_000:],
+                    "latency_ms": round((time.monotonic() - started) * 1000),
+                    "timed_out": False,
+                }
+            except subprocess.TimeoutExpired as exc:
+                result = {
+                    "command": command,
+                    "success": False,
+                    "exit_code": None,
+                    "stdout": (exc.stdout or "")[-40_000:],
+                    "stderr": (exc.stderr or "")[-40_000:],
+                    "latency_ms": round((time.monotonic() - started) * 1000),
+                    "timed_out": True,
+                }
+            except (OSError, ValueError) as exc:
+                result = {
+                    "command": command,
+                    "success": False,
+                    "exit_code": None,
+                    "stdout": "",
+                    "stderr": f"{type(exc).__name__}: {exc}",
+                    "latency_ms": round((time.monotonic() - started) * 1000),
+                    "timed_out": False,
+                }
+            results.append(result)
+            if not result["success"]:
+                break
+        return {
+            "success": len(results) == len(commands) and all(item["success"] for item in results),
+            "commands": results,
+        }
 
     @staticmethod
     def _aggregate_usage(attempts: list[dict[str, Any]]) -> dict[str, Any]:
