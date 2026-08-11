@@ -24,6 +24,7 @@ class ProviderSetupFlow:
                     "model": agent.model,
                     "executable": agent.command_template[0] if agent.command_template else None,
                     "availability": "available" if agent.availability else "unavailable",
+                    "readiness": agent.readiness,
                     "authentication_state": agent.authentication_state,
                     "credential_sources": list(credential_sources(agent.provider)),
                 }

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import io
 import json
+import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 from flowfoundry.cli import main
 from flowfoundry.orchestration.planner import RuleBasedPlanner
@@ -73,7 +75,17 @@ class TeamCliTests(unittest.TestCase):
         self.assertFalse(self.runs_root.exists())
 
     def test_provider_status_is_structured_and_contains_no_credentials(self) -> None:
-        result, output, error = self.call("team", "providers")
+        completed = subprocess.CompletedProcess(
+            ("codex", "login", "status"),
+            0,
+            stdout="Logged in using ChatGPT",
+            stderr="",
+        )
+        with patch(
+            "flowfoundry.orchestration.discovery._run_command",
+            return_value=completed,
+        ):
+            result, output, error = self.call("team", "providers")
         self.assertEqual((result, error), (0, ""))
         statuses = json.loads(output)
         self.assertEqual(
@@ -81,8 +93,25 @@ class TeamCliTests(unittest.TestCase):
             {"claude-architect", "codex-builder", "deepseek-reviewer", "local-tester"},
         )
         for status in statuses:
-            self.assertIn(status["authentication_state"], {"configured", "unconfigured", "unverified", "not_required"})
+            self.assertIn(
+                status["authentication_state"],
+                {
+                    "configured",
+                    "not_authenticated",
+                    "not_required",
+                    "unconfigured",
+                    "unverified",
+                    "verified",
+                },
+            )
+            self.assertIn(
+                status["readiness"],
+                {"READY", "AVAILABLE_UNVERIFIED", "UNAVAILABLE"},
+            )
             self.assertNotIn("credential_value", status)
+        codex = next(status for status in statuses if status["provider"] == "codex")
+        self.assertEqual(codex["authentication_state"], "verified")
+        self.assertEqual(codex["readiness"], "READY")
 
     def test_run_persists_explicit_shared_workspace(self) -> None:
         task_file = Path(self.temp_dir.name) / "workspace-goal.json"

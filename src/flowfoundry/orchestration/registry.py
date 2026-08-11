@@ -8,6 +8,15 @@ from typing import Iterable
 from .models import AgentSpec, IsolationMode, TaskSpec
 
 _COST_ORDER = {"free": 0, "low": 1, "medium": 2, "high": 3}
+_AUTH_REQUIRED_PROVIDERS = frozenset({"codex", "claude", "deepseek"})
+
+
+def _execution_ready(agent: AgentSpec) -> bool:
+    if not agent.availability or agent.readiness != "READY":
+        return False
+    if agent.provider in _AUTH_REQUIRED_PROVIDERS:
+        return agent.authentication_state in {"verified", "not_required"}
+    return True
 
 
 class AgentRegistry:
@@ -58,7 +67,7 @@ class AgentRegistry:
         excluded = excluded_agent_ids or set()
         candidates: list[AgentSpec] = []
         for agent in self._agents.values():
-            if agent.id in excluded or not agent.enabled or not agent.availability:
+            if agent.id in excluded or not agent.enabled or not _execution_ready(agent):
                 continue
             if running.get(agent.id, 0) >= agent.concurrency_limit:
                 continue
@@ -72,7 +81,7 @@ class AgentRegistry:
             fallback = self.get(task.fallback_agent)
             if (
                 fallback.enabled
-                and fallback.availability
+                and _execution_ready(fallback)
                 and fallback.id not in excluded
                 and running.get(fallback.id, 0) < fallback.concurrency_limit
                 and permissions.issubset(fallback.permission_profile)
@@ -96,7 +105,13 @@ class AgentRegistry:
         """Return a registry enabled for fake/offline provider execution."""
 
         return AgentRegistry(
-            replace(agent, availability=True, enabled=True)
+            replace(
+                agent,
+                availability=True,
+                enabled=True,
+                authentication_state="not_required",
+                readiness="READY",
+            )
             for agent in self._agents.values()
         )
 
@@ -118,6 +133,7 @@ def default_registry() -> AgentRegistry:
                 permission_profile=write,
                 context_limit=200_000,
                 availability=False,
+                readiness="UNAVAILABLE",
                 workspace_mode=IsolationMode.MANAGED_WORKTREE.value,
                 model="configured-by-codex-cli",
                 mode="native_cli",
@@ -138,6 +154,7 @@ def default_registry() -> AgentRegistry:
                 permission_profile=common_read,
                 context_limit=128_000,
                 availability=False,
+                readiness="UNAVAILABLE",
                 workspace_mode=IsolationMode.READ_ONLY.value,
                 model="configured-by-deepseek-cli",
                 mode="native_cli",
@@ -158,6 +175,7 @@ def default_registry() -> AgentRegistry:
                 permission_profile=common_read,
                 context_limit=200_000,
                 availability=False,
+                readiness="UNAVAILABLE",
                 workspace_mode=IsolationMode.READ_ONLY.value,
                 model="configured-by-claude-cli",
                 mode="native_cli",
@@ -178,6 +196,7 @@ def default_registry() -> AgentRegistry:
                 permission_profile=write,
                 context_limit=32_000,
                 availability=False,
+                readiness="UNAVAILABLE",
                 workspace_mode=IsolationMode.MANAGED_WORKTREE.value,
                 model="python-runtime",
                 mode="deterministic_command",
