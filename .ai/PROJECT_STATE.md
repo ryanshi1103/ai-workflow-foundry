@@ -23,6 +23,7 @@ code take precedence over older migration reports.
 | Task intelligence | Rule-based task profile and `single_agent`, `single_agent_reviewer`, or `multi_agent` minimum path |
 | Agent registry | Capability, tool, context, privacy, availability, auth-state, cost-class, and reliability metadata |
 | Provider discovery | Runtime discovery without reading or printing credential values |
+| Workspace preflight | Codex Git compatibility is checked before attempts; user non-Git workspaces block, while explicitly owned disposable workspaces may be initialized safely |
 | Planner and DAG | Explicit JSON plans plus adaptive bounded plans |
 | Team runtime | Atomic tasks, dependency scheduling, mailbox, review, approval, aggregation, retry, resume, and durable provider cancellation |
 | Bounded Meeting | Durable state machine, one Context Pack, independent views, deterministic conflict gate, early stop, targeted cross-review, convergence with dissent, hard budgets, validation, cancellation, and resume receipts |
@@ -30,7 +31,7 @@ code take precedence over older migration reports.
 | Provider adapters | Live-verified strict Codex and Claude-compatible envelopes with durable process handles; real execution remains explicit opt-in |
 | Cost and performance | Per-attempt calls/token/latency/cost plus mock/real-separated project-local agent statistics |
 | Provider setup | Missing runtime becomes a persisted `setup_required` artifact instead of a crash |
-| Foundation tests | 164 passed after real-provider hardening, including 27 writer-isolation and 11 cancellation tests |
+| Foundation tests | 200 passed, including Codex readiness, workspace-preflight, writer-isolation, and native-cancellation coverage |
 
 ## Honest v1 boundary
 
@@ -56,6 +57,13 @@ explicitly depend on it require a future snapshot capability. Automatic
 candidate merge/push/PR, live Meeting/cancellation smoke, full submodule
 lifecycle support, local-model hardware
 selection, and plugin loading from external registry files remain later work.
+
+Provider READY does not imply that every workspace is executable. The
+scheduler now persists a Codex workspace-preflight result before a provider
+attempt. Non-Git user/project workspaces fail closed with zero calls and zero
+retry consumption. Only a workspace created by FlowFoundry with explicit
+`flowfoundry_disposable` ownership may receive an automatic, remote-free,
+commit-free `git init`; the Codex safety check is not bypassed.
 
 See `docs/REAL_PROVIDER_SMOKE_REPORT.md` for the bounded live evidence and
 `docs/V1-AUDIT.md` for the capability map.

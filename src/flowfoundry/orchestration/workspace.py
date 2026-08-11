@@ -30,6 +30,7 @@ RUN_DIRECTORIES = (
     "final",
 )
 _SAFE_ID = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")
+_WORKSPACE_ORIGINS = {"user", "project", "flowfoundry_disposable"}
 
 
 def utc_now() -> str:
@@ -104,11 +105,25 @@ class RunWorkspace:
         plan: TaskPlan,
         *,
         project_root: Path | str | None = None,
+        workspace_origin: str = "project",
     ) -> RunWorkspace:
         workspace = cls(root, run_id)
-        resolved_project = Path.cwd().resolve() if project_root is None else Path(project_root).resolve()
-        if not resolved_project.is_dir():
-            raise ValueError(f"project workspace does not exist or is not a directory: {resolved_project}")
+        if workspace_origin not in _WORKSPACE_ORIGINS:
+            raise ValueError(f"unsupported workspace origin: {workspace_origin}")
+        if workspace_origin == "flowfoundry_disposable":
+            if project_root is not None:
+                raise ValueError("a disposable workspace path is created by FlowFoundry")
+            resolved_project = workspace.path / "disposable-workspace"
+        else:
+            resolved_project = (
+                Path.cwd().resolve()
+                if project_root is None
+                else Path(project_root).resolve()
+            )
+            if not resolved_project.is_dir():
+                raise ValueError(
+                    f"project workspace does not exist or is not a directory: {resolved_project}"
+                )
         workspace.root.mkdir(parents=True, exist_ok=True, mode=0o700)
         os.chmod(workspace.root, 0o700)
         try:
@@ -117,11 +132,16 @@ class RunWorkspace:
             raise FileExistsError(f"run already exists: {run_id}") from exc
         for name in RUN_DIRECTORIES:
             (workspace.path / name).mkdir(mode=0o700)
+        if workspace_origin == "flowfoundry_disposable":
+            resolved_project.mkdir(mode=0o700)
         manifest = {
             "schema_version": SCHEMA_VERSION,
             "run_id": run_id,
             "goal": plan.goal,
             "project_root": str(resolved_project),
+            "workspace_origin": workspace_origin,
+            "workspace_owned_by_flowfoundry": workspace_origin == "flowfoundry_disposable",
+            "workspace_disposable": workspace_origin == "flowfoundry_disposable",
             "plan": plan.to_dict(),
             "input_hash": stable_hash(plan.to_dict()),
             "status": "running",
@@ -241,14 +261,27 @@ class RunWorkspace:
 
     @property
     def project_root(self) -> Path:
-        manifest = self.manifest()
-        configured = manifest.get("project_root")
-        if configured is None:
-            return self.path
-        project_root = Path(str(configured)).resolve()
+        project_root = self.project_root_path
         if not project_root.is_dir():
             raise ValueError(f"persisted project workspace is unavailable: {project_root}")
         return project_root
+
+    @property
+    def project_root_path(self) -> Path:
+        configured = self.manifest().get("project_root")
+        return self.path if configured is None else Path(str(configured)).resolve()
+
+    @property
+    def workspace_origin(self) -> str:
+        return str(self.manifest().get("workspace_origin", "project"))
+
+    @property
+    def workspace_owned_by_flowfoundry(self) -> bool:
+        return bool(self.manifest().get("workspace_owned_by_flowfoundry", False))
+
+    @property
+    def workspace_disposable(self) -> bool:
+        return bool(self.manifest().get("workspace_disposable", False))
 
     @property
     def performance_memory_path(self) -> Path:

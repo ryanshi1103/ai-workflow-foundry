@@ -132,6 +132,29 @@ class TeamCliTests(unittest.TestCase):
         self.assertEqual((result, error), (0, ""))
         self.assertEqual(Path(json.loads(output)["project_root"]), project_root)
 
+    def test_run_can_create_owned_disposable_workspace(self) -> None:
+        task_file = Path(self.temp_dir.name) / "disposable-goal.json"
+        task_file.write_text(
+            json.dumps({"goal": "Document one synthetic note"}), encoding="utf-8"
+        )
+        result, output, error = self.call(
+            "team",
+            "run",
+            str(task_file),
+            "--run-id",
+            "disposable-run",
+            "--disposable-workspace",
+            "--runs-root",
+            str(self.runs_root),
+        )
+        self.assertEqual((result, error), (0, ""))
+        manifest = json.loads(output)
+        project_root = Path(manifest["project_root"])
+        self.assertEqual(manifest["workspace_origin"], "flowfoundry_disposable")
+        self.assertTrue(manifest["workspace_owned_by_flowfoundry"])
+        self.assertTrue(manifest["workspace_disposable"])
+        self.assertEqual(project_root.parent, self.runs_root / "disposable-run")
+
     def test_adaptive_meeting_plan_run_status_and_cancel_are_observable(self) -> None:
         task_file = Path(self.temp_dir.name) / "meeting-goal.json"
         task_file.write_text(

@@ -28,6 +28,10 @@ from .tool_policy import (
     ToolExposurePolicy,
     ToolPolicyMode,
 )
+from .workspace_preflight import (
+    WorkspaceCompatibilityPreflight,
+    WorkspacePreflightResult,
+)
 
 __all__ = [
     "AgentRegistry",
@@ -55,5 +59,7 @@ __all__ = [
     "ToolExposurePolicy",
     "ToolPolicyMode",
     "UsageMetrics",
+    "WorkspaceCompatibilityPreflight",
+    "WorkspacePreflightResult",
     "default_registry",
 ]

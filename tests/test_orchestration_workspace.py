@@ -57,6 +57,29 @@ class RunWorkspaceTests(unittest.TestCase):
         opened = RunWorkspace.open(self.root, "run-001")
         self.assertEqual(opened.plan(), self.plan)
 
+    def test_disposable_workspace_is_created_inside_owned_run(self) -> None:
+        workspace = RunWorkspace.create(
+            self.root,
+            "disposable",
+            self.plan,
+            workspace_origin="flowfoundry_disposable",
+        )
+        self.assertEqual(workspace.workspace_origin, "flowfoundry_disposable")
+        self.assertTrue(workspace.workspace_owned_by_flowfoundry)
+        self.assertTrue(workspace.workspace_disposable)
+        self.assertTrue(workspace.project_root.is_dir())
+        self.assertEqual(workspace.project_root.parent, workspace.path)
+
+    def test_disposable_workspace_rejects_caller_supplied_path(self) -> None:
+        with self.assertRaisesRegex(ValueError, "created by FlowFoundry"):
+            RunWorkspace.create(
+                self.root,
+                "unsafe-disposable",
+                self.plan,
+                project_root=Path(self.temp_dir.name),
+                workspace_origin="flowfoundry_disposable",
+            )
+
 
 class MailboxConcurrencyTests(unittest.TestCase):
     def test_parallel_writers_produce_unique_atomic_messages(self) -> None:

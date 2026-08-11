@@ -36,7 +36,13 @@ def add_team_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
     run = commands.add_parser("run", help="start an offline-safe task plan")
     run.add_argument("task_file", type=Path)
     run.add_argument("--run-id")
-    run.add_argument("--workspace", type=Path, default=Path.cwd())
+    workspace = run.add_mutually_exclusive_group()
+    workspace.add_argument("--workspace", type=Path)
+    workspace.add_argument(
+        "--disposable-workspace",
+        action="store_true",
+        help="let FlowFoundry create an owned disposable workspace inside the run",
+    )
     _add_root_and_provider(run)
 
     status = commands.add_parser("status", help="inspect persisted run state")
@@ -120,6 +126,11 @@ def dispatch_team(args: argparse.Namespace) -> int:
                 run_id,
                 plan,
                 project_root=args.workspace,
+                workspace_origin=(
+                    "flowfoundry_disposable"
+                    if args.disposable_workspace
+                    else "project"
+                ),
             )
             _scheduler(args.enable_real_provider).run(workspace)
             ResultAggregator().aggregate(workspace)

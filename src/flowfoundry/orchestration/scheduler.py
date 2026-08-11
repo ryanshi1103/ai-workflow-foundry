@@ -8,6 +8,7 @@ import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import replace
+from pathlib import Path
 from threading import Semaphore
 from typing import Any
 
@@ -17,11 +18,19 @@ from .isolation import WorktreeError, WorktreeManager
 from .mailbox import Mailbox
 from .meeting import MeetingRuntime
 from .memory import AgentPerformanceMemory
-from .models import IsolationMode, ProviderResult, ReviewDecision, TaskSpec, TaskStatus
-from .providers import Provider
+from .models import (
+    AgentSpec,
+    IsolationMode,
+    ProviderResult,
+    ReviewDecision,
+    TaskSpec,
+    TaskStatus,
+)
 from .provider_setup import ProviderSetupFlow
+from .providers import Provider
 from .router import TaskRouter
 from .workspace import RunWorkspace, atomic_write_json, utc_now
+from .workspace_preflight import WorkspaceCompatibilityPreflight
 
 _DEPENDENCY_FAILURE = {
     TaskStatus.BLOCKED.value,
@@ -40,11 +49,13 @@ class RunScheduler:
         *,
         max_workers: int = 4,
         approval_gate: ApprovalGate | None = None,
+        workspace_preflight: WorkspaceCompatibilityPreflight | None = None,
     ) -> None:
         self.router = router
         self.provider = provider
         self.max_workers = max(1, max_workers)
         self.approval_gate = approval_gate or ApprovalGate()
+        self.workspace_preflight = workspace_preflight or WorkspaceCompatibilityPreflight()
         self._agent_slots = {
             agent.id: Semaphore(agent.concurrency_limit)
             for agent in self.router.registry.list()
@@ -59,6 +70,7 @@ class RunScheduler:
                 self.provider,
                 approval_gate=self.approval_gate,
             ).run(workspace)
+        self._reset_workspace_preflight_blockers(workspace)
         performance = AgentPerformanceMemory(workspace.performance_memory_path)
         self.router.history_scores = performance.routing_scores(
             execution_kind=self._execution_kind()
@@ -178,7 +190,16 @@ class RunScheduler:
         current_attempts = int(workspace.manifest()["tasks"][task.id].get("attempts", 0))
         final_result: ProviderResult | None = None
         attempt_usage: list[dict[str, Any]] = []
-        execution_workspace = workspace.project_root
+        project_workspace = workspace.project_root_path
+        if self._execution_kind() != "mock" and not self._workspace_preflight_allows(
+            workspace,
+            task,
+            agent,
+            project_workspace,
+            current_attempts=current_attempts,
+        ):
+            return
+        execution_workspace = project_workspace
         manager: WorktreeManager | None = None
         worktree: dict[str, Any] | None = None
         source_task = task.inputs.get("source_task")
@@ -247,6 +268,19 @@ class RunScheduler:
                     return
         else:
             workspace.update_task(task.id, isolation_mode=mode.value)
+
+        if (
+            self._execution_kind() != "mock"
+            and execution_workspace != project_workspace
+            and not self._workspace_preflight_allows(
+                workspace,
+                task,
+                agent,
+                execution_workspace,
+                current_attempts=current_attempts,
+            )
+        ):
+            return
 
         is_validation = bool(
             worktree
@@ -518,6 +552,77 @@ class RunScheduler:
 
     def _execution_kind(self) -> str:
         return str(getattr(self.provider, "execution_kind", "unknown"))
+
+    def _workspace_preflight_allows(
+        self,
+        workspace: RunWorkspace,
+        task: TaskSpec,
+        agent: AgentSpec,
+        execution_workspace: Path,
+        *,
+        current_attempts: int,
+    ) -> bool:
+        previous_code = workspace.manifest()["tasks"][task.id].get(
+            "precondition_code"
+        )
+        preflight = self.workspace_preflight.check(
+            agent, workspace, execution_workspace
+        )
+        preflight_ref = self.workspace_preflight.persist(workspace, task.id, preflight)
+        workspace.update_task(
+            task.id,
+            agent_id=agent.id,
+            workspace_compatible=preflight.compatible,
+            workspace_preflight_ref=preflight_ref,
+        )
+        if preflight.provider_attempt_allowed:
+            return True
+        workspace.update_task(
+            task.id,
+            status=TaskStatus.BLOCKED.value,
+            attempts=current_attempts,
+            usage=self._aggregate_usage([]),
+            precondition_code=preflight.error_code,
+            error=f"{preflight.error_code}: {preflight.reason}",
+            finished_at=utc_now(),
+        )
+        if (
+            preflight.remediation == "user_action_required"
+            and previous_code != preflight.error_code
+        ):
+            workspace.append_human_action(
+                task.id,
+                preflight.reason
+                or "Codex workspace compatibility requires user action",
+            )
+        return False
+
+    @staticmethod
+    def _reset_workspace_preflight_blockers(workspace: RunWorkspace) -> None:
+        def reset(manifest: dict[str, Any]) -> dict[str, Any]:
+            reset_any = False
+            for state in manifest["tasks"].values():
+                if (
+                    state.get("status") == TaskStatus.BLOCKED.value
+                    and state.get("precondition_code")
+                    and state.get("workspace_preflight_ref")
+                ):
+                    state.update(
+                        {
+                            "status": TaskStatus.PENDING.value,
+                            "error": None,
+                            "finished_at": None,
+                            "workspace_compatible": None,
+                            "preflight_rechecked_at": utc_now(),
+                        }
+                    )
+                    reset_any = True
+            if reset_any:
+                manifest["status"] = "running"
+                manifest.pop("finished_at", None)
+            return manifest
+
+        workspace.update_manifest(reset)
 
     @staticmethod
     def _run_validation_commands(
