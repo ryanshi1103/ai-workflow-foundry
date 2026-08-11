@@ -157,6 +157,196 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(status.availability, "unavailable")
         self.assertEqual(calls, [])
 
+    def test_claude_logged_in_is_ready(self) -> None:
+        calls: list[tuple[tuple[str, ...], float]] = []
+
+        def logged_in(
+            command: tuple[str, ...], timeout_seconds: float
+        ) -> subprocess.CompletedProcess[str]:
+            calls.append((command, timeout_seconds))
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout=json.dumps(
+                    {
+                        "loggedIn": True,
+                        "authMethod": "api_key_helper",
+                        "apiProvider": "firstParty",
+                        "apiKeyConfigured": True,
+                    }
+                ),
+                stderr="",
+            )
+
+        discovery = ProviderDiscovery(
+            default_registry(),
+            executable_lookup={"claude": "/bin/claude"}.get,
+            environ={},
+            command_runner=logged_in,
+        )
+        statuses = {item.provider: item for item in discovery.inspect()}
+        self.assertEqual(statuses["claude"].authentication_state, "verified")
+        self.assertEqual(statuses["claude"].availability, "available")
+        self.assertEqual(statuses["claude"].readiness, "READY")
+        self.assertIsNone(statuses["claude"].setup_action)
+        self.assertEqual(
+            calls,
+            [(('/bin/claude', 'auth', 'status', '--json'), 3.0)],
+        )
+        self.assertEqual(statuses["deepseek"].authentication_state, "unverified")
+        self.assertEqual(statuses["deepseek"].readiness, "AVAILABLE_UNVERIFIED")
+
+    def test_claude_logged_out_is_not_ready(self) -> None:
+        discovery = ProviderDiscovery(
+            default_registry(),
+            executable_lookup={"claude": "/bin/claude"}.get,
+            environ={},
+            command_runner=lambda command, timeout: subprocess.CompletedProcess(
+                command, 0, stdout='{"loggedIn": false}', stderr=""
+            ),
+        )
+        status = {item.provider: item for item in discovery.inspect()}["claude"]
+        self.assertEqual(status.authentication_state, "not_authenticated")
+        self.assertEqual(status.availability, "available_unverified")
+        self.assertEqual(status.readiness, "AVAILABLE_UNVERIFIED")
+        self.assertEqual(status.setup_action, "run `claude auth login` to authenticate")
+
+    def test_claude_invalid_json_is_unverified(self) -> None:
+        discovery = ProviderDiscovery(
+            default_registry(),
+            executable_lookup={"claude": "/bin/claude"}.get,
+            environ={},
+            command_runner=lambda command, timeout: subprocess.CompletedProcess(
+                command, 0, stdout="not-json", stderr=""
+            ),
+        )
+        status = {item.provider: item for item in discovery.inspect()}["claude"]
+        self.assertEqual(status.authentication_state, "unverified")
+        self.assertEqual(status.readiness, "AVAILABLE_UNVERIFIED")
+
+    def test_claude_missing_logged_in_field_is_unverified(self) -> None:
+        discovery = ProviderDiscovery(
+            default_registry(),
+            executable_lookup={"claude": "/bin/claude"}.get,
+            environ={},
+            command_runner=lambda command, timeout: subprocess.CompletedProcess(
+                command, 0, stdout='{"apiProvider": "firstParty"}', stderr=""
+            ),
+        )
+        status = {item.provider: item for item in discovery.inspect()}["claude"]
+        self.assertEqual(status.authentication_state, "unverified")
+        self.assertEqual(status.readiness, "AVAILABLE_UNVERIFIED")
+
+    def test_claude_auth_timeout_is_unverified(self) -> None:
+        def timeout(command: tuple[str, ...], seconds: float) -> subprocess.CompletedProcess[str]:
+            raise subprocess.TimeoutExpired(command, seconds)
+
+        discovery = ProviderDiscovery(
+            default_registry(),
+            executable_lookup={"claude": "/bin/claude"}.get,
+            environ={},
+            command_runner=timeout,
+            auth_timeout_seconds=0.2,
+        )
+        status = {item.provider: item for item in discovery.inspect()}["claude"]
+        self.assertEqual(status.authentication_state, "unverified")
+        self.assertEqual(status.readiness, "AVAILABLE_UNVERIFIED")
+
+    def test_claude_nonzero_auth_status_is_unverified(self) -> None:
+        discovery = ProviderDiscovery(
+            default_registry(),
+            executable_lookup={"claude": "/bin/claude"}.get,
+            environ={},
+            command_runner=lambda command, timeout: subprocess.CompletedProcess(
+                command, 2, stdout='{"loggedIn": true}', stderr="runtime error"
+            ),
+        )
+        status = {item.provider: item for item in discovery.inspect()}["claude"]
+        self.assertEqual(status.authentication_state, "unverified")
+        self.assertEqual(status.readiness, "AVAILABLE_UNVERIFIED")
+
+    def test_claude_oversized_status_is_unverified(self) -> None:
+        discovery = ProviderDiscovery(
+            default_registry(),
+            executable_lookup={"claude": "/bin/claude"}.get,
+            environ={},
+            command_runner=lambda command, timeout: subprocess.CompletedProcess(
+                command, 0, stdout='{"loggedIn": true}' + (" " * 4_096), stderr=""
+            ),
+        )
+        status = {item.provider: item for item in discovery.inspect()}["claude"]
+        self.assertEqual(status.authentication_state, "unverified")
+        self.assertEqual(status.readiness, "AVAILABLE_UNVERIFIED")
+
+    def test_missing_claude_runtime_does_not_run_auth_probe(self) -> None:
+        calls: list[tuple[str, ...]] = []
+
+        def unexpected(
+            command: tuple[str, ...], timeout_seconds: float
+        ) -> subprocess.CompletedProcess[str]:
+            calls.append(command)
+            raise AssertionError("auth probe must not run without an executable")
+
+        discovery = ProviderDiscovery(
+            default_registry(),
+            executable_lookup=lambda executable: None,
+            environ={},
+            command_runner=unexpected,
+        )
+        status = {item.provider: item for item in discovery.inspect()}["claude"]
+        self.assertEqual(status.readiness, "UNAVAILABLE")
+        self.assertEqual(status.availability, "unavailable")
+        self.assertEqual(calls, [])
+
+    def test_unverified_claude_is_not_routed_for_real_execution(self) -> None:
+        registry = ProviderDiscovery(
+            default_registry(),
+            executable_lookup={"claude": "/bin/claude"}.get,
+            environ={},
+            command_runner=lambda command, timeout: subprocess.CompletedProcess(
+                command, 0, stdout='{"apiProvider": "firstParty"}', stderr=""
+            ),
+        ).registry()
+        task = TaskSpec(
+            id="architecture",
+            title="Architect",
+            role="architect",
+            required_capabilities=("architecture",),
+        )
+        with self.assertRaises(LookupError):
+            registry.match(task)
+
+    def test_verified_claude_is_routed_without_verifying_deepseek(self) -> None:
+        commands: list[tuple[str, ...]] = []
+
+        def logged_in(
+            command: tuple[str, ...], timeout_seconds: float
+        ) -> subprocess.CompletedProcess[str]:
+            commands.append(command)
+            return subprocess.CompletedProcess(
+                command, 0, stdout='{"loggedIn": true}', stderr=""
+            )
+
+        registry = ProviderDiscovery(
+            default_registry(),
+            executable_lookup={"claude": "/bin/claude"}.get,
+            environ={},
+            command_runner=logged_in,
+        ).registry()
+        task = TaskSpec(
+            id="architecture",
+            title="Architect",
+            role="architect",
+            required_capabilities=("architecture",),
+        )
+        self.assertEqual(registry.match(task).id, "claude-architect")
+        self.assertEqual(registry.get("claude-architect").readiness, "READY")
+        self.assertEqual(
+            registry.get("deepseek-reviewer").readiness,
+            "AVAILABLE_UNVERIFIED",
+        )
+        self.assertEqual(commands, [("/bin/claude", "auth", "status", "--json")])
+
     def test_unverified_codex_is_not_routed_for_real_execution(self) -> None:
         registry = ProviderDiscovery(
             default_registry(),

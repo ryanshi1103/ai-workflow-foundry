@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -114,10 +115,14 @@ class ProviderDiscovery:
             authentication_state = self._codex_authentication_state(
                 str(resolved_executable)
             )
-        elif agent.provider in {"claude", "deepseek"} and installed:
+        elif agent.provider == "claude" and installed:
+            authentication_state = self._claude_authentication_state(
+                str(resolved_executable)
+            )
+        elif agent.provider == "deepseek" and installed:
             # The shared cc runtime intentionally isolates these providers in
             # provider-specific config directories. Do not inspect those files
-            # or infer their auth state from the parent process environment.
+            # or infer DeepSeek auth from the first-party Claude status.
             authentication_state = "unverified"
         elif any(name in self.environ and bool(self.environ[name]) for name in sources):
             authentication_state = "configured"
@@ -139,7 +144,12 @@ class ProviderDiscovery:
                 "run `codex login` to authenticate"
                 if agent.provider == "codex"
                 and authentication_state == "not_authenticated"
-                else f"verify {agent.provider} CLI authentication when first needed"
+                else (
+                    "run `claude auth login` to authenticate"
+                    if agent.provider == "claude"
+                    and authentication_state == "not_authenticated"
+                    else f"verify {agent.provider} CLI authentication when first needed"
+                )
             )
             availability = "available_unverified"
             readiness = "AVAILABLE_UNVERIFIED"
@@ -159,16 +169,13 @@ class ProviderDiscovery:
     def _codex_authentication_state(self, executable: str) -> str:
         """Classify only the documented, non-inference Codex login status."""
 
-        try:
-            completed = self.command_runner(
-                (executable, "login", "status"), self.auth_timeout_seconds
-            )
-        except (subprocess.TimeoutExpired, OSError):
+        completed = self._bounded_auth_status((executable, "login", "status"))
+        if completed is None:
             return "unverified"
 
         output = " ".join(
             f"{completed.stdout or ''}\n{completed.stderr or ''}".casefold().split()
-        )[:_AUTH_OUTPUT_LIMIT]
+        )
         not_authenticated = (
             "not logged in",
             "not authenticated",
@@ -182,3 +189,38 @@ class ProviderDiscovery:
         ):
             return "verified"
         return "unverified"
+
+    def _claude_authentication_state(self, executable: str) -> str:
+        """Parse only Claude's documented, non-inference JSON auth status."""
+
+        completed = self._bounded_auth_status(
+            (executable, "auth", "status", "--json")
+        )
+        if completed is None or completed.returncode != 0:
+            return "unverified"
+        try:
+            status = json.loads(completed.stdout or "")
+        except (json.JSONDecodeError, TypeError):
+            return "unverified"
+        if not isinstance(status, dict):
+            return "unverified"
+        logged_in = status.get("loggedIn")
+        if type(logged_in) is not bool:
+            return "unverified"
+        return "verified" if logged_in else "not_authenticated"
+
+    def _bounded_auth_status(
+        self,
+        command: tuple[str, ...],
+    ) -> subprocess.CompletedProcess[str] | None:
+        """Run one internal fixed-argv status probe and reject oversized output."""
+
+        try:
+            completed = self.command_runner(command, self.auth_timeout_seconds)
+        except (subprocess.TimeoutExpired, OSError):
+            return None
+        stdout = completed.stdout or ""
+        stderr = completed.stderr or ""
+        if len(stdout) + len(stderr) > _AUTH_OUTPUT_LIMIT:
+            return None
+        return completed

@@ -75,15 +75,20 @@ class TeamCliTests(unittest.TestCase):
         self.assertFalse(self.runs_root.exists())
 
     def test_provider_status_is_structured_and_contains_no_credentials(self) -> None:
-        completed = subprocess.CompletedProcess(
-            ("codex", "login", "status"),
-            0,
-            stdout="Logged in using ChatGPT",
-            stderr="",
-        )
+        def authenticated_status(
+            command: tuple[str, ...], timeout: float
+        ) -> subprocess.CompletedProcess[str]:
+            if Path(command[0]).name == "codex":
+                return subprocess.CompletedProcess(
+                    command, 0, stdout="Logged in using ChatGPT", stderr=""
+                )
+            return subprocess.CompletedProcess(
+                command, 0, stdout='{"loggedIn": true}', stderr=""
+            )
+
         with patch(
             "flowfoundry.orchestration.discovery._run_command",
-            return_value=completed,
+            side_effect=authenticated_status,
         ):
             result, output, error = self.call("team", "providers")
         self.assertEqual((result, error), (0, ""))
@@ -112,6 +117,12 @@ class TeamCliTests(unittest.TestCase):
         codex = next(status for status in statuses if status["provider"] == "codex")
         self.assertEqual(codex["authentication_state"], "verified")
         self.assertEqual(codex["readiness"], "READY")
+        claude = next(status for status in statuses if status["provider"] == "claude")
+        self.assertEqual(claude["authentication_state"], "verified")
+        self.assertEqual(claude["readiness"], "READY")
+        deepseek = next(status for status in statuses if status["provider"] == "deepseek")
+        self.assertEqual(deepseek["authentication_state"], "unverified")
+        self.assertEqual(deepseek["readiness"], "AVAILABLE_UNVERIFIED")
 
     def test_run_persists_explicit_shared_workspace(self) -> None:
         task_file = Path(self.temp_dir.name) / "workspace-goal.json"
