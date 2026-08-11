@@ -19,6 +19,11 @@ from .models import (
     TaskSpec,
     UsageMetrics,
 )
+from .tool_policy import (
+    ProviderToolExposure,
+    ToolPolicyStore,
+    persist_tool_observation,
+)
 from .workspace import atomic_write_json
 
 _NATIVE_PROVIDERS = frozenset({"codex", "claude", "deepseek"})
@@ -219,6 +224,33 @@ class LocalCommandProvider:
             return ProviderResult(False, "real provider execution is disabled")
         if agent.provider in _NATIVE_PROVIDERS:
             return self._execute_native(task, agent, task_dir, project_root)
+        if task.tool_policy_mode == "minimum_sufficient":
+            tool_exposure, policy_attempt_ref = ToolPolicyStore(task_dir).resolve(
+                task, agent.provider
+            )
+            observation_ref, observation = persist_tool_observation(
+                task_dir, tool_exposure.policy
+            )
+            return ProviderResult(
+                False,
+                tool_exposure.policy.reason,
+                outputs={
+                    "tool_policy_ref": "tool-exposure-policy.json",
+                    "tool_policy_attempt_ref": policy_attempt_ref,
+                    "tool_policy": tool_exposure.policy.compact_receipt(),
+                    "tool_observation_ref": observation_ref,
+                    "tool_observation": observation.to_dict(),
+                    "error_code": tool_exposure.policy.reason,
+                },
+                usage=UsageMetrics(
+                    input_tokens=0,
+                    output_tokens=0,
+                    latency_ms=0,
+                    estimated_cost_usd=0.0,
+                    token_status="measured",
+                    cost_status="measured",
+                ),
+            )
         command = [
             part.replace("{task_file}", str(task_dir / "task.json"))
             for part in agent.command_template
@@ -282,12 +314,43 @@ class LocalCommandProvider:
         task_dir: Path,
         project_root: Path,
     ) -> ProviderResult:
+        tool_exposure, policy_attempt_ref = ToolPolicyStore(task_dir).resolve(
+            task, agent.provider
+        )
+        policy = tool_exposure.policy
+        policy_outputs = {
+            "tool_policy_ref": "tool-exposure-policy.json",
+            "tool_policy_attempt_ref": policy_attempt_ref,
+            "tool_policy": policy.compact_receipt(),
+        }
+        if not policy.runnable:
+            observation_ref, observation = persist_tool_observation(task_dir, policy)
+            return ProviderResult(
+                False,
+                policy.reason,
+                outputs={
+                    **policy_outputs,
+                    "tool_observation_ref": observation_ref,
+                    "tool_observation": observation.to_dict(),
+                    "error_code": policy.reason,
+                },
+                usage=UsageMetrics(
+                    input_tokens=0,
+                    output_tokens=0,
+                    latency_ms=0,
+                    estimated_cost_usd=0.0,
+                    token_status="measured",
+                    cost_status="measured",
+                ),
+            )
         schema_path = task_dir / "provider-result.schema.json"
         result_path = task_dir / "provider-output.json"
         atomic_write_json(schema_path, _RESULT_SCHEMA)
         result_path.unlink(missing_ok=True)
         prompt, task_context, dependency_context = self._task_prompt_components(task, task_dir)
-        command = self._native_command(agent, task, schema_path, result_path)
+        command = self._native_command(
+            agent, task, schema_path, result_path, tool_exposure=tool_exposure
+        )
         child_env = os.environ.copy()
         if agent.provider in {"claude", "deepseek"}:
             prepare_claude_environment(agent.provider, child_env)
@@ -314,7 +377,13 @@ class LocalCommandProvider:
         )
         latency_ms = round((time.monotonic() - started) * 1000)
         if completed.cancelled or completed.state == "cancel_unverified":
-            partial = self._native_result(completed.stdout, result_path, latency_ms)
+            partial = self._native_result(
+                completed.stdout,
+                result_path,
+                latency_ms,
+                task_dir=task_dir,
+                tool_exposure=tool_exposure,
+            )
             return replace(
                 partial,
                 success=False,
@@ -325,6 +394,7 @@ class LocalCommandProvider:
                 ),
                 outputs={
                     **partial.outputs,
+                    **policy_outputs,
                     "request_metrics_ref": request_metrics_ref,
                     "stdout": completed.stdout[-40_000:],
                     "stderr": completed.stderr[-40_000:],
@@ -335,10 +405,14 @@ class LocalCommandProvider:
                 termination=completed.termination,
             )
         if completed.timed_out:
+            observation_ref, observation = persist_tool_observation(task_dir, policy)
             return ProviderResult(
                 False,
                 f"{agent.provider} timed out after {task.timeout_seconds} seconds",
                 outputs={
+                    **policy_outputs,
+                    "tool_observation_ref": observation_ref,
+                    "tool_observation": observation.to_dict(),
                     "request_metrics_ref": request_metrics_ref,
                     "stdout": completed.stdout[-40_000:],
                     "stderr": completed.stderr[-40_000:],
@@ -349,10 +423,14 @@ class LocalCommandProvider:
                 termination=completed.termination,
             )
         if completed.returncode != 0:
+            observation_ref, observation = persist_tool_observation(task_dir, policy)
             return ProviderResult(
                 False,
                 f"{agent.provider} command exited {completed.returncode}",
                 outputs={
+                    **policy_outputs,
+                    "tool_observation_ref": observation_ref,
+                    "tool_observation": observation.to_dict(),
                     "request_metrics_ref": request_metrics_ref,
                     "stdout": completed.stdout[-40_000:],
                     "stderr": completed.stderr[-40_000:],
@@ -361,11 +439,18 @@ class LocalCommandProvider:
                 usage=UsageMetrics(latency_ms=latency_ms),
                 termination=completed.termination,
             )
-        result = self._native_result(completed.stdout, result_path, latency_ms)
+        result = self._native_result(
+            completed.stdout,
+            result_path,
+            latency_ms,
+            task_dir=task_dir,
+            tool_exposure=tool_exposure,
+        )
         return replace(
             result,
             outputs={
                 **result.outputs,
+                **policy_outputs,
                 "request_metrics_ref": request_metrics_ref,
                 "execution_ref": completed.execution_ref,
             },
@@ -400,6 +485,8 @@ class LocalCommandProvider:
         task: TaskSpec,
         schema_path: Path,
         result_path: Path,
+        *,
+        tool_exposure: ProviderToolExposure | None = None,
     ) -> list[str]:
         if agent.provider == "codex":
             sandbox = (
@@ -428,7 +515,7 @@ class LocalCommandProvider:
             or task.inputs.get("meeting_round")
             else "acceptEdits"
         )
-        return [
+        command = [
             agent.command_template[0],
             "--print",
             "--output-format",
@@ -439,6 +526,9 @@ class LocalCommandProvider:
             "--permission-mode",
             permission,
         ]
+        if tool_exposure is not None:
+            command.extend(tool_exposure.cli_args)
+        return command
 
     @staticmethod
     def _task_prompt(task: TaskSpec, task_dir: Path) -> str:
@@ -536,7 +626,14 @@ class LocalCommandProvider:
         }
 
     @staticmethod
-    def _native_result(stdout: str, result_path: Path, latency_ms: int) -> ProviderResult:
+    def _native_result(
+        stdout: str,
+        result_path: Path,
+        latency_ms: int,
+        *,
+        task_dir: Path | None = None,
+        tool_exposure: ProviderToolExposure | None = None,
+    ) -> ProviderResult:
         wrapper: dict[str, object] = {}
         envelope: object = None
         if result_path.is_file():
@@ -557,11 +654,20 @@ class LocalCommandProvider:
                 envelope = json.loads(envelope)
             except json.JSONDecodeError:
                 envelope = None
+        observation_outputs: dict[str, object] = {}
+        if task_dir is not None and tool_exposure is not None:
+            observation_ref, observation = persist_tool_observation(
+                task_dir, tool_exposure.policy, wrapper
+            )
+            observation_outputs = {
+                "tool_observation_ref": observation_ref,
+                "tool_observation": observation.to_dict(),
+            }
         if not isinstance(envelope, dict):
             return ProviderResult(
                 False,
                 "provider did not return the required structured result",
-                outputs={"stdout": stdout[-40_000:]},
+                outputs={"stdout": stdout[-40_000:], **observation_outputs},
                 usage=UsageMetrics(latency_ms=latency_ms),
             )
 
@@ -580,7 +686,10 @@ class LocalCommandProvider:
         return ProviderResult(
             success=bool(envelope.get("success", False)),
             summary=str(envelope.get("summary", "provider returned no summary")),
-            outputs=outputs if isinstance(outputs, dict) else {},
+            outputs={
+                **(outputs if isinstance(outputs, dict) else {}),
+                **observation_outputs,
+            },
             review=review,
             findings=tuple(str(item) for item in findings) if isinstance(findings, list) else (),
             contribution=(

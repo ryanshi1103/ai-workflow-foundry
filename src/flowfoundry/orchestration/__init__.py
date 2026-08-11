@@ -22,6 +22,12 @@ from .models import (
 from .planner import RuleBasedPlanner
 from .provider_setup import ProviderSetupFlow
 from .registry import AgentRegistry, default_registry
+from .tool_policy import (
+    TaskToolRequirement,
+    ToolCapability,
+    ToolExposurePolicy,
+    ToolPolicyMode,
+)
 
 __all__ = [
     "AgentRegistry",
@@ -44,6 +50,10 @@ __all__ = [
     "TaskProfile",
     "TaskSpec",
     "TaskStatus",
+    "TaskToolRequirement",
+    "ToolCapability",
+    "ToolExposurePolicy",
+    "ToolPolicyMode",
     "UsageMetrics",
     "default_registry",
 ]

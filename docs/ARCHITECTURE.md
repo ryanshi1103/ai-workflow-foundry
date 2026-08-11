@@ -24,6 +24,29 @@ Automatic candidate integration and publication remain roadmap capabilities;
 the implemented writer-isolation layer deliberately stops at candidate diff and
 validation.
 
+## Minimum-sufficient tool exposure
+
+Explicitly classified v0 tasks follow a provider-independent execution path:
+
+```text
+Task requirement
+  -> Required capability
+  -> Tool exposure policy
+  -> Provider translation
+  -> Native runtime command
+```
+
+v0 covers only `NO_EXTERNAL_ACTION` and `READ_EXACT_FILE`. Unclassified legacy
+tasks preserve provider-default exposure and are recorded as not covered. A
+strict minimum-policy task with an unsupported capability or provider fails
+closed instead of silently exposing the default tool set. Provider protocol
+auxiliaries such as `StructuredOutput` are recorded separately from task tools.
+
+Tool exposure controls which capabilities the model can see. It is independent
+from permission checks that decide whether a request may execute, and it is not
+an OS sandbox, filesystem isolation boundary, or network isolation mechanism.
+Unexpected tool requests are evidence; they do not widen a running policy.
+
 ## Shared lifecycle
 
 ```text

@@ -295,10 +295,18 @@ class TaskSpec:
     timeout_seconds: int = 300
     review_required: bool = False
     fallback_agent: str | None = None
+    tool_requirement: str | None = None
+    tool_policy_mode: str = "provider_default"
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data["risk_level"] = self.risk_level.value
+        # Preserve the legacy plan and prompt envelope unless a task explicitly
+        # opts into a classified tool policy.
+        if self.tool_requirement is None:
+            data.pop("tool_requirement")
+        if self.tool_policy_mode == "provider_default":
+            data.pop("tool_policy_mode")
         return data
 
     @classmethod
@@ -320,6 +328,12 @@ class TaskSpec:
             timeout_seconds=int(data.get("timeout_seconds", 300)),
             review_required=bool(data.get("review_required", False)),
             fallback_agent=data.get("fallback_agent"),
+            tool_requirement=(
+                str(data["tool_requirement"])
+                if data.get("tool_requirement") is not None
+                else None
+            ),
+            tool_policy_mode=str(data.get("tool_policy_mode", "provider_default")),
         )
 
 
