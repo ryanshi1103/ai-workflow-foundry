@@ -10,6 +10,7 @@ import subprocess
 import time
 import uuid
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +40,32 @@ class ManagedProcessResult:
     termination: dict[str, Any]
 
 
+class ProcessIdentityState(str, Enum):
+    """Auditable confidence in one persisted native process identity."""
+
+    VERIFIED_EXACT = "verified_exact"
+    VERIFIED_EXEC_TRANSITION = "verified_exec_transition"
+    MISMATCH = "mismatch"
+    UNVERIFIED = "unverified"
+    GONE = "gone"
+
+
+@dataclass(frozen=True)
+class ProcessIdentityVerification:
+    state: ProcessIdentityState
+    reason: str
+
+    @property
+    def signal_allowed(self) -> bool:
+        return self.state in {
+            ProcessIdentityState.VERIFIED_EXACT,
+            ProcessIdentityState.VERIFIED_EXEC_TRANSITION,
+        }
+
+    def to_dict(self) -> dict[str, str]:
+        return {"state": self.state.value, "reason": self.reason}
+
+
 @dataclass(frozen=True)
 class CancellationOutcome:
     execution_id: str
@@ -50,6 +77,8 @@ class CancellationOutcome:
     graceful: bool | None
     forced: bool
     partial_result: bool
+    identity_verification: str | None
+    identity_verification_reason: str | None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -62,6 +91,8 @@ class CancellationOutcome:
             "graceful": self.graceful,
             "forced": self.forced,
             "partial_result": self.partial_result,
+            "identity_verification": self.identity_verification,
+            "identity_verification_reason": self.identity_verification_reason,
         }
 
 
@@ -122,6 +153,8 @@ class ProviderExecutionHandle:
             ),
             "process_start_ticks": identity.get("process_start_ticks"),
             "command_fingerprint": identity.get("command_fingerprint"),
+            "command_fingerprint_version": 1,
+            "identity_model_version": 2,
             "command_identity": Path(command[0]).name,
             "cancel_capability": (
                 "verified_process_group" if identity.get("verified") else "unverified"
@@ -168,7 +201,18 @@ class ProviderExecutionHandle:
                 continue
             status = cls._safe_status(record)
             if record.get("state") in _ACTIVE_STATES:
-                status["liveness"] = _verify_process(record)
+                verification = _verify_process(record, path)
+                status["liveness"] = (
+                    "verified"
+                    if verification.signal_allowed
+                    else (
+                        "missing"
+                        if verification.state is ProcessIdentityState.GONE
+                        else "unverified"
+                    )
+                )
+                status["identity_verification"] = verification.state.value
+                status["identity_verification_reason"] = verification.reason
             else:
                 status["liveness"] = "terminal"
             statuses.append(status)
@@ -273,10 +317,14 @@ class ProviderExecutionHandle:
         if record.get("state") in _TERMINAL_STATES:
             return self._outcome(record, action="no_op")
 
-        verification = _verify_process(record)
-        if verification == "missing":
-            return self._outcome(record, action="already_exited")
-        if verification != "verified":
+        verification = _verify_process(record, self.path)
+        if verification.state is ProcessIdentityState.GONE:
+            return self._outcome(
+                record,
+                action="already_exited",
+                verification=verification,
+            )
+        if not verification.signal_allowed:
             def unverified(current: dict[str, Any]) -> dict[str, Any]:
                 current.update(
                     {
@@ -286,15 +334,22 @@ class ProviderExecutionHandle:
                         "finished_at": utc_now(),
                         "termination": {
                             "status": "cancel_unverified",
-                            "reason": "persisted process identity could not be verified",
+                            "reason": verification.reason,
                             "graceful": None,
                             "forced": False,
+                            "identity_verification": verification.state.value,
+                            "identity_verification_reason": verification.reason,
                         },
+                        "identity_verification": verification.to_dict(),
                     }
                 )
                 return current
 
-            return self._outcome(self._update(unverified), action="refused_unverified")
+            return self._outcome(
+                self._update(unverified),
+                action="refused_unverified",
+                verification=verification,
+            )
 
         def requested(current: dict[str, Any]) -> dict[str, Any]:
             if current.get("state") in _TERMINAL_STATES:
@@ -303,17 +358,26 @@ class ProviderExecutionHandle:
             current["cancellation_requested_at"] = (
                 current.get("cancellation_requested_at") or utc_now()
             )
+            current["identity_verification"] = verification.to_dict()
             return current
 
         record = self._update(requested)
         if record.get("state") in _TERMINAL_STATES:
-            return self._outcome(record, action="no_op")
+            return self._outcome(
+                record,
+                action="no_op",
+                verification=verification,
+            )
 
         pgid = int(record["process_group_id"])
         try:
             os.killpg(pgid, signal.SIGTERM)
         except ProcessLookupError:
-            return self._outcome(record, action="already_exited")
+            return self._outcome(
+                record,
+                action="already_exited",
+                verification=verification,
+            )
         terminated_at = utc_now()
         deadline = time.monotonic() + grace_seconds
         while time.monotonic() < deadline and _verified_group_exists(record):
@@ -349,6 +413,8 @@ class ProviderExecutionHandle:
                 "graceful": not forced and not group_exists,
                 "forced": forced,
                 "process_group_gone": not group_exists,
+                "identity_verification": verification.state.value,
+                "identity_verification_reason": verification.reason,
             }
             if group_exists:
                 current["state"] = "cancel_unverified"
@@ -363,7 +429,11 @@ class ProviderExecutionHandle:
                 if record.get("state") in _TERMINAL_STATES:
                     break
                 time.sleep(0.05)
-        return self._outcome(record, action="forced" if forced else "terminated")
+        return self._outcome(
+            record,
+            action="forced" if forced else "terminated",
+            verification=verification,
+        )
 
     def read(self) -> dict[str, Any]:
         return _read_json(self.path)
@@ -426,9 +496,35 @@ class ProviderExecutionHandle:
             return run_root.name
 
     @classmethod
-    def _outcome(cls, record: dict[str, Any], *, action: str) -> CancellationOutcome:
+    def _outcome(
+        cls,
+        record: dict[str, Any],
+        *,
+        action: str,
+        verification: ProcessIdentityVerification | None = None,
+    ) -> CancellationOutcome:
         termination = record.get("termination")
         termination = termination if isinstance(termination, dict) else {}
+        persisted_verification = record.get("identity_verification")
+        persisted_verification = (
+            persisted_verification if isinstance(persisted_verification, dict) else {}
+        )
+        verification_state = (
+            verification.state.value
+            if verification is not None
+            else termination.get(
+                "identity_verification",
+                persisted_verification.get("state"),
+            )
+        )
+        verification_reason = (
+            verification.reason
+            if verification is not None
+            else termination.get(
+                "identity_verification_reason",
+                persisted_verification.get("reason"),
+            )
+        )
         return CancellationOutcome(
             execution_id=str(record.get("execution_id", "unknown")),
             provider=str(record.get("provider", "unknown")),
@@ -443,6 +539,12 @@ class ProviderExecutionHandle:
             ),
             forced=bool(termination.get("forced", False)),
             partial_result=bool(record.get("partial_result", False)),
+            identity_verification=(
+                str(verification_state) if verification_state is not None else None
+            ),
+            identity_verification_reason=(
+                str(verification_reason) if verification_reason is not None else None
+            ),
         )
 
     @staticmethod
@@ -463,6 +565,22 @@ class ProviderExecutionHandle:
             "graceful_termination": termination.get("graceful"),
             "forced_termination": bool(termination.get("forced", False)),
             "partial_result": bool(record.get("partial_result", False)),
+            "identity_verification": termination.get(
+                "identity_verification",
+                (
+                    record.get("identity_verification", {}).get("state")
+                    if isinstance(record.get("identity_verification"), dict)
+                    else None
+                ),
+            ),
+            "identity_verification_reason": termination.get(
+                "identity_verification_reason",
+                (
+                    record.get("identity_verification", {}).get("reason")
+                    if isinstance(record.get("identity_verification"), dict)
+                    else None
+                ),
+            ),
         }
 
 
@@ -492,39 +610,120 @@ def _process_identity(pid: int) -> dict[str, Any]:
         return {"verified": False}
 
 
-def _verify_process(record: dict[str, Any]) -> str:
+def _verification(
+    state: ProcessIdentityState,
+    reason: str,
+) -> ProcessIdentityVerification:
+    return ProcessIdentityVerification(state=state, reason=reason)
+
+
+def _verify_execution_ownership(
+    record: dict[str, Any],
+    execution_path: Path | None,
+) -> ProcessIdentityVerification | None:
+    required_strings = ("execution_id", "run_id", "provider", "task_id", "participant_id")
+    if any(
+        not isinstance(record.get(field), str) or not record[field]
+        for field in required_strings
+    ):
+        return _verification(
+            ProcessIdentityState.MISMATCH,
+            "execution_metadata_incomplete",
+        )
+    if execution_path is None:
+        return None
+    resolved = execution_path.resolve()
+    if resolved.name != "execution.json" or resolved.parent.name != record["execution_id"]:
+        return _verification(
+            ProcessIdentityState.MISMATCH,
+            "execution_metadata_mismatch",
+        )
+    try:
+        run_root = resolved.parents[2]
+        manifest = _read_json(run_root / "manifest.json")
+    except (IndexError, OSError, json.JSONDecodeError, ValueError):
+        return _verification(
+            ProcessIdentityState.UNVERIFIED,
+            "execution_ownership_unavailable",
+        )
+    if manifest.get("run_id") != record["run_id"]:
+        return _verification(
+            ProcessIdentityState.MISMATCH,
+            "run_identity_mismatch",
+        )
+    return None
+
+
+def _verify_process(
+    record: dict[str, Any],
+    execution_path: Path | None = None,
+) -> ProcessIdentityVerification:
+    ownership = _verify_execution_ownership(record, execution_path)
+    if ownership is not None:
+        return ownership
     pid = record.get("pid")
     if not isinstance(pid, int) or pid <= 0:
-        return "unverified"
+        return _verification(ProcessIdentityState.UNVERIFIED, "invalid_pid")
     identity = _process_identity(pid)
     if not identity.get("verified"):
         try:
             os.kill(pid, 0)
         except ProcessLookupError:
-            return "missing"
+            return _verification(ProcessIdentityState.GONE, "process_gone")
         except (PermissionError, OSError):
             pass
-        return "unverified"
+        return _verification(
+            ProcessIdentityState.UNVERIFIED,
+            "insufficient_proc_evidence",
+        )
     if identity.get("process_state") == "Z":
-        return "missing"
-    expected = (
-        record.get("process_group_id"),
-        record.get("session_id"),
-        record.get("process_start_ticks"),
-        record.get("command_fingerprint"),
+        return _verification(ProcessIdentityState.GONE, "process_gone")
+
+    stable_fields = ("process_start_ticks", "process_group_id", "session_id")
+    if any(not isinstance(record.get(field), int) for field in stable_fields):
+        return _verification(
+            ProcessIdentityState.UNVERIFIED,
+            "stable_identity_evidence_missing",
+        )
+    if identity.get("process_start_ticks") != record["process_start_ticks"]:
+        return _verification(ProcessIdentityState.MISMATCH, "start_ticks_mismatch")
+    if identity.get("process_group_id") != record["process_group_id"]:
+        return _verification(ProcessIdentityState.MISMATCH, "pgid_mismatch")
+    if identity.get("session_id") != record["session_id"]:
+        return _verification(ProcessIdentityState.MISMATCH, "session_mismatch")
+    if record["process_group_id"] != pid or record["session_id"] != pid:
+        return _verification(
+            ProcessIdentityState.MISMATCH,
+            "unsafe_process_group_relationship",
+        )
+
+    expected_fingerprint = record.get("command_fingerprint")
+    actual_fingerprint = identity.get("command_fingerprint")
+    fingerprint_version = record.get("command_fingerprint_version", 1)
+    if fingerprint_version != 1:
+        return _verification(
+            ProcessIdentityState.UNVERIFIED,
+            "unsupported_command_fingerprint_version",
+        )
+    if not isinstance(expected_fingerprint, str) or not isinstance(actual_fingerprint, str):
+        return _verification(
+            ProcessIdentityState.UNVERIFIED,
+            "command_evidence_missing",
+        )
+    if expected_fingerprint == actual_fingerprint:
+        return _verification(
+            ProcessIdentityState.VERIFIED_EXACT,
+            "stable_identity_and_command_match",
+        )
+    return _verification(
+        ProcessIdentityState.VERIFIED_EXEC_TRANSITION,
+        "stable_identity_matches_after_presentation_change",
     )
-    actual = (
-        identity.get("process_group_id"),
-        identity.get("session_id"),
-        identity.get("process_start_ticks"),
-        identity.get("command_fingerprint"),
-    )
-    return "verified" if expected == actual else "unverified"
 
 
 def _verified_group_exists(record: dict[str, Any]) -> bool:
     if os.name != "posix" or not Path("/proc").is_dir():
-        return _verify_process(record) == "verified"
+        return _verify_process(record).signal_allowed
     pgid = record.get("process_group_id")
     session_id = record.get("session_id")
     if not isinstance(pgid, int) or not isinstance(session_id, int):

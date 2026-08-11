@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import io
 import os
 import sys
@@ -9,9 +10,14 @@ import time
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 from flowfoundry.cli import main
-from flowfoundry.orchestration.execution import ProviderExecutionHandle
+from flowfoundry.orchestration.execution import (
+    ProcessIdentityState,
+    ProviderExecutionHandle,
+    _verify_process,
+)
 from flowfoundry.orchestration.meeting import MeetingRuntime
 from flowfoundry.orchestration.models import AgentSpec, TaskStatus
 from flowfoundry.orchestration.planner import RuleBasedPlanner
@@ -158,6 +164,10 @@ class NativeCancellationTests(unittest.TestCase):
         self.assertTrue(cancellation["graceful_termination"])
         self.assertFalse(cancellation["forced_termination"])
         self.assertEqual(cancellation["termination_status"], "graceful")
+        self.assertIn(
+            cancellation["executions"][0]["identity_verification"],
+            {"verified_exact", "verified_exec_transition"},
+        )
 
     def test_cli_cancel_terminates_active_local_process_and_status_is_redacted(self) -> None:
         ready = self.temp_path / "cli.ready"
@@ -339,6 +349,236 @@ class NativeCancellationTests(unittest.TestCase):
             "completed",
         )
 
+    def test_same_pid_exec_transition_is_verified_and_cancellable(self) -> None:
+        workspace = RunWorkspace.create(self.runs_root, "exec-transition", self.plan)
+        launcher_ready = self.temp_path / "exec-launcher.ready"
+        transition = self.temp_path / "exec-transition.trigger"
+        target_ready = self.temp_path / "exec-target.ready"
+        handle = ProviderExecutionHandle.start(
+            [
+                sys.executable,
+                str(HARNESS),
+                "exec-launcher",
+                str(launcher_ready),
+                str(transition),
+                str(target_ready),
+            ],
+            provider="local",
+            task_id="build",
+            participant_id="harness-builder",
+            task_dir=workspace.task_dir("build"),
+            project_root=workspace.project_root,
+        )
+        try:
+            self.wait_for(launcher_ready)
+            before = handle.read()
+            transition.write_text("exec\n", encoding="utf-8")
+            self.wait_for(target_ready)
+            current_fingerprint = hashlib.sha256(
+                (Path("/proc") / str(before["pid"]) / "cmdline").read_bytes()
+            ).hexdigest()
+            self.assertNotEqual(current_fingerprint, before["command_fingerprint"])
+
+            outcome = ProviderExecutionHandle(handle.path).cancel(grace_seconds=0.5)
+            if outcome.action == "refused_unverified":
+                handle._terminate_owned(grace_seconds=0.2)
+            result = handle.communicate(None, timeout_seconds=2)
+
+            self.assertEqual(outcome.action, "terminated")
+            self.assertEqual(outcome.identity_verification, "verified_exec_transition")
+            self.assertTrue(outcome.graceful)
+            self.assertEqual(result.state, "cancelled")
+        finally:
+            if handle.process is not None and handle.process.poll() is None:
+                handle._terminate_owned(grace_seconds=0.2)
+                handle.process.communicate(timeout=2)
+
+    def test_exec_transition_group_cancel_leaves_no_child(self) -> None:
+        workspace = RunWorkspace.create(self.runs_root, "exec-transition-child", self.plan)
+        launcher_ready = self.temp_path / "exec-child-launcher.ready"
+        transition = self.temp_path / "exec-child-transition.trigger"
+        target_ready = self.temp_path / "exec-child-target.ready"
+        child_pid_path = self.temp_path / "exec-child.pid"
+        handle = ProviderExecutionHandle.start(
+            [
+                sys.executable,
+                str(HARNESS),
+                "exec-launcher",
+                str(launcher_ready),
+                str(transition),
+                str(target_ready),
+                "exec-target-child",
+                str(child_pid_path),
+            ],
+            provider="local",
+            task_id="build",
+            participant_id="harness-builder",
+            task_dir=workspace.task_dir("build"),
+            project_root=workspace.project_root,
+        )
+        try:
+            self.wait_for(launcher_ready)
+            transition.write_text("exec\n", encoding="utf-8")
+            self.wait_for(target_ready)
+            self.wait_for(child_pid_path)
+            child_pid = int(child_pid_path.read_text(encoding="utf-8"))
+
+            outcome = ProviderExecutionHandle(handle.path).cancel(grace_seconds=0.1)
+            result = handle.communicate(None, timeout_seconds=2)
+
+            self.assertEqual(outcome.identity_verification, "verified_exec_transition")
+            self.assertEqual(outcome.action, "forced")
+            self.assertTrue(outcome.forced)
+            self.assertEqual(result.state, "cancelled")
+            deadline = time.monotonic() + 2
+            while time.monotonic() < deadline and self.process_alive(child_pid):
+                time.sleep(0.05)
+            self.assertFalse(self.process_alive(child_pid))
+        finally:
+            if handle.process is not None and handle.process.poll() is None:
+                handle._terminate_owned(grace_seconds=0.1)
+                handle.process.communicate(timeout=2)
+
+    @staticmethod
+    def identity_record(**overrides: object) -> dict[str, object]:
+        record: dict[str, object] = {
+            "execution_id": "execution-1",
+            "run_id": "run-1",
+            "provider": "local",
+            "task_id": "build",
+            "participant_id": "harness-builder",
+            "pid": 4242,
+            "process_group_id": 4242,
+            "session_id": 4242,
+            "process_start_ticks": 101,
+            "command_fingerprint": "initial-command",
+        }
+        record.update(overrides)
+        return record
+
+    @staticmethod
+    def live_identity(**overrides: object) -> dict[str, object]:
+        identity: dict[str, object] = {
+            "verified": True,
+            "process_state": "S",
+            "process_group_id": 4242,
+            "session_id": 4242,
+            "process_start_ticks": 101,
+            "command_fingerprint": "initial-command",
+        }
+        identity.update(overrides)
+        return identity
+
+    def test_exact_process_identity_verification(self) -> None:
+        with patch(
+            "flowfoundry.orchestration.execution._process_identity",
+            return_value=self.live_identity(),
+        ):
+            verification = _verify_process(self.identity_record())
+        self.assertEqual(verification.state, ProcessIdentityState.VERIFIED_EXACT)
+        self.assertTrue(verification.signal_allowed)
+
+    def test_command_change_with_hard_anchors_is_exec_transition(self) -> None:
+        with patch(
+            "flowfoundry.orchestration.execution._process_identity",
+            return_value=self.live_identity(command_fingerprint="runtime-command"),
+        ):
+            verification = _verify_process(self.identity_record())
+        self.assertEqual(
+            verification.state,
+            ProcessIdentityState.VERIFIED_EXEC_TRANSITION,
+        )
+        self.assertTrue(verification.signal_allowed)
+
+    def test_pid_reuse_start_ticks_mismatch_is_rejected(self) -> None:
+        with patch(
+            "flowfoundry.orchestration.execution._process_identity",
+            return_value=self.live_identity(process_start_ticks=202),
+        ):
+            verification = _verify_process(self.identity_record())
+        self.assertEqual(verification.state, ProcessIdentityState.MISMATCH)
+        self.assertEqual(verification.reason, "start_ticks_mismatch")
+        self.assertFalse(verification.signal_allowed)
+
+    def test_process_group_mismatch_is_rejected(self) -> None:
+        with patch(
+            "flowfoundry.orchestration.execution._process_identity",
+            return_value=self.live_identity(process_group_id=5252),
+        ):
+            verification = _verify_process(self.identity_record())
+        self.assertEqual(verification.state, ProcessIdentityState.MISMATCH)
+        self.assertEqual(verification.reason, "pgid_mismatch")
+
+    def test_session_mismatch_is_rejected(self) -> None:
+        with patch(
+            "flowfoundry.orchestration.execution._process_identity",
+            return_value=self.live_identity(session_id=5252),
+        ):
+            verification = _verify_process(self.identity_record())
+        self.assertEqual(verification.state, ProcessIdentityState.MISMATCH)
+        self.assertEqual(verification.reason, "session_mismatch")
+
+    def test_command_change_cannot_override_start_ticks_mismatch(self) -> None:
+        with patch(
+            "flowfoundry.orchestration.execution._process_identity",
+            return_value=self.live_identity(
+                process_start_ticks=202,
+                command_fingerprint="still-looks-like-provider",
+            ),
+        ):
+            verification = _verify_process(self.identity_record())
+        self.assertEqual(verification.state, ProcessIdentityState.MISMATCH)
+        self.assertEqual(verification.reason, "start_ticks_mismatch")
+
+    def test_gone_process_is_distinct_from_unverified(self) -> None:
+        with (
+            patch(
+                "flowfoundry.orchestration.execution._process_identity",
+                return_value={"verified": False},
+            ),
+            patch(
+                "flowfoundry.orchestration.execution.os.kill",
+                side_effect=ProcessLookupError,
+            ),
+        ):
+            verification = _verify_process(self.identity_record())
+        self.assertEqual(verification.state, ProcessIdentityState.GONE)
+        self.assertEqual(verification.reason, "process_gone")
+
+    def test_partial_proc_failure_remains_fail_closed(self) -> None:
+        with (
+            patch(
+                "flowfoundry.orchestration.execution._process_identity",
+                return_value={"verified": False},
+            ),
+            patch("flowfoundry.orchestration.execution.os.kill", return_value=None),
+        ):
+            verification = _verify_process(self.identity_record())
+        self.assertEqual(verification.state, ProcessIdentityState.UNVERIFIED)
+        self.assertEqual(verification.reason, "insufficient_proc_evidence")
+        self.assertFalse(verification.signal_allowed)
+
+    def test_execution_metadata_path_mismatch_is_rejected(self) -> None:
+        record = self.identity_record(execution_id="different-execution")
+        execution_path = self.temp_path / "executions" / "execution-1" / "execution.json"
+        verification = _verify_process(record, execution_path)
+        self.assertEqual(verification.state, ProcessIdentityState.MISMATCH)
+        self.assertEqual(verification.reason, "execution_metadata_mismatch")
+
+    def test_unknown_command_fingerprint_version_is_unverified(self) -> None:
+        record = self.identity_record(command_fingerprint_version=999)
+        with patch(
+            "flowfoundry.orchestration.execution._process_identity",
+            return_value=self.live_identity(),
+        ):
+            verification = _verify_process(record)
+        self.assertEqual(verification.state, ProcessIdentityState.UNVERIFIED)
+        self.assertEqual(
+            verification.reason,
+            "unsupported_command_fingerprint_version",
+        )
+        self.assertFalse(verification.signal_allowed)
+
     def test_pid_identity_mismatch_refuses_to_signal(self) -> None:
         workspace = RunWorkspace.create(self.runs_root, "pid-safety", self.plan)
         execution_dir = workspace.contained("executions", "forged")
@@ -363,14 +603,22 @@ class NativeCancellationTests(unittest.TestCase):
             },
         )
         registry = self.agent_registry("complete", self.temp_path / "identity-unused.ready")
-        manifest = MeetingRuntime(
-            TaskRouter(registry),
-            LocalCommandProvider(enabled=True),
-        ).cancel(workspace, grace_period_seconds=0.1)
+        with patch("flowfoundry.orchestration.execution.os.killpg") as kill_group:
+            manifest = MeetingRuntime(
+                TaskRouter(registry),
+                LocalCommandProvider(enabled=True),
+            ).cancel(workspace, grace_period_seconds=0.1)
+        kill_group.assert_not_called()
         self.assertEqual(manifest["meeting"]["state"], "cancel_unverified")
         self.assertEqual(
             manifest["meeting"]["cancellation"]["executions"][0]["action"],
             "refused_unverified",
+        )
+        self.assertEqual(
+            manifest["meeting"]["cancellation"]["executions"][0][
+                "identity_verification"
+            ],
+            "mismatch",
         )
         status = ProviderExecutionHandle.status_for_run(workspace.path)[0]
         self.assertEqual(status["state"], "cancel_unverified")
