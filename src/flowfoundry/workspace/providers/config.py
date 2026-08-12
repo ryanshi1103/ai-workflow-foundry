@@ -52,6 +52,14 @@ PROVIDER_NAMES = {
     "o": "OpenAI Codex (GPT-5.6 Sol)",
 }
 
+CLAUDE_NATIVE_PROFILE = "claude_native"
+DEEPSEEK_COMPATIBLE_PROFILE = "deepseek_compatible"
+
+_CLAUDE_PROFILE_PROVIDERS = {
+    CLAUDE_NATIVE_PROFILE: "claude",
+    DEEPSEEK_COMPATIBLE_PROFILE: "deepseek",
+}
+
 _ANTHROPIC_ENVIRONMENT_KEYS = (
     "ANTHROPIC_BASE_URL",
     "ANTHROPIC_AUTH_TOKEN",
@@ -72,14 +80,44 @@ def claude_config_dir(provider: str, *, home: Path | None = None) -> Path:
     return provider_home / directory
 
 
-def prepare_claude_environment(
-    provider: str,
+def claude_runtime_profile(provider: str) -> str | None:
+    """Return the declared runtime profile for one Claude-compatible provider."""
+
+    return {
+        "claude": CLAUDE_NATIVE_PROFILE,
+        "deepseek": DEEPSEEK_COMPATIBLE_PROFILE,
+    }.get(provider)
+
+
+def claude_profile_provider(runtime_profile: str) -> str | None:
+    """Resolve a profile to its provider identity without inspecting credentials."""
+
+    return _CLAUDE_PROFILE_PROVIDERS.get(runtime_profile)
+
+
+def prepare_claude_profile_environment(
+    runtime_profile: str,
     environment: MutableMapping[str, str] | None = None,
 ) -> MutableMapping[str, str]:
-    """Select a provider config without importing credentials into FlowFoundry."""
+    """Prepare exactly the environment used by one declared provider profile."""
+
+    provider = claude_profile_provider(runtime_profile)
+    if provider is None:
+        raise ValueError(f"unknown Claude-compatible runtime profile: {runtime_profile}")
     target = environment if environment is not None else os.environ
     target["CLAUDE_CONFIG_DIR"] = str(claude_config_dir(provider))
     if provider == "claude":
         for key in _ANTHROPIC_ENVIRONMENT_KEYS:
             target.pop(key, None)
     return target
+
+
+def prepare_claude_environment(
+    provider: str,
+    environment: MutableMapping[str, str] | None = None,
+) -> MutableMapping[str, str]:
+    """Select a provider config without importing credentials into FlowFoundry."""
+    runtime_profile = claude_runtime_profile(provider)
+    if runtime_profile is None:
+        raise ValueError(f"unknown Claude-compatible provider: {provider}")
+    return prepare_claude_profile_environment(runtime_profile, environment)

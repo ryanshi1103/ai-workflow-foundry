@@ -9,6 +9,10 @@ import subprocess
 from dataclasses import dataclass, replace
 from typing import Callable, Mapping
 
+from ..workspace.providers.config import (
+    claude_profile_provider,
+    prepare_claude_profile_environment,
+)
 from .models import AgentSpec
 from .registry import AgentRegistry
 
@@ -21,11 +25,16 @@ _AUTH_ENV = {
 _CODEX_AUTH_TIMEOUT_SECONDS = 3.0
 _AUTH_OUTPUT_LIMIT = 4_096
 
-CommandRunner = Callable[[tuple[str, ...], float], subprocess.CompletedProcess[str]]
+CommandRunner = Callable[
+    [tuple[str, ...], float, Mapping[str, str] | None],
+    subprocess.CompletedProcess[str],
+]
 
 
 def _run_command(
-    command: tuple[str, ...], timeout_seconds: float
+    command: tuple[str, ...],
+    timeout_seconds: float,
+    environment: Mapping[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Run one fixed discovery command without a shell or inherited stdin."""
 
@@ -36,6 +45,7 @@ def _run_command(
         text=True,
         timeout=timeout_seconds,
         check=False,
+        env=dict(environment) if environment is not None else None,
     )
 
 
@@ -55,6 +65,8 @@ class ProviderStatus:
     availability: str
     readiness: str
     authentication_state: str
+    runtime_profile: str | None
+    provider_identity_state: str
     credential_sources: tuple[str, ...]
     setup_action: str | None
 
@@ -68,6 +80,8 @@ class ProviderStatus:
             "availability": self.availability,
             "readiness": self.readiness,
             "authentication_state": self.authentication_state,
+            "runtime_profile": self.runtime_profile,
+            "provider_identity_state": self.provider_identity_state,
             "credential_sources": list(self.credential_sources),
             "setup_action": self.setup_action,
         }
@@ -100,6 +114,7 @@ class ProviderDiscovery:
                 availability=statuses[agent.id].installed,
                 readiness=statuses[agent.id].readiness,
                 authentication_state=statuses[agent.id].authentication_state,
+                provider_identity_state=statuses[agent.id].provider_identity_state,
             )
             for agent in self.source.list()
         )
@@ -109,21 +124,25 @@ class ProviderDiscovery:
         resolved_executable = self.executable_lookup(executable) if executable else None
         installed = bool(resolved_executable)
         sources = credential_sources(agent.provider)
+        provider_identity_state = self._provider_identity_state(agent)
         if agent.local:
             authentication_state = "not_required"
-        elif agent.provider == "codex" and installed:
+        elif (
+            agent.provider == "codex"
+            and installed
+            and provider_identity_state == "verified"
+        ):
             authentication_state = self._codex_authentication_state(
                 str(resolved_executable)
             )
-        elif agent.provider == "claude" and installed:
-            authentication_state = self._claude_authentication_state(
-                str(resolved_executable)
+        elif (
+            agent.provider in {"claude", "deepseek"}
+            and installed
+            and provider_identity_state == "verified"
+        ):
+            authentication_state = self._claude_profile_authentication_state(
+                str(resolved_executable), agent.runtime_profile
             )
-        elif agent.provider == "deepseek" and installed:
-            # The shared cc runtime intentionally isolates these providers in
-            # provider-specific config directories. Do not inspect those files
-            # or infer DeepSeek auth from the first-party Claude status.
-            authentication_state = "unverified"
         elif any(name in self.environ and bool(self.environ[name]) for name in sources):
             authentication_state = "configured"
         elif installed:
@@ -135,7 +154,10 @@ class ProviderDiscovery:
             setup_action = f"install or configure the {executable or agent.provider} runtime"
             availability = "unavailable"
             readiness = "UNAVAILABLE"
-        elif authentication_state in {"verified", "not_required"}:
+        elif (
+            authentication_state in {"verified", "not_required"}
+            and provider_identity_state in {"verified", "not_required"}
+        ):
             setup_action = None
             availability = "available"
             readiness = "READY"
@@ -148,7 +170,12 @@ class ProviderDiscovery:
                     "run `claude auth login` to authenticate"
                     if agent.provider == "claude"
                     and authentication_state == "not_authenticated"
-                    else f"verify {agent.provider} CLI authentication when first needed"
+                    else (
+                        "authenticate the DeepSeek-compatible profile"
+                        if agent.provider == "deepseek"
+                        and authentication_state == "not_authenticated"
+                        else f"verify {agent.provider} CLI authentication when first needed"
+                    )
                 )
             )
             availability = "available_unverified"
@@ -162,14 +189,39 @@ class ProviderDiscovery:
             availability=availability,
             readiness=readiness,
             authentication_state=authentication_state,
+            runtime_profile=agent.runtime_profile,
+            provider_identity_state=provider_identity_state,
             credential_sources=sources,
             setup_action=setup_action,
         )
 
+    @staticmethod
+    def _provider_identity_state(agent: AgentSpec) -> str:
+        """Verify that an agent is bound to the declared provider profile."""
+
+        if agent.local:
+            return "not_required"
+        if agent.provider == "codex":
+            return (
+                "verified"
+                if agent.runtime_profile == "codex_native"
+                else "unverified"
+            )
+        if agent.provider in {"claude", "deepseek"}:
+            return (
+                "verified"
+                if agent.runtime_profile is not None
+                and claude_profile_provider(agent.runtime_profile) == agent.provider
+                else "unverified"
+            )
+        return "unverified"
+
     def _codex_authentication_state(self, executable: str) -> str:
         """Classify only the documented, non-inference Codex login status."""
 
-        completed = self._bounded_auth_status((executable, "login", "status"))
+        completed = self._bounded_auth_status(
+            (executable, "login", "status"), environment=None
+        )
         if completed is None:
             return "unverified"
 
@@ -190,13 +242,26 @@ class ProviderDiscovery:
             return "verified"
         return "unverified"
 
-    def _claude_authentication_state(self, executable: str) -> str:
-        """Parse only Claude's documented, non-inference JSON auth status."""
+    def _claude_profile_authentication_state(
+        self,
+        executable: str,
+        runtime_profile: str | None,
+    ) -> str:
+        """Probe Claude-compatible auth in the real provider profile context."""
+
+        if runtime_profile is None:
+            return "unverified"
+        environment = dict(self.environ)
+        try:
+            prepare_claude_profile_environment(runtime_profile, environment)
+        except ValueError:
+            return "unverified"
 
         completed = self._bounded_auth_status(
-            (executable, "auth", "status", "--json")
+            (executable, "auth", "status", "--json"),
+            environment=environment,
         )
-        if completed is None or completed.returncode != 0:
+        if completed is None:
             return "unverified"
         try:
             status = json.loads(completed.stdout or "")
@@ -207,16 +272,24 @@ class ProviderDiscovery:
         logged_in = status.get("loggedIn")
         if type(logged_in) is not bool:
             return "unverified"
-        return "verified" if logged_in else "not_authenticated"
+        if not logged_in:
+            return "not_authenticated"
+        return "verified" if completed.returncode == 0 else "unverified"
 
     def _bounded_auth_status(
         self,
         command: tuple[str, ...],
+        *,
+        environment: Mapping[str, str] | None,
     ) -> subprocess.CompletedProcess[str] | None:
         """Run one internal fixed-argv status probe and reject oversized output."""
 
         try:
-            completed = self.command_runner(command, self.auth_timeout_seconds)
+            completed = self.command_runner(
+                command,
+                self.auth_timeout_seconds,
+                environment,
+            )
         except (subprocess.TimeoutExpired, OSError):
             return None
         stdout = completed.stdout or ""

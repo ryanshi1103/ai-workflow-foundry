@@ -76,14 +76,20 @@ class TeamCliTests(unittest.TestCase):
 
     def test_provider_status_is_structured_and_contains_no_credentials(self) -> None:
         def authenticated_status(
-            command: tuple[str, ...], timeout: float
+            command: tuple[str, ...],
+            timeout: float,
+            environment: dict[str, str] | None = None,
         ) -> subprocess.CompletedProcess[str]:
             if Path(command[0]).name == "codex":
                 return subprocess.CompletedProcess(
                     command, 0, stdout="Logged in using ChatGPT", stderr=""
                 )
+            profile = Path(environment["CLAUDE_CONFIG_DIR"]).name
             return subprocess.CompletedProcess(
-                command, 0, stdout='{"loggedIn": true}', stderr=""
+                command,
+                0,
+                stdout=json.dumps({"loggedIn": profile == ".claude-deepseek"}),
+                stderr="",
             )
 
         with patch(
@@ -118,11 +124,15 @@ class TeamCliTests(unittest.TestCase):
         self.assertEqual(codex["authentication_state"], "verified")
         self.assertEqual(codex["readiness"], "READY")
         claude = next(status for status in statuses if status["provider"] == "claude")
-        self.assertEqual(claude["authentication_state"], "verified")
-        self.assertEqual(claude["readiness"], "READY")
+        self.assertEqual(claude["authentication_state"], "not_authenticated")
+        self.assertEqual(claude["readiness"], "AVAILABLE_UNVERIFIED")
+        self.assertEqual(claude["runtime_profile"], "claude_native")
+        self.assertEqual(claude["provider_identity_state"], "verified")
         deepseek = next(status for status in statuses if status["provider"] == "deepseek")
-        self.assertEqual(deepseek["authentication_state"], "unverified")
-        self.assertEqual(deepseek["readiness"], "AVAILABLE_UNVERIFIED")
+        self.assertEqual(deepseek["authentication_state"], "verified")
+        self.assertEqual(deepseek["readiness"], "READY")
+        self.assertEqual(deepseek["runtime_profile"], "deepseek_compatible")
+        self.assertEqual(deepseek["provider_identity_state"], "verified")
 
     def test_run_persists_explicit_shared_workspace(self) -> None:
         task_file = Path(self.temp_dir.name) / "workspace-goal.json"

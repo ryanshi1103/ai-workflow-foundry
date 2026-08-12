@@ -9,7 +9,10 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Protocol
 
-from ..workspace.providers.config import prepare_claude_environment
+from ..workspace.providers.config import (
+    claude_profile_provider,
+    prepare_claude_profile_environment,
+)
 from .execution import ManagedProcessResult, ProviderExecutionHandle
 from .models import (
     AgentSpec,
@@ -353,7 +356,38 @@ class LocalCommandProvider:
         )
         child_env = os.environ.copy()
         if agent.provider in {"claude", "deepseek"}:
-            prepare_claude_environment(agent.provider, child_env)
+            if agent.runtime_profile is None:
+                return ProviderResult(
+                    False,
+                    "PROVIDER_PROFILE_UNVERIFIED",
+                    outputs={
+                        **policy_outputs,
+                        "error_code": "PROVIDER_PROFILE_UNVERIFIED",
+                    },
+                    usage=UsageMetrics(latency_ms=0),
+                )
+            if claude_profile_provider(agent.runtime_profile) != agent.provider:
+                return ProviderResult(
+                    False,
+                    "PROVIDER_PROFILE_MISMATCH",
+                    outputs={
+                        **policy_outputs,
+                        "error_code": "PROVIDER_PROFILE_MISMATCH",
+                    },
+                    usage=UsageMetrics(latency_ms=0),
+                )
+            try:
+                prepare_claude_profile_environment(agent.runtime_profile, child_env)
+            except ValueError:
+                return ProviderResult(
+                    False,
+                    "PROVIDER_PROFILE_MISMATCH",
+                    outputs={
+                        **policy_outputs,
+                        "error_code": "PROVIDER_PROFILE_MISMATCH",
+                    },
+                    usage=UsageMetrics(latency_ms=0),
+                )
 
         request_metrics_ref = "provider-request-metrics.json"
         atomic_write_json(

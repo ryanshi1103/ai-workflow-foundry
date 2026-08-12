@@ -270,6 +270,8 @@ class AgentSpec:
     expected_latency_ms: int | None = None
     estimated_cost_per_million_tokens: float | None = None
     authentication_state: str = "unconfigured"
+    runtime_profile: str | None = None
+    provider_identity_state: str = "unverified"
     readiness: str = "READY"
     reliability: float | None = None
     current_quota: str | None = None

@@ -8,10 +8,15 @@ import unittest
 from pathlib import Path
 
 from flowfoundry.workspace.providers import (
+    CLAUDE_NATIVE_PROFILE,
     CLAUDE_PERMISSION_MODES,
     CODEX_PROFILES,
+    DEEPSEEK_COMPATIBLE_PROFILE,
     claude_config_dir,
+    claude_profile_provider,
+    claude_runtime_profile,
     prepare_claude_environment,
+    prepare_claude_profile_environment,
 )
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[3] / "src/flowfoundry/workspace"
@@ -127,6 +132,36 @@ class ProviderIsolationTests(unittest.TestCase):
             claude_config_dir("deepseek", home=Path("/tmp/synthetic-home")),
             Path("/tmp/synthetic-home/.claude-deepseek"),
         )
+
+    def test_claude_compatible_profiles_have_distinct_provider_identity(self):
+        self.assertEqual(claude_runtime_profile("claude"), CLAUDE_NATIVE_PROFILE)
+        self.assertEqual(
+            claude_runtime_profile("deepseek"), DEEPSEEK_COMPATIBLE_PROFILE
+        )
+        self.assertEqual(claude_profile_provider(CLAUDE_NATIVE_PROFILE), "claude")
+        self.assertEqual(
+            claude_profile_provider(DEEPSEEK_COMPATIBLE_PROFILE), "deepseek"
+        )
+        self.assertIsNone(claude_profile_provider("generic_claude"))
+
+    def test_profile_environment_matches_real_provider_launch_context(self):
+        inherited = {
+            "ANTHROPIC_BASE_URL": "https://example.invalid",
+            "ANTHROPIC_AUTH_TOKEN": "synthetic-token",
+        }
+        native = prepare_claude_profile_environment(
+            CLAUDE_NATIVE_PROFILE, dict(inherited)
+        )
+        deepseek = prepare_claude_profile_environment(
+            DEEPSEEK_COMPATIBLE_PROFILE, dict(inherited)
+        )
+
+        self.assertTrue(native["CLAUDE_CONFIG_DIR"].endswith(".claude-native"))
+        self.assertNotIn("ANTHROPIC_BASE_URL", native)
+        self.assertNotIn("ANTHROPIC_AUTH_TOKEN", native)
+        self.assertTrue(deepseek["CLAUDE_CONFIG_DIR"].endswith(".claude-deepseek"))
+        self.assertEqual(deepseek["ANTHROPIC_BASE_URL"], "https://example.invalid")
+        self.assertEqual(deepseek["ANTHROPIC_AUTH_TOKEN"], "synthetic-token")
 
     def test_public_permission_and_profile_values_remain_stable(self):
         self.assertEqual(CLAUDE_PERMISSION_MODES["m"]["mode"], "default")

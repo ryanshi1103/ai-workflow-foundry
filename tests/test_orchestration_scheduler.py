@@ -361,6 +361,38 @@ class SchedulerTests(unittest.TestCase):
             self.assertIn("--json-schema", command)
             self.assertIn(".claude-deepseek", run.call_args.kwargs["env"]["CLAUDE_CONFIG_DIR"])
 
+    def test_claude_provider_cannot_execute_through_deepseek_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_root = Path(temp_dir) / "project"
+            task_dir = Path(temp_dir) / "run" / "tasks" / "architecture"
+            project_root.mkdir()
+            task_dir.mkdir(parents=True)
+            task = TaskSpec(
+                id="architecture",
+                title="Architect",
+                role="architect",
+                required_capabilities=("architecture",),
+            )
+            agent = replace(
+                default_registry().synthetic().get("claude-architect"),
+                runtime_profile="deepseek_compatible",
+            )
+
+            with patch.object(LocalCommandProvider, "_execute_managed") as run:
+                result = LocalCommandProvider(enabled=True).execute(
+                    task,
+                    agent,
+                    task_dir,
+                    project_root,
+                )
+
+            self.assertFalse(result.success)
+            self.assertEqual(result.summary, "PROVIDER_PROFILE_MISMATCH")
+            self.assertEqual(
+                result.outputs["error_code"], "PROVIDER_PROFILE_MISMATCH"
+            )
+            run.assert_not_called()
+
     def test_blocked_review_blocks_source_and_skips_test(self) -> None:
         provider = FakeProvider(reviews={"review": ReviewDecision.BLOCKED})
         workspace = self.run_plan(provider)
@@ -417,6 +449,10 @@ class SchedulerTests(unittest.TestCase):
         setup = workspace.read_json("provider-setup/build.json")
         self.assertEqual(setup["status"], "setup_required")
         self.assertEqual(setup["candidates"][0]["agent_id"], "codex-builder")
+        self.assertEqual(setup["candidates"][0]["runtime_profile"], "codex_native")
+        self.assertEqual(
+            setup["candidates"][0]["provider_identity_state"], "unverified"
+        )
         self.assertNotIn("credential_value", setup["candidates"][0])
         self.assertTrue(workspace.contained("HUMAN_ACTIONS_REQUIRED.md").exists())
 

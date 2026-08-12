@@ -26,6 +26,8 @@ class ProviderSetupFlow:
                     "availability": "available" if agent.availability else "unavailable",
                     "readiness": agent.readiness,
                     "authentication_state": agent.authentication_state,
+                    "runtime_profile": agent.runtime_profile,
+                    "provider_identity_state": agent.provider_identity_state,
                     "credential_sources": list(credential_sources(agent.provider)),
                 }
             )

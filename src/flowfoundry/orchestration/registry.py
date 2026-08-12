@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Iterable
 
+from ..workspace.providers.config import claude_profile_provider
 from .models import AgentSpec, IsolationMode, TaskSpec
 
 _COST_ORDER = {"free": 0, "low": 1, "medium": 2, "high": 3}
@@ -15,7 +16,17 @@ def _execution_ready(agent: AgentSpec) -> bool:
     if not agent.availability or agent.readiness != "READY":
         return False
     if agent.provider in _AUTH_REQUIRED_PROVIDERS:
-        return agent.authentication_state in {"verified", "not_required"}
+        if agent.provider == "codex" and agent.runtime_profile != "codex_native":
+            return False
+        if agent.provider in {"claude", "deepseek"} and (
+            agent.runtime_profile is None
+            or claude_profile_provider(agent.runtime_profile) != agent.provider
+        ):
+            return False
+        return (
+            agent.authentication_state in {"verified", "not_required"}
+            and agent.provider_identity_state in {"verified", "not_required"}
+        )
     return True
 
 
@@ -110,6 +121,7 @@ class AgentRegistry:
                 availability=True,
                 enabled=True,
                 authentication_state="not_required",
+                provider_identity_state="not_required",
                 readiness="READY",
             )
             for agent in self._agents.values()
@@ -141,6 +153,7 @@ def default_registry() -> AgentRegistry:
                 coding_ability=5,
                 reasoning_ability=4,
                 privacy_level="remote-provider",
+                runtime_profile="codex_native",
             ),
             AgentSpec(
                 id="deepseek-reviewer",
@@ -162,6 +175,7 @@ def default_registry() -> AgentRegistry:
                 coding_ability=3,
                 reasoning_ability=4,
                 privacy_level="remote-provider",
+                runtime_profile="deepseek_compatible",
             ),
             AgentSpec(
                 id="claude-architect",
@@ -183,6 +197,7 @@ def default_registry() -> AgentRegistry:
                 coding_ability=3,
                 reasoning_ability=5,
                 privacy_level="remote-provider",
+                runtime_profile="claude_native",
             ),
             AgentSpec(
                 id="local-tester",
@@ -206,6 +221,8 @@ def default_registry() -> AgentRegistry:
                 local=True,
                 privacy_level="local",
                 authentication_state="not_required",
+                runtime_profile="local",
+                provider_identity_state="not_required",
                 reliability=1.0,
             ),
         )
