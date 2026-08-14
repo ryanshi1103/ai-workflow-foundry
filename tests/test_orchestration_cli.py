@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -75,6 +76,13 @@ class TeamCliTests(unittest.TestCase):
         self.assertFalse(self.runs_root.exists())
 
     def test_provider_status_is_structured_and_contains_no_credentials(self) -> None:
+        runtime_bin = Path(self.temp_dir.name) / "runtime-bin"
+        runtime_bin.mkdir()
+        for executable in ("codex", "claude"):
+            executable_path = runtime_bin / executable
+            executable_path.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+            executable_path.chmod(0o700)
+
         def authenticated_status(
             command: tuple[str, ...],
             timeout: float,
@@ -95,7 +103,7 @@ class TeamCliTests(unittest.TestCase):
         with patch(
             "flowfoundry.orchestration.discovery._run_command",
             side_effect=authenticated_status,
-        ):
+        ), patch.dict(os.environ, {"PATH": str(runtime_bin)}):
             result, output, error = self.call("team", "providers")
         self.assertEqual((result, error), (0, ""))
         statuses = json.loads(output)

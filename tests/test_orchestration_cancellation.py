@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import io
 import os
+import signal
 import sys
 import tempfile
 import threading
@@ -10,10 +11,11 @@ import time
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from flowfoundry.cli import main
 from flowfoundry.orchestration.execution import (
+    ProcessIdentityVerification,
     ProcessIdentityState,
     ProviderExecutionHandle,
     _verify_process,
@@ -218,17 +220,52 @@ class NativeCancellationTests(unittest.TestCase):
         self.assertNotIn("command_fingerprint", status_output)
 
     def test_forced_termination_escalates_after_grace_period(self) -> None:
-        workspace, errors = self.start_and_cancel(
-            "ignore",
-            run_id="forced",
-            grace_seconds=0.1,
+        workspace = RunWorkspace.create(self.runs_root, "forced", self.plan)
+        execution_dir = workspace.contained("executions", "forced-unit")
+        execution_dir.mkdir(parents=True)
+        execution_path = execution_dir / "execution.json"
+        atomic_write_json(
+            execution_path,
+            self.identity_record(
+                execution_id="forced-unit",
+                run_id=workspace.run_id,
+                state="running",
+                partial_result=False,
+            ),
         )
-        self.assertEqual(errors, [])
-        cancellation = workspace.manifest()["meeting"]["cancellation"]
-        self.assertTrue(cancellation["forced_termination"])
-        self.assertFalse(cancellation["graceful_termination"])
-        execution = ProviderExecutionHandle.status_for_run(workspace.path)[0]
-        self.assertEqual(execution["state"], "cancelled")
+
+        clock = iter((0.0, 1.0, 2.0, 4.0, 5.0, 8.0))
+        verification = ProcessIdentityVerification(
+            ProcessIdentityState.VERIFIED_EXACT,
+            "test-owned process identity matched",
+        )
+        with (
+            patch(
+                "flowfoundry.orchestration.execution._verify_process",
+                return_value=verification,
+            ),
+            patch(
+                "flowfoundry.orchestration.execution._verified_group_exists",
+                side_effect=(True, False),
+            ),
+            patch("flowfoundry.orchestration.execution.os.killpg") as kill_group,
+            patch(
+                "flowfoundry.orchestration.execution.time.monotonic",
+                side_effect=lambda: next(clock),
+            ),
+        ):
+            outcome = ProviderExecutionHandle(execution_path).cancel(grace_seconds=0.0)
+
+        kill_group.assert_has_calls(
+            [call(4242, signal.SIGTERM), call(4242, signal.SIGKILL)]
+        )
+        self.assertEqual(outcome.action, "forced")
+        self.assertTrue(outcome.forced)
+        self.assertFalse(outcome.graceful)
+        execution = ProviderExecutionHandle(execution_path).read()
+        self.assertEqual(execution["termination"]["method"], "sigkill")
+        self.assertTrue(execution["termination"]["forced"])
+        self.assertTrue(execution["termination"]["process_group_gone"])
 
     def test_process_group_cancel_leaves_no_child(self) -> None:
         child_pid_path = self.temp_path / "child.pid"
