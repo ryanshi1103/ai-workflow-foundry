@@ -21,6 +21,11 @@ from .models import (
 )
 from .planner import RuleBasedPlanner
 from .provider_setup import ProviderSetupFlow
+from .reconciliation import (
+    DurableRunReconciler,
+    ReconciliationResult,
+    ReconciliationState,
+)
 from .registry import AgentRegistry, default_registry
 from .tool_policy import (
     TaskToolRequirement,
@@ -46,6 +51,9 @@ __all__ = [
     "ProviderExecutionHandle",
     "ProviderSetupFlow",
     "ProviderStatus",
+    "DurableRunReconciler",
+    "ReconciliationResult",
+    "ReconciliationState",
     "ReviewDecision",
     "RiskLevel",
     "RoutingDecision",

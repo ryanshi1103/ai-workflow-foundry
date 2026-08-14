@@ -1,99 +1,113 @@
 # FlowFoundry v1 Repository Audit
 
-Audit date: 2026-08-10
-Source of truth: branch `portfolio-migration`, HEAD
-`8285a60c54c3b2dfb30b1092aa82322d00273574`, executable code, and tests.
+Audit reconciled: 2026-08-14
+Canonical source: `.ai/PROJECT_STATE.md`, current deterministic runtime/status
+commands, current durable evidence, then historical reports.
 
-## Current State
+## Executive state
 
-The repository already contained substantially more than the older project
-state described. It had a resumable orchestration MVP with a capability
-registry, DAG planner, deterministic router, parallel scheduler, atomic local
-mailbox, review protocol, approval gate, result aggregation, retry/resume, and
-an offline provider. It also contained the integrated workspace manager and
-compatible `cc`/`aiproj` entry points.
+FlowFoundry is a local-first adaptive AI team runtime. Its operating rule is to
+select the smallest sufficient Agent or Team, execute in a real workspace, use
+deterministic validation where possible, retain evidence, and bound calls,
+cost, retries, and irreversible actions.
 
-The audit-start worktree was not clean. A `.gitignore` addition for
-`.flowfoundry/agent-performance.json` and multiple owner reports were already
-present. They were preserved. No private session content or Codex auth file was
-read.
+The local privacy-safe publication history passed at
+`2ffa817cba37cfa876d19e5b60a31a1bfe2efc8b`. Public release remains blocked:
+GitHub historical exposure and PR #2 are unresolved, and no remote replacement
+has been authorized.
 
-Executable discovery found Codex and Claude. DeepSeek is provided through the
-workspace manager's isolated Claude-compatible configuration, not through a
-separate `deepseek` command. A later four-call controlled smoke verified a
-Codex writer and DeepSeek-compatible reviewer without reading credential files.
+## Capability map
 
-## Capability Map
-
-| Area | State | Repository fact and v1 boundary |
+| Area | Current state | Verified boundary |
 |---|---|---|
-| Runtime | PARTIAL | `cc` compatibility and explicit native CLI seam exist; Codex writing and DeepSeek-compatible review are live-verified, while direct Claude, Meeting, and live cancel remain unverified |
-| Workspace | EXISTS | authoritative project root plus FlowFoundry-owned managed Git worktrees; immutable base SHA, durable leases, candidate artifacts, validation handoff, and conservative cleanup are local |
-| Registry | PARTIAL | rich static metadata and runtime discovery exist; external plugin-file loading and quota probes do not |
-| Router | PARTIAL | capabilities, permissions, availability, role preference, cost class, and mature history are used; no full price/latency optimizer |
-| Planner / DAG | EXISTS | explicit schema plus adaptive minimum-path plans and dependency validation |
-| Team | EXISTS | bounded offline teams execute and recover; independent real writers receive separate managed worktrees |
-| Meeting | EXISTS | adaptive multi-agent plans use one bounded Context Pack, independent structured views, deterministic conflict detection, early stop, one selective cross-review, convergence with dissent, hard budgets, call receipts, validation, cancellation, and experience records |
-| Messaging | PARTIAL | atomic mailbox and bounded dependency artifacts exist; providers do not yet consume a general inbox protocol |
-| Executor | PARTIAL | fake, deterministic command, Codex, and Claude-compatible structured seams use managed writer cwd, durable execution handles, verified POSIX process-group cancellation, graceful escalation, and partial-output preservation; no container quotas |
-| Reviewer | EXISTS | stable decisions, persisted findings, source blocking, and dependent propagation |
-| Human Approval | EXISTS | hazardous action classes create scoped, persisted gates |
-| Cost | PARTIAL | calls, token fields, latency, and cost are aggregated without inventing unavailable values; provider pricing is not configured |
-| Memory | EXISTS | simple per-agent/category success, retry, latency, token, cost, and review statistics; no ML |
-| Recovery | EXISTS | interrupted repair, Git/process/lease reconciliation, input reconciliation, bounded retry, approval retry chain, and resume |
-| Provider Setup | PARTIAL | executable/auth-state discovery and on-demand setup artifacts exist; automated install/login is not implemented |
-| CLI | EXISTS | catalog, workflow, project, adaptive plan, provider status, team run/status/review/report/retry/resume/cancel/approve |
+| Provider identity | VERIFIED | Codex uses `codex_native`; DeepSeek-compatible uses `deepseek_compatible`; Claude-native is not authenticated and is not READY |
+| Minimum path | IMPLEMENTED | Task profiling chooses no model, one Agent, or a minimum sufficient bounded team |
+| Workspace | VERIFIED | Compatibility preflight and managed immutable-base writer worktrees preserve the user worktree |
+| Process identity | IMPLEMENTED | Durable Process Identity v2 distinguishes verified live, gone, mismatch, and unverified native processes |
+| Cancellation | LIVE VERIFIED | Cross-process physical cancellation is bounded and fail-closed |
+| Meeting | LIVE VERIFIED | Independent bounded views, deterministic conflict detection, optional targeted Round 2, convergence, dissent, receipts, and recovery |
+| Durable reconciliation | IMPLEMENTED / VERIFIED IN C3A | Stale `RUNNING` is reconciled from receipts, validation, candidate, lease, process, and integration evidence |
+| Status | IMPLEMENTED | Exposes effective semantic state, activity, terminality, retention, validation, integration state, confidence, and required human action |
+| Recovery | IMPLEMENTED | Reconciles before resume and does not restart terminal or evidence-conflicted execution |
+| Cost evidence | IMPLEMENTED | Records available calls, tokens, latency, and cost without inventing unavailable telemetry |
+| Experience | IMPLEMENTED | Persists bounded execution and Meeting evidence for future routing decisions |
 
-## Duplicate and compatibility findings
+## Durable run state contract
 
-- `src/ai_project_manager` and `aiproj` are compatibility surfaces, not a second
-  workspace implementation. Keep them while compatibility is inexpensive.
-- `core/workspace-manager/bin/cc` is a public wrapper over the integrated Python
-  runtime. It should not be rewritten independently; source changes belong in
-  the repository runtime and deploy through the existing script.
-- `capability_registry.py` describes workflow-component capabilities, while
-  `orchestration/registry.py` describes runnable agents. Their similar names do
-  not make them interchangeable.
-- Historical migration, release, and incident reports are evidence, not current
-  runtime truth. They should not override Git, code, tests, or this verified
-  state.
+Top-level manifest state is an operational cache, not sole proof of liveness.
+Reconciliation uses this evidence order:
 
-## Gap Analysis and Minimum Path
+1. terminal native execution records and task/provider receipts;
+2. deterministic validation;
+3. candidate commit and terminal result artifacts;
+4. writer lease and retained-worktree state;
+5. Durable Process Identity v2 liveness;
+6. integration and recovery metadata;
+7. the manifest's stale `RUNNING` observation.
 
-The audit-start P0 was that every goal used Builder → Reviewer → Tester even
-when one Agent was sufficient. The implemented shortest path was:
+The implementation preserves `observed_original_state`, appends an auditable
+reconciliation record, records its evidence hash and reason, and is idempotent.
+A verified live process remains `STILL_RUNNING`. Completed validated candidates
+can be `COMPLETED_AWAITING_INTEGRATION`. Explicit failed or cancelled execution
+with a retained candidate becomes a corresponding retained terminal state.
+Missing PID evidence alone never means success, and conflicting or incomplete
+terminal evidence becomes `RECONCILIATION_BLOCKED`.
 
-1. Add a no-model task profile and explainable execution-mode decision.
-2. Persist that decision and expose a no-side-effect `team plan` preview.
-3. Record real call/token/latency/cost fields, leaving unknown data unknown.
-4. Discover provider/runtime state and persist setup requirements only when a
-   task actually needs an unavailable provider.
-5. Bind real writers to immutable-base managed worktrees and bind validation to
-   the same candidate without copying dirty main-worktree state.
-6. Reuse native Codex and Claude-compatible structured-output features and pass
-   bounded dependency artifacts instead of repeated full context.
-7. Make capabilities the routing gate and roles a preference rather than a
-   provider lock.
-8. Feed simple, minimum-sample performance history back into routing.
+Execution terminality and integration terminality are intentionally separate.
+A retained worktree may be a validated candidate awaiting integration, failed
+review evidence, or an abandoned/recoverable candidate; retention alone proves
+neither success nor failure.
 
-## Highest-value next actions
+## Known retained manifests
 
-1. Run SELF-BOOTSTRAP #1 as a candidate-only improvement using the now
-   live-verified writer/reviewer substrate.
-2. Add project-local registry configuration and adapter entry points so a new
-   OpenAI-compatible or local provider does not require core edits.
+The two known stale manifests were inspected read-only in C3A and dry-run
+classified using the same runtime implementation. Their source artifacts remain
+unchanged pending explicit C3B authorization. Canonical state must not claim
+that those durable artifacts have already been repaired.
 
-Local-model hardware discovery, dashboard work, and broad provider coverage are
-deferred until this v1 path is proven with real bounded tasks.
+## Brand and product surface
 
-## Validation
+- Official name: FlowFoundry.
+- Naming decision: KEEP FLOWFOUNDRY.
+- Category: Local-first Adaptive AI Team Runtime.
+- Final visual candidate and campus poster candidate exist.
+- Product assets, README surface, and GitHub branding are not yet reconciled or
+  installed.
 
-- FlowFoundry foundation: 164 tests passed, including 27 managed-worktree tests
-  and 11 native cancellation tests.
-- Workspace manager runtime: 66 tests passed.
-- Confera Media Skills contracts: 3 tests passed.
-- Print-ready Nameplate Generator: 3 tests passed.
-- Catalog validation: 5 components, 3 workflow contracts, 17 capabilities.
-- Python compilation and `git diff --check`: passed.
-- Ruff was not installed in the active environment, so a Ruff invocation could
-  not be completed locally.
+## Privacy and release boundary
+
+The sanitized local history has zero local privacy blockers and passed current
+tree, reachability, fresh-clone, ref-surface, privacy, and deterministic product
+verification. This does not close the remote incident. Pull refs, cached commit
+pages, host-retained objects, forks, clones, and mirrors require Gate D planning
+and GitHub-side verification.
+
+No force push, PR mutation, remote ref deletion, merge, release, or publication
+is authorized by this audit.
+
+## Validation baseline
+
+- Foundation: 228 passed.
+- Workspace launcher/contracts: 26 passed.
+- Workspace provider-launch shell: 40 passed.
+- Workspace profile/deploy preservation: 4 passed.
+- Workspace Python: 68 passed.
+- Confera contracts: 3 passed.
+- Nameplate contracts: 3 passed.
+- Product total: 372 passed, 0 failed.
+- Ruff: unavailable in the verified environment.
+- Feedback optional pytest extras: unavailable in the verified environment.
+
+## Highest-value remaining work
+
+1. Apply the two approved durable manifest reconciliations only after C3B owner
+   authorization, then re-verify the sanitized canonical baseline.
+2. Prepare Gate D's remote replacement and rollback plan for human review.
+3. Install the approved visual identity and reconcile product-facing surfaces.
+4. Continue the deny-by-default network and local-secret foundation.
+5. Add project-local Provider Registry and adapter entry points before broad
+   provider expansion.
+6. Build Operator Experience 0.4 after the release baseline is safe.
+
+Historical reports are retained as evidence, not deleted or rewritten into
+current truth.

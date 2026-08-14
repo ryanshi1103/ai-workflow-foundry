@@ -458,16 +458,19 @@ class SchedulerTests(unittest.TestCase):
 
 
 class RecoveryTests(unittest.TestCase):
-    def test_resume_resets_interrupted_but_not_completed_task(self) -> None:
+    def test_resume_blocks_running_task_without_terminal_or_process_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             plan = RuleBasedPlanner().plan("Recover", execution_mode="single_agent_reviewer")
             workspace = RunWorkspace.create(Path(temp_dir), "recover", plan)
             workspace.update_task("build", status=TaskStatus.COMPLETED.value)
             workspace.update_task("review", status=TaskStatus.RUNNING.value)
             RecoveryManager().recover_interrupted(workspace)
-            states = workspace.manifest()["tasks"]
+            manifest = workspace.manifest()
+            states = manifest["tasks"]
             self.assertEqual(states["build"]["status"], TaskStatus.COMPLETED.value)
-            self.assertEqual(states["review"]["status"], TaskStatus.PENDING.value)
+            self.assertEqual(states["review"]["status"], TaskStatus.RUNNING.value)
+            self.assertEqual(manifest["status"], "reconciliation_blocked")
+            self.assertFalse(manifest["recovery_decision"]["resume_execution"])
 
     def test_reconcile_does_not_repeat_unchanged_completed_task(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

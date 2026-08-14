@@ -418,7 +418,7 @@ class WorktreeIsolationTests(unittest.TestCase):
             WorktreeManager(workspace)
         self.assertEqual(raised.exception.code, "WORKTREE_UNAVAILABLE")
 
-    def test_recovery_manager_reconciles_durable_worktree_and_task_state(self) -> None:
+    def test_recovery_manager_fails_closed_without_process_or_terminal_receipt(self) -> None:
         record = self.allocate("write", "writer")
         self.manager.acquire_writer(record["worktree_id"], participant_id="writer", attempt_id=1)
         (Path(record["path"]) / "partial.txt").write_text("partial\n", encoding="utf-8")
@@ -426,10 +426,11 @@ class WorktreeIsolationTests(unittest.TestCase):
 
         manifest = RecoveryManager().recover_interrupted(self.workspace)
         recovered = self.manager.record(record["worktree_id"])
-        self.assertEqual(manifest["tasks"]["write"]["status"], TaskStatus.PENDING.value)
-        self.assertEqual(recovered["status"], WorktreeStatus.RETAINED.value)
-        self.assertIsNone(recovered["active_writer"])
-        self.assertEqual(manifest["worktree_recovery"][0]["worktree_id"], record["worktree_id"])
+        self.assertEqual(manifest["tasks"]["write"]["status"], TaskStatus.RUNNING.value)
+        self.assertEqual(manifest["status"], "reconciliation_blocked")
+        self.assertFalse(manifest["recovery_decision"]["resume_execution"])
+        self.assertEqual(recovered["status"], WorktreeStatus.IN_USE.value)
+        self.assertIsNotNone(recovered["active_writer"])
 
 
 class MutatingFixtureProvider:

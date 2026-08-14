@@ -17,6 +17,7 @@ from .isolation import WorktreeError, WorktreeManager
 from .meeting import MeetingRuntime
 from .planner import RuleBasedPlanner
 from .providers import FakeProvider, LocalCommandProvider
+from .reconciliation import DurableRunReconciler
 from .recovery import RecoveryManager
 from .registry import default_registry
 from .router import TaskRouter
@@ -140,6 +141,21 @@ def dispatch_team(args: argparse.Namespace) -> int:
         workspace = RunWorkspace.open(args.runs_root, args.run_id)
         if command == "status":
             status = workspace.manifest()
+            reconciliation = DurableRunReconciler().reconcile(workspace, apply=False)
+            status["observed_status"] = reconciliation.observed_original_state
+            if reconciliation.applicable:
+                status["status"] = reconciliation.reconciled_state
+            status["effective_reconciliation"] = {
+                "state": reconciliation.reconciled_state,
+                "active": reconciliation.active_process,
+                "execution_terminal": reconciliation.execution_terminal,
+                "retained": reconciliation.retained,
+                "validated": reconciliation.validated,
+                "integration_state": reconciliation.integration_state,
+                "confidence": reconciliation.confidence,
+                "human_action_required": reconciliation.human_action_required,
+                "reason": reconciliation.reason,
+            }
             executions = ProviderExecutionHandle.status_for_run(workspace.path)
             active = [
                 execution
@@ -160,9 +176,10 @@ def dispatch_team(args: argparse.Namespace) -> int:
                     }
             print(json.dumps(status, indent=2, ensure_ascii=False))
         elif command == "resume":
-            RecoveryManager().recover_interrupted(workspace)
-            _scheduler(args.enable_real_provider).run(workspace)
-            ResultAggregator().aggregate(workspace)
+            recovered = RecoveryManager().recover_interrupted(workspace)
+            if recovered.get("recovery_decision", {}).get("resume_execution", True):
+                _scheduler(args.enable_real_provider).run(workspace)
+                ResultAggregator().aggregate(workspace)
             print(json.dumps(workspace.manifest(), indent=2, ensure_ascii=False))
         elif command == "cancel":
             manifest = MeetingRuntime(

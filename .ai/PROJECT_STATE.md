@@ -1,69 +1,123 @@
-# Project State — FlowFoundry AI
+# Project State — FlowFoundry
 
-Verified against the repository and tests on 2026-08-10. Git and executable
-code take precedence over older migration reports.
+Canonical state date: 2026-08-14. This file records current operational truth
+for the sanitized local publication baseline and supersedes older status claims.
 
-## Identity and Git baseline
+## Current-truth precedence
 
-- **Name:** FlowFoundry AI
-- **Repository:** `ai-workflow-foundry`
-- **Version:** 0.2.0 (pre-v1 orchestration hardening)
+When evidence differs, use this order:
+
+1. `.ai/PROJECT_STATE.md`;
+2. current deterministic runtime and status commands;
+3. current durable manifests, receipts, and validation records;
+4. historical reports.
+
+Historical reports remain evidence. They are not current state and must not
+override a newer canonical conclusion, test count, readiness result, or release
+gate.
+
+## Identity and release baseline
+
+- **Official name:** FlowFoundry
+- **Naming decision:** KEEP FLOWFOUNDRY
+- **Category:** Local-first Adaptive AI Team Runtime
+- **Core principle:** the smallest sufficient Agent or Team
 - **Branch:** `portfolio-migration`
-- **HEAD at Phase 5 start:** `b00f0019222ee4fb3bb25bead7202d95d6c0f1bc`
-- **Upstream:** `origin/portfolio-migration`
-- **Working tree at audit start:** dirty; one pre-existing `.gitignore` change and
-  multiple untracked owner reports were preserved.
+- **Sanitized local publication baseline:** PASS
+- **Sanitized baseline HEAD:** `2ffa817cba37cfa876d19e5b60a31a1bfe2efc8b`
+- **Local privacy blockers:** 0
+- **Remote containment:** NOT COMPLETE
+- **GitHub historical exposure / PR #2:** UNRESOLVED
+- **Remote history replacement:** NOT AUTHORIZED
+- **Release status:** BLOCKED_PENDING_GATE_D
 
-## Current runnable state
+The sanitized baseline proves a clean local publication history. It does not
+prove that GitHub-hosted pull refs, cached objects, forks, clones, or mirrors no
+longer retain older incident history.
 
-| Layer | Verified status |
+## Provider profiles
+
+| Provider | Profile | Authentication / identity | Readiness |
+|---|---|---|---|
+| Codex | `codex_native` | verified | READY |
+| DeepSeek-compatible | `deepseek_compatible` | verified | READY |
+| Claude-native | `claude_native` | not_authenticated | AVAILABLE_UNVERIFIED / NOT READY |
+
+The executable name is a runtime detail, not provider identity. A shared
+Claude-compatible executable configured for DeepSeek is not evidence of an
+authenticated Anthropic account.
+
+## Runtime truth
+
+| Capability | Current state |
 |---|---|
-| Catalog and workflow validation | 5 components, 17 capabilities, 3 workflow contracts |
-| Workspace and `cc` runtime | Claude, DeepSeek-via-Claude, and Codex launcher compatibility; 66 Python tests pass |
-| Task intelligence | Rule-based task profile and `single_agent`, `single_agent_reviewer`, or `multi_agent` minimum path |
-| Agent registry | Capability, tool, context, privacy, availability, auth-state, cost-class, and reliability metadata |
-| Provider discovery | Runtime discovery without reading or printing credential values |
-| Workspace preflight | Codex Git compatibility is checked before attempts; user non-Git workspaces block, while explicitly owned disposable workspaces may be initialized safely |
-| Planner and DAG | Explicit JSON plans plus adaptive bounded plans |
-| Team runtime | Atomic tasks, dependency scheduling, mailbox, review, approval, aggregation, retry, resume, and durable provider cancellation |
-| Bounded Meeting | Durable state machine, one Context Pack, independent views, deterministic conflict gate, early stop, targeted cross-review, convergence with dissent, hard budgets, validation, cancellation, and resume receipts |
-| Workspace isolation | Authoritative project root plus immutable-base managed Git worktrees for real writers; durable ownership, exclusive leases, candidate diff/validation, cancellation retention, recovery, and safe clean-only cleanup |
-| Provider adapters | Live-verified strict Codex and Claude-compatible envelopes with durable process handles; real execution remains explicit opt-in |
-| Cost and performance | Per-attempt calls/token/latency/cost plus mock/real-separated project-local agent statistics |
-| Provider setup | Missing runtime becomes a persisted `setup_required` artifact instead of a crash |
-| Foundation tests | 200 passed, including Codex readiness, workspace-preflight, writer-isolation, and native-cancellation coverage |
+| Minimum Sufficient Path | IMPLEMENTED |
+| Managed writer/worktree isolation | IMPLEMENTED / VERIFIED |
+| Durable Process Identity v2 | IMPLEMENTED |
+| Physical cancellation | LIVE VERIFIED |
+| Workspace compatibility preflight | IMPLEMENTED / VERIFIED |
+| Bounded Meeting | IMPLEMENTED |
+| Deterministic conflict detection | IMPLEMENTED |
+| Targeted Round 2 | IMPLEMENTED |
+| Convergence with dissent | IMPLEMENTED |
+| Cross-provider Meeting | LIVE VERIFIED |
+| Durable RUNNING reconciliation runtime | IMPLEMENTED / VERIFIED in C3A |
+| Known stale retained manifests | DRY-RUN CLASSIFIED; PENDING C3B APPLICATION |
 
-## Honest v1 boundary
+Reconciliation distinguishes execution terminality from candidate integration.
+It preserves the original observed manifest state, uses Durable Process Identity
+v2 and durable receipts, fails closed on conflicting or incomplete evidence,
+and never infers success from a missing PID alone.
 
-The offline single-agent and team paths are runnable and recoverable. Four
-budget-capped live attempts verified Codex writer execution and a
-DeepSeek-compatible read-only review. Codex token/cost fields remain
-unavailable; the DeepSeek-compatible wrapper reported measured usage and cost.
-DeepSeek reuses the existing isolated Claude-compatible runtime; it is not
-assumed to have a standalone executable.
+## Brand state
 
-Adaptive `multi_agent` plans now enter a bounded Meeting; explicit legacy DAG
-plans remain compatible. No billed provider call was made, so native structured
-Meeting responses remain unverified against live models. Cancellation now
-stops scheduling, verifies the persisted process identity, requests graceful
-process-group termination, escalates only after a grace period, and preserves
-partial output and accounting. Cross-process physical cancellation currently
-depends on Linux `/proc` identity metadata; an unverifiable PID is never
-signalled and its writer lease is not released automatically. Real write-capable
-DAG tasks run in FlowFoundry-owned Git worktrees, and single-writer validation
-commands execute independently in the exact candidate after the writer lease
-is released. Dirty main-worktree state is left untouched; tasks that
-explicitly depend on it require a future snapshot capability. Automatic
-candidate merge/push/PR, live Meeting/cancellation smoke, full submodule
-lifecycle support, local-model hardware
-selection, and plugin loading from external registry files remain later work.
+- **Official product name:** FlowFoundry
+- **Visual identity:** final candidate exists; NOT YET INSTALLED
+- **Campus poster:** candidate exists; NOT YET INSTALLED
+- **Product surface / README:** NOT YET RECONCILED
+- **GitHub branding:** NOT UPDATED by the local design work
 
-Provider READY does not imply that every workspace is executable. The
-scheduler now persists a Codex workspace-preflight result before a provider
-attempt. Non-Git user/project workspaces fail closed with zero calls and zero
-retry consumption. Only a workspace created by FlowFoundry with explicit
-`flowfoundry_disposable` ownership may receive an automatic, remote-free,
-commit-free `git init`; the Codex safety check is not bypassed.
+## Authoritative sanitized regression baseline
 
-See `docs/REAL_PROVIDER_SMOKE_REPORT.md` for the bounded live evidence and
-`docs/V1-AUDIT.md` for the capability map.
+| Suite | Result |
+|---|---|
+| Foundation | 228 passed |
+| Workspace launcher/contracts | 26 passed |
+| Workspace provider-launch shell | 40 passed |
+| Workspace profile/deploy preservation | 4 passed |
+| Workspace Python | 68 passed |
+| Confera contracts | 3 passed |
+| Nameplate contracts | 3 passed |
+| Product total | 372 passed, 0 failed |
+| Ruff | UNAVAILABLE in the verified environment |
+| Feedback optional pytest extras | UNAVAILABLE in the verified environment |
+
+Unavailable optional tooling is not reported as passing.
+
+## Remaining real gaps
+
+### P0 — release
+
+- Gate D remote history replacement and GitHub-side verification.
+
+### P1
+
+- Apply and re-verify the two dry-run durable manifest reconciliations in C3B.
+- Install approved brand assets and reconcile the product surface.
+
+### Security foundation
+
+- Deny-by-default network policy.
+- Local secret boundary.
+- Broader minimum-sufficient tool policy.
+
+### Extensibility
+
+- Project-local Provider Registry.
+- Adapter entry points.
+
+### Product
+
+- Operator Experience 0.4.
+
+Additional provider expansion is not a current release blocker.

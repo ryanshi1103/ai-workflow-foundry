@@ -7,11 +7,26 @@ from typing import Any
 from .execution import ProviderExecutionHandle
 from .isolation import WorktreeError, WorktreeManager
 from .models import TaskPlan, TaskStatus
+from .reconciliation import DurableRunReconciler
 from .workspace import RunWorkspace, stable_hash, utc_now
 
 
 class RecoveryManager:
     def recover_interrupted(self, workspace: RunWorkspace) -> dict[str, Any]:
+        reconciliation = DurableRunReconciler().reconcile(workspace, apply=True)
+        if reconciliation.applicable:
+            def record_decision(manifest: dict[str, Any]) -> dict[str, Any]:
+                manifest["recovered_tasks"] = []
+                manifest["recovery_decision"] = {
+                    "resume_execution": reconciliation.resume_execution,
+                    "effective_state": reconciliation.reconciled_state,
+                    "reason": reconciliation.reason,
+                    "human_action_required": reconciliation.human_action_required,
+                }
+                return manifest
+
+            return workspace.update_manifest(record_decision)
+
         def recover(manifest: dict[str, Any]) -> dict[str, Any]:
             meeting = manifest.get("meeting")
             if isinstance(meeting, dict) and meeting.get("state") in {
@@ -32,6 +47,12 @@ class RecoveryManager:
                     recovered.append(task_id)
             manifest["recovered_tasks"] = sorted(recovered)
             manifest["status"] = "running"
+            manifest["recovery_decision"] = {
+                "resume_execution": True,
+                "effective_state": "running",
+                "reason": reconciliation.reason,
+                "human_action_required": False,
+            }
             return manifest
 
         recovered_manifest = workspace.update_manifest(recover)
