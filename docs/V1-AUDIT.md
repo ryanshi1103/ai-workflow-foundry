@@ -60,10 +60,13 @@ neither success nor failure.
 
 ## Known retained manifests
 
-The two known stale manifests were inspected read-only in C3A and dry-run
-classified using the same runtime implementation. Their source artifacts remain
-unchanged pending explicit C3B authorization. Canonical state must not claim
-that those durable artifacts have already been repaired.
+The two known stale manifests were inspected read-only in C3A, then reconciled
+through the same verified runtime in C3B. Their original `RUNNING` observations
+remain auditable. `adaptive-coding-execution-path-closure-1-candidate` is
+`COMPLETED_AWAITING_INTEGRATION`; `minimum-tool-policy-v0-candidate` is
+`FAILED_RETAINED`. Candidate commits, validation artifacts, receipts, and
+retained worktrees were not modified. Neither candidate is integrated,
+published, or released.
 
 ## Brand and product surface
 
@@ -100,14 +103,13 @@ is authorized by this audit.
 
 ## Highest-value remaining work
 
-1. Apply the two approved durable manifest reconciliations only after C3B owner
-   authorization, then re-verify the sanitized canonical baseline.
-2. Prepare Gate D's remote replacement and rollback plan for human review.
-3. Install the approved visual identity and reconcile product-facing surfaces.
-4. Continue the deny-by-default network and local-secret foundation.
-5. Add project-local Provider Registry and adapter entry points before broad
+1. Prepare Gate D0's read-only remote-containment preflight and rollback inputs
+   for human review; do not mutate remote refs.
+2. Install the approved visual identity and reconcile product-facing surfaces.
+3. Continue the deny-by-default network and local-secret foundation.
+4. Add project-local Provider Registry and adapter entry points before broad
    provider expansion.
-6. Build Operator Experience 0.4 after the release baseline is safe.
+5. Build Operator Experience 0.4 after the release baseline is safe.
 
 Historical reports are retained as evidence, not deleted or rewritten into
 current truth.

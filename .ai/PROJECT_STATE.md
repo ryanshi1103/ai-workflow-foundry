@@ -61,13 +61,22 @@ authenticated Anthropic account.
 | Targeted Round 2 | IMPLEMENTED |
 | Convergence with dissent | IMPLEMENTED |
 | Cross-provider Meeting | LIVE VERIFIED |
-| Durable RUNNING reconciliation runtime | IMPLEMENTED / VERIFIED in C3A |
-| Known stale retained manifests | DRY-RUN CLASSIFIED; PENDING C3B APPLICATION |
+| Durable RUNNING reconciliation runtime | IMPLEMENTED / VERIFIED / APPLIED TO KNOWN CASES |
+| Known stale retained manifests | RECONCILED in C3B |
 
 Reconciliation distinguishes execution terminality from candidate integration.
 It preserves the original observed manifest state, uses Durable Process Identity
 v2 and durable receipts, fails closed on conflicting or incomplete evidence,
 and never infers success from a missing PID alone.
+
+The two known retained manifests now preserve their original `RUNNING`
+observations with auditable effective states:
+
+- `adaptive-coding-execution-path-closure-1-candidate`:
+  `COMPLETED_AWAITING_INTEGRATION`;
+- `minimum-tool-policy-v0-candidate`: `FAILED_RETAINED`.
+
+Neither candidate has been integrated, merged, published, or released.
 
 ## Brand state
 
@@ -102,7 +111,6 @@ Unavailable optional tooling is not reported as passing.
 
 ### P1
 
-- Apply and re-verify the two dry-run durable manifest reconciliations in C3B.
 - Install approved brand assets and reconcile the product surface.
 
 ### Security foundation
