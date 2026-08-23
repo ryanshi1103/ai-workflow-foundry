@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">FlowFoundry adaptive launcher preview</title>
+  <desc id="desc">A dark terminal window showing projects, branches, status, and safe provider selection.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10172f"/>
+      <stop offset="1" stop-color="#0c3440"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#050916" flood-opacity=".45"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="700" rx="34" fill="#eef3f8"/>
+  <rect x="70" y="58" width="1060" height="584" rx="22" fill="url(#bg)" filter="url(#shadow)"/>
+  <rect x="70" y="58" width="1060" height="58" rx="22" fill="#18213e"/>
+  <rect x="70" y="94" width="1060" height="22" fill="#18213e"/>
+  <circle cx="110" cy="87" r="9" fill="#ff6b78"/>
+  <circle cx="140" cy="87" r="9" fill="#ffc65a"/>
+  <circle cx="170" cy="87" r="9" fill="#4ee0a1"/>
+  <text x="600" y="94" text-anchor="middle" fill="#9facca" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20">flowfoundry project launch</text>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+    <text x="120" y="163" fill="#60d9e9" font-size="26" font-weight="700">FlowFoundry · Projects</text>
+    <text x="120" y="205" fill="#7785a8" font-size="18">content-aware layout · local project state</text>
+    <rect x="108" y="234" width="984" height="64" rx="12" fill="#24335c" stroke="#60d9e9" stroke-width="2"/>
+    <text x="132" y="274" fill="#f3f7ff" font-size="22">› ai-workflow-foundry</text>
+    <text x="620" y="274" fill="#aebbd8" font-size="20">portfolio-migration</text>
+    <circle cx="1038" cy="266" r="8" fill="#ffc65a"/>
+    <text x="1060" y="274" fill="#ffc65a" font-size="18">dirty</text>
+    <text x="132" y="344" fill="#d8e1f4" font-size="22">  personal-knowledge-base</text>
+    <text x="620" y="344" fill="#8796b8" font-size="20">main</text>
+    <circle cx="1038" cy="336" r="8" fill="#4ee0a1"/>
+    <text x="1060" y="344" fill="#4ee0a1" font-size="18">clean</text>
+    <text x="132" y="404" fill="#d8e1f4" font-size="22">  customer-intelligence-demo</text>
+    <text x="620" y="404" fill="#8796b8" font-size="20">demo/offline</text>
+    <circle cx="1038" cy="396" r="8" fill="#4ee0a1"/>
+    <text x="1060" y="404" fill="#4ee0a1" font-size="18">clean</text>
+    <line x1="110" y1="454" x2="1090" y2="454" stroke="#30446d"/>
+    <text x="132" y="502" fill="#60d9e9" font-size="20">Auto</text>
+    <text x="270" y="502" fill="#f3f7ff" font-size="20">DeepSeek · plan</text>
+    <text x="650" y="502" fill="#7785a8" font-size="18">safe default; full access is never automatic</text>
+    <text x="120" y="588" fill="#8998ba" font-size="18">↑↓ select   Enter open   / search   Tab options   q quit</text>
+  </g>
+</svg>
+

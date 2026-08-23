@@ -1,0 +1,4 @@
+interface:
+  display_name: "Confera Caption Layout"
+  short_description: "Recommend readable caption layout"
+  default_prompt: "Use $confera-caption-layout to recommend readable subtitle layout from these reviewed caption segments."

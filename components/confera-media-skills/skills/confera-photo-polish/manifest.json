@@ -1,0 +1,33 @@
+{
+  "name": "confera-photo-polish",
+  "purpose": "Recommend non-destructive photo polish",
+  "version": "1.0.0",
+  "model": "configured-capable",
+  "effort": "medium",
+  "context": "fork",
+  "agent": "confera-photo-curator",
+  "capability": "PHOTO_POLISH",
+  "allowed_tools": [
+    "realesrgan-ncnn-vulkan"
+  ],
+  "forbidden_tools": [
+    "Bash",
+    "Shell",
+    "Write",
+    "Edit",
+    "ArtifactFinalizer",
+    "ExportApproval"
+  ],
+  "input_schema": "confera.skill-input.v1",
+  "output_schema": "PhotoRecommendation",
+  "maximum_runtime": 120,
+  "network_policy": "CONSENT_REQUIRED",
+  "privacy_policy": "KEYFRAMES_ONLY_NO_ORIGINAL_MEDIA",
+  "provenance": {
+    "source": "ryanshi1103/huiying-media-workbench",
+    "license": "MIT",
+    "local_modifications": "portable public contract snapshot"
+  },
+  "human_review_required": true,
+  "audit_status": "TRUSTED"
+}

@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ryanshi1103/ai-workflow-foundry/schemas/capability-registry.schema.json",
+  "title": "FlowFoundry Capability Registry v1",
+  "description": "A registry that maps reviewed capability intents to trusted implementations. A host can verify that every required capability has a concrete, validated implementation before executing a workflow.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "capabilities"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "display_name",
+          "description",
+          "provided_by",
+          "adapter",
+          "maturity"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "description": "Unique kebab-case capability identifier. Matches entries in component capability lists and workflow contract requirements."
+          },
+          "display_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What this capability provides from a user/operator perspective."
+          },
+          "provided_by": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Component ID from the catalog that provides this capability."
+          },
+          "adapter": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "entry_point"],
+            "properties": {
+              "type": {
+                "enum": [
+                  "claude-skill",
+                  "codex-skill",
+                  "deterministic-command",
+                  "python-module",
+                  "manual"
+                ]
+              },
+              "entry_point": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Skill path, shell command, Python dotted path, or manual instruction."
+              },
+              "requires_network": {
+                "type": "boolean",
+                "default": false
+              },
+              "requires_secrets": {
+                "type": "boolean",
+                "default": false
+              }
+            }
+          },
+          "maturity": {
+            "enum": ["experimental", "alpha", "beta", "stable"],
+            "description": "Maturity of this specific capability implementation."
+          },
+          "deprecates": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string" },
+            "description": "Previous capability IDs that this capability replaces."
+          },
+          "constraints": {
+            "type": "object",
+            "description": "Runtime constraints for this capability.",
+            "properties": {
+              "max_runtime_seconds": { "type": "integer", "minimum": 1 },
+              "max_memory_mb": { "type": "integer", "minimum": 1 },
+              "requires_gpu": { "type": "boolean" },
+              "supported_platforms": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

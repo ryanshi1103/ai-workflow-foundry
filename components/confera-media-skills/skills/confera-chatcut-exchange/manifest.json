@@ -1,0 +1,32 @@
+{
+  "name": "confera-chatcut-exchange",
+  "purpose": "Plan consented manual ChatCut exchange",
+  "version": "1.0.0",
+  "model": "configured-fast",
+  "effort": "low",
+  "context": "fork",
+  "agent": "confera-fast-analyzer",
+  "capability": "CHATCUT_EXCHANGE",
+  "allowed_tools": [],
+  "forbidden_tools": [
+    "Bash",
+    "Shell",
+    "Write",
+    "Edit",
+    "WebFetch",
+    "ArtifactFinalizer",
+    "ExportApproval"
+  ],
+  "input_schema": "confera.skill-input.v1",
+  "output_schema": "ChatCutExchangeCandidate",
+  "maximum_runtime": 90,
+  "network_policy": "MANUAL_EXTERNAL_EXCHANGE_ONLY",
+  "privacy_policy": "EXPLICIT_CHATCUT_CONSENT_PROXY_DEFAULT",
+  "provenance": {
+    "source": "ryanshi1103/huiying-media-workbench",
+    "license": "MIT",
+    "local_modifications": "portable public contract snapshot"
+  },
+  "human_review_required": true,
+  "audit_status": "TRUSTED"
+}

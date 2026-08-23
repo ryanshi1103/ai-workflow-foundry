@@ -1,0 +1,4 @@
+interface:
+  display_name: "Confera Timeline Review"
+  short_description: "Propose an immutable timeline revision"
+  default_prompt: "Use $confera-timeline-review to review this timeline and propose a new candidate revision without approving it."

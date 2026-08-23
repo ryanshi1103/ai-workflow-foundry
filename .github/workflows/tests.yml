@@ -1,0 +1,52 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate catalog
+        run: PYTHONPATH=src python3 -m flowfoundry validate
+      - name: Run foundation tests
+        run: PYTHONPATH=src python3 -m unittest discover -s tests -v
+
+  workspace-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Test workspace launcher contract
+        run: ./core/workspace-manager/tests/test-cc.sh
+      - name: Test launcher permissions and EOF handling
+        run: ./core/workspace-manager/tests/test-cc-eof-fix.sh
+      - name: Test deployment profile preservation
+        run: ./core/workspace-manager/tests/test-deploy-profile-preservation.sh
+      - name: Test workspace Python runtime
+        run: >-
+          PYTHONPATH=src python3 -m unittest discover
+          -s core/workspace-manager/tests -p 'test_*.py' -v
+
+  integrated-components:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Test media skills and document workflow
+        run: |
+          python3 -m unittest discover -s components/confera-media-skills/tests -v
+          python3 -m unittest discover -s workflows/print-ready-nameplate-generator/tests -v

@@ -1,0 +1,85 @@
+name: Bug report
+description: Report reproducible incorrect behavior using synthetic or sanitized data.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve FlowFoundry. Do not include credentials,
+        private transcripts, customer data, personal paths, or real media. Use
+        private vulnerability reporting for security or privacy issues.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Release tag or full commit SHA from an approved public checkout.
+      placeholder: v0.2.0-alpha.1 or 0123456…
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Python version, shell, and installation method.
+      placeholder: Ubuntu 24.04, Python 3.11, bash, wheel install
+    validations:
+      required: true
+
+  - type: dropdown
+    id: execution
+    attributes:
+      label: Execution mode
+      options:
+        - Offline fake provider
+        - Deterministic local command
+        - Real provider (sanitized metadata only)
+        - Workspace launcher
+        - Catalog or package validation
+        - Reference application or workflow
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the observable behavior without private content.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Use synthetic inputs and include the smallest command sequence.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Paste only redacted output. Prefer status names and error codes over full logs.
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I removed credentials, private content, personal paths, provider request IDs, and customer/user data.
+          required: true
+        - label: I verified this is not a security or privacy disclosure that belongs in private reporting.
+          required: true
+

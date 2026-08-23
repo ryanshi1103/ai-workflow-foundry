@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "id": "confera-media-skills",
+  "display_name": "Confera Media Skills",
+  "summary": "Safety-bounded media inspection, editing, narration, timeline, rendering, and quality-review skills.",
+  "kind": "workflow-pack",
+  "maturity": "beta",
+  "source": {
+    "url": "https://github.com/ryanshi1103/confera-media-skills",
+    "license": "MIT"
+  },
+  "integration": {
+    "mode": "bundled",
+    "bundled_path": "components/confera-media-skills"
+  },
+  "capabilities": [
+    "media evidence inspection",
+    "schema-valid AI candidates",
+    "storyboard and timeline review",
+    "quality and export planning"
+  ],
+  "design_patterns": [
+    "bounded skill manifests",
+    "trusted tool registry",
+    "immutable revisions",
+    "separate human review and export approval"
+  ],
+  "lifecycle": {
+    "stages": ["inspect controlled evidence", "propose candidate", "validate schema", "review candidate"],
+    "approvals": ["human review", "separate export approval in the host application"]
+  },
+  "safety": {
+    "local_first": true,
+    "preserves_originals": true,
+    "review_before_side_effects": true,
+    "secrets": "none",
+    "network": "Each skill manifest declares its network policy; the portable pack does not execute external tools."
+  }
+}

@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flowfoundry-ai"
+version = "0.2.0a1"
+description = "Local-first catalog, workspace runtime, and foundations for safety-bounded AI workflows"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "Ryan Shi"}]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+]
+
+[project.scripts]
+flowfoundry = "flowfoundry.cli:main"
+aiproj = "flowfoundry.aiproj:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.data-files]
+"share/flowfoundry/catalog" = ["catalog/*.json"]
+"share/flowfoundry/schemas" = ["schemas/*.json"]
+"share/flowfoundry/workflows/contracts" = ["workflows/contracts/*.json"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "core/workspace-manager/tests"]
+pythonpath = ["src"]

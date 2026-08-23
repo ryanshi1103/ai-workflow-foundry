@@ -1,0 +1,31 @@
+{
+  "name": "confera-story-editor",
+  "purpose": "Create Storyboard revision candidates",
+  "version": "1.0.0",
+  "model": "configured-high-capability",
+  "effort": "high",
+  "context": "fork",
+  "agent": "confera-story-director",
+  "capability": "STORY_EDITING",
+  "allowed_tools": [],
+  "forbidden_tools": [
+    "Bash",
+    "Shell",
+    "Write",
+    "Edit",
+    "ArtifactFinalizer",
+    "ExportApproval"
+  ],
+  "input_schema": "confera.skill-input.v1",
+  "output_schema": "StoryboardRevisionCandidate",
+  "maximum_runtime": 180,
+  "network_policy": "CONSENT_REQUIRED",
+  "privacy_policy": "REVIEWED_TRANSCRIPT_EXCERPTS_ONLY",
+  "provenance": {
+    "source": "ryanshi1103/huiying-media-workbench",
+    "license": "MIT",
+    "local_modifications": "portable public contract snapshot"
+  },
+  "human_review_required": true,
+  "audit_status": "TRUSTED"
+}

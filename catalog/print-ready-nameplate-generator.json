@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "id": "print-ready-nameplate-generator",
+  "display_name": "Print-ready Nameplate Generator",
+  "summary": "Deterministic CSV-to-PPTX workflow for editable, physically accurate A4 folded nameplates.",
+  "kind": "reference-workflow",
+  "maturity": "stable",
+  "source": {
+    "url": "https://github.com/ryanshi1103/print-ready-nameplate-generator",
+    "license": "MIT"
+  },
+  "integration": {
+    "mode": "bundled",
+    "bundled_path": "workflows/print-ready-nameplate-generator"
+  },
+  "capabilities": [
+    "validated tabular input",
+    "deterministic document geometry",
+    "editable vector output",
+    "safe output filename generation"
+  ],
+  "design_patterns": [
+    "separate content from layout",
+    "deterministic physical constraints",
+    "path-safe output naming",
+    "real application acceptance test"
+  ],
+  "lifecycle": {
+    "stages": ["validate CSV", "build editable deck", "inspect layout", "print at actual size"],
+    "approvals": ["visual print preview"]
+  },
+  "safety": {
+    "local_first": true,
+    "preserves_originals": true,
+    "review_before_side_effects": true,
+    "secrets": "none",
+    "network": "No network access is required."
+  }
+}
