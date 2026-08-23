@@ -23,14 +23,14 @@
     <text x="120" y="205" fill="#7785a8" font-size="18">content-aware layout · local project state</text>
     <rect x="108" y="234" width="984" height="64" rx="12" fill="#24335c" stroke="#60d9e9" stroke-width="2"/>
     <text x="132" y="274" fill="#f3f7ff" font-size="22">› ai-workflow-foundry</text>
-    <text x="620" y="274" fill="#aebbd8" font-size="20">portfolio-migration</text>
+    <text x="620" y="274" fill="#aebbd8" font-size="20">docs/demo-refresh</text>
     <circle cx="1038" cy="266" r="8" fill="#ffc65a"/>
     <text x="1060" y="274" fill="#ffc65a" font-size="18">dirty</text>
     <text x="132" y="344" fill="#d8e1f4" font-size="22">  personal-knowledge-base</text>
     <text x="620" y="344" fill="#8796b8" font-size="20">main</text>
     <circle cx="1038" cy="336" r="8" fill="#4ee0a1"/>
     <text x="1060" y="344" fill="#4ee0a1" font-size="18">clean</text>
-    <text x="132" y="404" fill="#d8e1f4" font-size="22">  customer-intelligence-demo</text>
+    <text x="132" y="404" fill="#d8e1f4" font-size="22">  ai-project-manager-demo</text>
     <text x="620" y="404" fill="#8796b8" font-size="20">demo/offline</text>
     <circle cx="1038" cy="396" r="8" fill="#4ee0a1"/>
     <text x="1060" y="404" fill="#4ee0a1" font-size="18">clean</text>

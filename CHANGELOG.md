@@ -2,11 +2,11 @@
 
 All notable changes intended for public releases will be documented here.
 
-The first public candidate uses package version `0.2.0a1`, corresponding to the
-planned Git release name `v0.2.0-alpha.1`. No tag or public release has been
-created.
+The first public Alpha uses package version `0.2.0a1`, corresponding to the Git
+release name `v0.2.0-alpha.1`. Publication still requires every gate in
+`RELEASE_DAY_CHECKLIST.md` to pass.
 
-## Unreleased
+## 0.2.0a1
 
 ### Productization
 
@@ -32,6 +32,10 @@ created.
   Conduct, and a wheel-install readiness workflow.
 - Added a deterministic Personal AI Manager fixture, expected plan, normalized
   evidence, and verified 90-second walkthrough.
+- Added a public launch announcement, channel-specific GitHub growth plan,
+  release-ready 90-second recording script, and release-day checklist.
+- Finalized public clone guidance and removed the excluded Customer Intelligence
+  example from the rendered launcher preview.
 - Excluded the unlicensed Feedback Intelligence implementation, executable
   catalog surfaces, and Customer Intelligence demo from the public candidate.
 - Fixed duplicate launcher execution caused by the importability probe and
@@ -39,5 +43,5 @@ created.
 - Added the four-phase public release plan for private review,
   `v0.2.0-alpha.1`, community feedback, and a later stable contract.
 
-No release tag, remote push, protected-branch mutation, or frozen-RC change is
-part of this changelog entry.
+Tagging, remote push, protected-branch mutation, and frozen-RC changes are not
+automated by this release entry.

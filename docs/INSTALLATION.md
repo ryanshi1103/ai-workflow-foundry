@@ -16,12 +16,12 @@ Installing the root wheel does not install component environments.
 
 ## First public install
 
-The exact URL and tag below remain placeholders until the candidate is approved
-and published. Do not substitute an older migration ref.
+Use this command after the approved Alpha tag is published. Do not substitute a
+working branch or an older migration ref.
 
 ```bash
 git clone --single-branch --branch v0.2.0-alpha.1 \
-  <approved-flowfoundry-url> flowfoundry
+  https://github.com/ryanshi1103/ai-workflow-foundry.git flowfoundry
 cd flowfoundry
 
 python3 -m venv .venv

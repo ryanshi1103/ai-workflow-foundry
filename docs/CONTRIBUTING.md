@@ -30,8 +30,10 @@ Requirements:
 - optional LibreOffice/PyUNO only for real nameplate generation.
 
 ```bash
-git clone <approved-publication-url>
+git clone --branch v0.2.0-alpha.1 --single-branch \
+  https://github.com/ryanshi1103/ai-workflow-foundry.git ai-workflow-foundry
 cd ai-workflow-foundry
+git switch -c contribution/<topic>
 
 python3 -m venv .venv
 . .venv/bin/activate

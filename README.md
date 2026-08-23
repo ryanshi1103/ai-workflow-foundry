@@ -91,16 +91,17 @@ rendered product preview based on the current TUI contract; see the
 
 ## Quick start
 
-Requirements: Python 3.11+ and Git. Until the public launch gates close, start
-from an owner-approved local checkout; the final release will replace this note
-with the exact sanitized clone URL.
+Requirements: Python 3.11+ and Git. The commands below use the immutable Alpha
+tag and are valid after `v0.2.0-alpha.1` is published.
 
 ```bash
-cd ai-workflow-foundry
+git clone --branch v0.2.0-alpha.1 --single-branch \
+  https://github.com/ryanshi1103/ai-workflow-foundry.git flowfoundry
+cd flowfoundry
 
 python3 -m venv .venv
 . .venv/bin/activate
-python3 -m pip install -e .
+python3 -m pip install .
 
 # Validate the catalog, contracts, and capability registry.
 flowfoundry validate
@@ -240,6 +241,10 @@ python3 -m unittest discover -s workflows/print-ready-nameplate-generator/tests 
 - [Open-source launch plan](docs/OPEN_SOURCE_LAUNCH.md)
 - [Public release phases](docs/PUBLIC_RELEASE_PLAN.md)
 - [Marketing plan](docs/MARKETING_PLAN.md)
+- [Launch announcement](docs/LAUNCH_ANNOUNCEMENT.md)
+- [GitHub growth plan](docs/GITHUB_GROWTH_PLAN.md)
+- [90-second launch demo script](docs/DEMO_SCRIPT.md)
+- [Release-day checklist](RELEASE_DAY_CHECKLIST.md)
 - [Repository organization proposal](docs/REPOSITORY_STRUCTURE.md)
 
 ## Release and license status

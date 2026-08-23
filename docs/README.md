@@ -35,9 +35,13 @@
 - [Visual Design](VISUAL_DESIGN.md)
 - [Repository Organization](REPOSITORY_STRUCTURE.md)
 - [Marketing Plan](MARKETING_PLAN.md)
+- [Launch Announcement](LAUNCH_ANNOUNCEMENT.md)
+- [GitHub Growth Plan](GITHUB_GROWTH_PLAN.md)
+- [90-second Launch Demo Script](DEMO_SCRIPT.md)
 - [Open-source Launch Plan](OPEN_SOURCE_LAUNCH.md)
 - [Public Release Plan](PUBLIC_RELEASE_PLAN.md)
 - [Release Checklist](../RELEASE_CHECKLIST.md)
+- [Release-day Checklist](../RELEASE_DAY_CHECKLIST.md)
 - [Security Policy](../SECURITY.md)
 
 ## Engineering evidence
