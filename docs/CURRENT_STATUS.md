@@ -1,7 +1,7 @@
 # Current Status
 
-Last audited: 2026-08-23  
-Candidate: `release/v0.2.0-alpha.1-candidate`  
+Last audited: 2026-08-23
+Candidate: `release/v0.2.0-alpha.1-candidate`
 Package version: `0.2.0a1`
 
 FlowFoundry is an **Alpha developer preview** of a local-first coordination

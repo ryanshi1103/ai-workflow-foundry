@@ -119,4 +119,3 @@ personal context and adaptive-manager layers remain roadmap work.
 
 See [Current Status](CURRENT_STATUS.md) for the implemented boundary and
 [Roadmap](ROADMAP.md) for staged acceptance criteria.
-

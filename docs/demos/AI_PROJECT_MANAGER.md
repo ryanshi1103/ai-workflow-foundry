@@ -101,4 +101,3 @@ state—not application quality from fake content.
 - [ ] Provider use is visibly labeled fake/offline.
 - [ ] Main working tree remains unchanged.
 - [ ] Recording never implies a production application was generated or tested.
-

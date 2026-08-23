@@ -1,6 +1,6 @@
 # License Decision
 
-Date: 2026-08-23  
+Date: 2026-08-23
 Decision: **exclude Feedback Intelligence from the public candidate**
 
 ## Rationale

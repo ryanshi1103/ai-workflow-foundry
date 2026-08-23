@@ -178,4 +178,3 @@ quality.
 | Privacy skepticism | Publish sanitized process evidence and current limitations; never expose incident contents |
 | Maintainer overload | Narrow issue scopes, templates, labels, and documented architecture decisions |
 | Demo works only on maintainer machine | Require fresh-checkout offline acceptance and record exact environment |
-

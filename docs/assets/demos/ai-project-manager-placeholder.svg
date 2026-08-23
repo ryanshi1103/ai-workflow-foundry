@@ -15,4 +15,3 @@
   <text x="480" y="391" text-anchor="middle" fill="#ffc65a" font-family="system-ui, sans-serif" font-size="20">Recording follows after a deterministic research fixture and launch gates are complete.</text>
   <text x="480" y="423" text-anchor="middle" fill="#9facca" font-family="system-ui, sans-serif" font-size="17">No automatic merge, push, or deployment is implied.</text>
 </svg>
-

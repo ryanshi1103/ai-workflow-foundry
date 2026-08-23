@@ -63,4 +63,3 @@ but it does not make them exist today.
 - The user can export and delete the learning context.
 - The system clearly distinguishes document facts, model suggestions, and user
   confirmations.
-

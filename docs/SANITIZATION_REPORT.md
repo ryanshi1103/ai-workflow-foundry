@@ -1,7 +1,7 @@
 # Sanitization Report
 
-Date: 2026-08-23  
-Candidate: `release/v0.2.0-alpha.1-candidate`  
+Date: 2026-08-23
+Candidate: `release/v0.2.0-alpha.1-candidate`
 Method: allowlist-only snapshot on a new root commit
 
 ## Decision

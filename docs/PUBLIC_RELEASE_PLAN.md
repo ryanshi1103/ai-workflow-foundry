@@ -1,7 +1,7 @@
 # Public Release Plan
 
-Target: **FlowFoundry v0.2.0-alpha.1**  
-Current state: **local candidate hardening in progress**  
+Target: **FlowFoundry v0.2.0-alpha.1**
+Current state: **local candidate hardening in progress**
 Authority: this plan does not authorize push, merge, tag, visibility change,
 history rewrite, protected-branch change, credential action, or GitHub Release.
 

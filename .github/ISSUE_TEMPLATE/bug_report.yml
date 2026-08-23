@@ -82,4 +82,3 @@ body:
           required: true
         - label: I verified this is not a security or privacy disclosure that belongs in private reporting.
           required: true
-

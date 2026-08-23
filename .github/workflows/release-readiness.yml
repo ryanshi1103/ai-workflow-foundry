@@ -83,4 +83,3 @@ jobs:
           cd "$validation_dir"
           "$GITHUB_WORKSPACE/.release-venv/bin/flowfoundry" validate
           "$GITHUB_WORKSPACE/.release-venv/bin/flowfoundry" list
-

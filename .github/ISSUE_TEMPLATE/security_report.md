@@ -22,4 +22,3 @@ establish impact.
 
 If you opened this template for a non-sensitive hardening suggestion, remove
 all private details and use the Feature Request template instead.
-

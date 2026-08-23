@@ -19,4 +19,3 @@ git diff --check
 
 Never include credentials, private session content, customer data, or real
 personal media in issues, tests, examples, or commits.
-

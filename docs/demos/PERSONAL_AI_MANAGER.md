@@ -102,4 +102,3 @@ that provider calls are fake/offline and that no main-worktree change occurred.
 - [ ] Output clearly labels synthetic provider usage.
 - [ ] Main working tree is unchanged.
 - [ ] Recording includes limitations and a human decision frame.
-

@@ -76,4 +76,3 @@ body:
           required: true
         - label: I checked the current status and roadmap for an existing decision or duplicate proposal.
           required: true
-
