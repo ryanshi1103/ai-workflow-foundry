@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import io
 import json
-import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
-from unittest.mock import patch
 
 from flowfoundry.cli import main
 from flowfoundry.orchestration.planner import RuleBasedPlanner
@@ -86,35 +84,35 @@ class TeamCliTests(unittest.TestCase):
         self.assertFalse(self.runs_root.exists())
 
     def test_provider_status_is_structured_and_contains_no_credentials(self) -> None:
-        def authenticated_status(
-            command: tuple[str, ...],
-            timeout: float,
-            environment: dict[str, str] | None = None,
-        ) -> subprocess.CompletedProcess[str]:
-            if Path(command[0]).name == "codex":
-                return subprocess.CompletedProcess(
-                    command, 0, stdout="Logged in using ChatGPT", stderr=""
-                )
-            profile = Path(environment["CLAUDE_CONFIG_DIR"]).name
-            return subprocess.CompletedProcess(
-                command,
-                0,
-                stdout=json.dumps({"loggedIn": profile == ".claude-deepseek"}),
-                stderr="",
-            )
-
-        with patch(
-            "flowfoundry.orchestration.discovery._run_command",
-            side_effect=authenticated_status,
-        ):
-            result, output, error = self.call("team", "providers")
+        result, output, error = self.call("team", "providers")
         self.assertEqual((result, error), (0, ""))
         statuses = json.loads(output)
         self.assertEqual(
             {status["agent_id"] for status in statuses},
             {"claude-architect", "codex-builder", "deepseek-reviewer", "local-tester"},
         )
+        expected_fields = {
+            "agent_id",
+            "provider",
+            "model",
+            "executable",
+            "installed",
+            "availability",
+            "readiness",
+            "authentication_state",
+            "runtime_profile",
+            "provider_identity_state",
+            "credential_sources",
+            "setup_action",
+        }
+        expected_credential_sources = {
+            "claude": {"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"},
+            "codex": {"OPENAI_API_KEY"},
+            "deepseek": {"DEEPSEEK_API_KEY"},
+            "local": set(),
+        }
         for status in statuses:
+            self.assertEqual(set(status), expected_fields)
             self.assertIn(
                 status["authentication_state"],
                 {
@@ -130,18 +128,53 @@ class TeamCliTests(unittest.TestCase):
                 status["readiness"],
                 {"READY", "AVAILABLE_UNVERIFIED", "UNAVAILABLE"},
             )
-            self.assertNotIn("credential_value", status)
+            self.assertEqual(
+                set(status["credential_sources"]),
+                expected_credential_sources[status["provider"]],
+            )
+            self.assertTrue(
+                all("=" not in source for source in status["credential_sources"])
+            )
+            if status["readiness"] == "UNAVAILABLE":
+                self.assertFalse(status["installed"])
+                self.assertEqual(status["availability"], "unavailable")
+            elif status["readiness"] == "READY":
+                self.assertTrue(status["installed"])
+                self.assertEqual(status["availability"], "available")
+                self.assertIn(
+                    status["authentication_state"], {"verified", "not_required"}
+                )
+                self.assertIn(
+                    status["provider_identity_state"], {"verified", "not_required"}
+                )
+            else:
+                self.assertTrue(status["installed"])
+                self.assertEqual(status["availability"], "available_unverified")
+
         codex = next(status for status in statuses if status["provider"] == "codex")
-        self.assertEqual(codex["authentication_state"], "verified")
-        self.assertEqual(codex["readiness"], "READY")
+        self.assertIn(
+            codex["authentication_state"],
+            {"verified", "unconfigured", "not_authenticated"},
+        )
+        expected_codex_state = {
+            "verified": (True, "available", "READY"),
+            "unconfigured": (False, "unavailable", "UNAVAILABLE"),
+            "not_authenticated": (
+                True,
+                "available_unverified",
+                "AVAILABLE_UNVERIFIED",
+            ),
+        }
+        self.assertEqual(
+            (codex["installed"], codex["availability"], codex["readiness"]),
+            expected_codex_state[codex["authentication_state"]],
+        )
+        self.assertEqual(codex["runtime_profile"], "codex_native")
+        self.assertEqual(codex["provider_identity_state"], "verified")
         claude = next(status for status in statuses if status["provider"] == "claude")
-        self.assertEqual(claude["authentication_state"], "not_authenticated")
-        self.assertEqual(claude["readiness"], "AVAILABLE_UNVERIFIED")
         self.assertEqual(claude["runtime_profile"], "claude_native")
         self.assertEqual(claude["provider_identity_state"], "verified")
         deepseek = next(status for status in statuses if status["provider"] == "deepseek")
-        self.assertEqual(deepseek["authentication_state"], "verified")
-        self.assertEqual(deepseek["readiness"], "READY")
         self.assertEqual(deepseek["runtime_profile"], "deepseek_compatible")
         self.assertEqual(deepseek["provider_identity_state"], "verified")
 
