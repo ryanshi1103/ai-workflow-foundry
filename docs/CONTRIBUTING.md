@@ -7,6 +7,9 @@ documentation, and human-centered developer experience.
 This project is Alpha. Small, well-evidenced changes are more valuable than
 large capability claims.
 
+For a paced first contribution, use the
+[Day 1 → Day 7 contributor journey](CONTRIBUTOR_JOURNEY.md).
+
 ## Before you start
 
 Read:
@@ -14,7 +17,7 @@ Read:
 1. [Current Status](CURRENT_STATUS.md) for implemented and planned boundaries.
 2. [Architecture](ARCHITECTURE.md) for runtime responsibilities.
 3. [Security model](../MULTI_AGENT_SECURITY_MODEL.md) for trust boundaries.
-4. [Roadmap](ROADMAP.md) for current priorities.
+4. [Product Roadmap](PRODUCT_ROADMAP.md) for current priorities.
 
 Do not include credentials, private transcripts, customer data, real media,
 personal datasets, or generated artifacts containing sensitive information in

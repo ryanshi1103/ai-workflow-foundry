@@ -4,7 +4,7 @@ All notable changes intended for public releases will be documented here.
 
 The first public Alpha uses package version `0.2.0a1`, corresponding to the Git
 release name `v0.2.0-alpha.1`. Publication still requires every gate in
-`RELEASE_DAY_CHECKLIST.md` to pass.
+[`docs/ALPHA_RELEASE_CHECKLIST.md`](docs/ALPHA_RELEASE_CHECKLIST.md) to pass.
 
 ## 0.2.0a1
 
@@ -31,7 +31,8 @@ release name `v0.2.0-alpha.1`. Publication still requires every gate in
 - Added GitHub bug, feature, security, and pull-request templates, a Code of
   Conduct, and a wheel-install readiness workflow.
 - Added a deterministic Personal AI Manager fixture, expected plan, normalized
-  evidence, and verified 90-second walkthrough.
+  evidence, and a locally verified 90-second walkthrough script. A final release
+  recording/GIF has not been produced.
 - Added a public launch announcement, channel-specific GitHub growth plan,
   release-ready 90-second recording script, and release-day checklist.
 - Finalized public clone guidance and removed the excluded Customer Intelligence

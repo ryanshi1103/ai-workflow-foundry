@@ -9,6 +9,9 @@ and pull request expectations:
 
 **[Read the contributor guide](docs/CONTRIBUTING.md)**
 
+New to the project? Follow the evidence-based
+**[Day 1 → Day 7 contributor journey](docs/CONTRIBUTOR_JOURNEY.md)**.
+
 Before opening a pull request, run at minimum:
 
 ```bash

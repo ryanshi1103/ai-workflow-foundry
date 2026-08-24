@@ -240,4 +240,4 @@ Automatic candidate integration, universal provider pricing, external plugin
 loading, personal semantic memory, local-model hardware scheduling, graphical
 operations, and enterprise policy administration remain outside the current
 implementation. See [Current Status](CURRENT_STATUS.md) for the full evidence
-matrix and [Roadmap](ROADMAP.md) for acceptance criteria.
+matrix and [Product Roadmap](PRODUCT_ROADMAP.md) for acceptance criteria.

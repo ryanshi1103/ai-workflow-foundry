@@ -1,4 +1,6 @@
-# Installation Experience
+# Alpha Installation
+
+Status: **canonical installation mechanics; final public artifact pending**
 
 ## Supported path
 
@@ -30,6 +32,10 @@ python -m pip install .
 flowfoundry validate
 ```
 
+Target: complete this checkpoint within ten minutes on a supported clean
+environment. Timing is measured from the first clone/download command through
+the validation result.
+
 Expected first-command output:
 
 ```text
@@ -38,14 +44,33 @@ validated 2 workflow contracts
 validated 13 registered capabilities
 ```
 
-Then inspect the catalog or preview a plan:
+Then preview and run the flagship plan:
 
 ```bash
-flowfoundry list
-flowfoundry team plan examples/personal-ai/personal-ai-manager.json
+flowfoundry team plan examples/personal-ai/github-release-assistant.json
+flowfoundry team run examples/personal-ai/github-release-assistant.json \
+  --run-id first-alpha-workflow
+flowfoundry team report first-alpha-workflow
 ```
 
-Neither command makes a real provider call.
+Target: complete the workflow and identify its human approval boundary within
+30 minutes of beginning installation. The expected overall state is
+`completed_with_blockers`, with `package` at `skipped_pending_human`.
+
+These commands make no real provider call. Use the complete
+[First External Alpha User Guide](ALPHA_USER_GUIDE.md) for the timed journey.
+
+## Invitation-only candidate install
+
+Before the immutable tag exists, a validation participant must receive an exact
+owner-approved candidate SHA and approved source/archive location. Verify that
+identity before installation. Do not use the mutable head of a documentation
+branch and do not assume the runtime baseline `64f1563...` remains the final
+candidate after documentation integration.
+
+The release owner must provide the archive hash or a verifiable Git object,
+supported environment, and security contact. If any identity field is missing,
+stop the validation.
 
 ## Audited timing
 
@@ -85,7 +110,9 @@ whose PEP 440 package version is `0.2.0a1`.
 ## Wheel evidence
 
 The exact wheel/sdist filenames, hashes, entry scans, and clean-environment
-install result are recorded in `FINAL_RELEASE_REPORT.md`.
+install result are recorded in the
+[Final Release Report](../FINAL_RELEASE_REPORT.md). Historical artifacts in
+that report are explicitly not final-candidate evidence.
 
 ## Clean-clone status
 
@@ -95,27 +122,13 @@ publication:
 1. clone the exact candidate anonymously into a new directory;
 2. verify the checked-out SHA and advertised refs;
 3. run the install sequence above on Python 3.11 and one newer supported version;
-4. run the offline Personal AI Manager plan and AI Project Manager lifecycle;
+4. run the offline GitHub Release Assistant lifecycle;
 5. verify no untracked state remains after cleanup;
 6. remove only the disposable test clone after preserving a sanitized report.
 
-## Troubleshooting
+## If installation fails
 
-### `Cannot import setuptools.build_meta`
-
-Use normal build isolation with package-index access, preinstall a compatible
-setuptools wheel, or install the official FlowFoundry wheel. Do not use a random
-user-site package to satisfy the build silently.
-
-### Installed command cannot find catalog resources
-
-Confirm `python -m pip show flowfoundry-ai` points into the intended venv and run
-`flowfoundry validate` outside the source tree. Report the package version,
-Python version, platform, and sanitized output.
-
-### Provider is unavailable
-
-Root installation does not install or authenticate Codex, Claude, or a
-DeepSeek-compatible profile. `flowfoundry team providers` reports local setup
-state without showing credential values. Offline demos do not require provider
-setup.
+Use [Alpha Troubleshooting](TROUBLESHOOTING.md). Record the exact
+candidate/artifact identity, platform, Python version, failed command, exit code,
+and sanitized error excerpt. Do not post credentials, private paths, full
+environment dumps, or project contents.

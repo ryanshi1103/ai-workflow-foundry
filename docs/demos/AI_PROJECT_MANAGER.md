@@ -90,8 +90,8 @@ state—not application quality from fake content.
   the public default demo.
 - Automatic merge, pull request, deployment, and release are intentionally out
   of scope.
-- The current dirty release-preparation tree is not suitable for demonstrating
-  writer isolation until a clean sanitized candidate exists.
+- A clean sanitized candidate exists, but the official AI Project Manager
+  recording still requires a fresh checkout of the exact approved hosted SHA.
 
 ## Release verification
 

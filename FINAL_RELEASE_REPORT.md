@@ -1,31 +1,33 @@
 # FlowFoundry Final Release Report
 
-Date: 2026-08-23
+Date: 2026-08-24
 
 ## Decision
 
 **BLOCKED for public Alpha publication.**
 
-**PASS for the local release-candidate engineering gate.** The candidate is
-sanitized, clean, license-bounded, version-aligned, test-green, installable,
-and demo-ready. Publication remains blocked only by owner/external gates that
-cannot be completed under the explicit no-push, no-merge, no-protected-ref
-rules.
+**PASS for the available local code/workspace engineering gates.** The exact
+candidate is sanitized, clean, license-bounded, version-aligned, and locally
+test-green. Current-SHA package/install evidence, remote CI, independent review,
+historical containment, legal sign-off, publication authority, and a final
+recording remain incomplete.
 
 ## Candidate identity
 
-- Branch: `release/v0.2.0-alpha.1-candidate`
-- Tested source commit: `8d1929b85f4cc572813cbf503c22d2b55cb78ebb`
-- Tested source tree: `3cd811083a199ffa2a675f9b8ad730b052918307`
-- History shape: two commits, with new root
+- Runtime baseline branch: `release/v0.2.0-alpha.1-candidate`
+- Frozen runtime baseline commit: `64f1563ba25278c7bceeedf24b7629c6ac463b76`
+- Runtime baseline tree: `77ec4451fed67a0e673ebf0addac0f50f3690268`
+- Direct parent: `32b94345ba9166d8b8b5d3171b132ecee4ecffea`
+- History shape: five commits, with new root
   `0c793a859b4f7d2631c3ea33d1ca8a5566b5a8b4`
 - Package version: `0.2.0a1`
 - Planned release name: `v0.2.0-alpha.1`
 - Candidate status during gate: clean
 
-The commit containing this report is documentation-only and follows the tested
-source commit. No source, test, package metadata, catalog, workflow, fixture,
-or artifact input changes are introduced by the report commit.
+The runtime baseline commit changes `.github/workflows/tests.yml` and
+`tests/test_orchestration_cli.py` relative to its parent. The available local
+suites below were rerun at the current SHA. Artifact hashes recorded later in
+this report were produced from `8d1929b…` and are historical only.
 
 ## Blocker closure
 
@@ -37,7 +39,7 @@ or artifact input changes are introduced by the report commit.
 | Launcher EOF compatibility | **PASS** | Wrapper probe changed from side-effecting import to module-spec lookup; `test-cc-eof-fix.sh`: **40 passed, 0 failed** |
 | Missing Feedback test evidence | **PASS by release boundary** | Feedback is not shipped or claimed, so its absent test evidence is not candidate evidence |
 | Version mismatch | **PASS** | Package/module metadata and artifacts report `0.2.0a1`; release name remains `v0.2.0-alpha.1` |
-| Missing real demo assets | **PASS for demo preparation** | Deterministic input, exact expected plan, normalized verified output, and 90-second walkthrough are committed |
+| Missing real demo assets | **WARNING** | Deterministic input, expected plan, normalized output, and script are committed; no final recording/GIF exists |
 
 ## Sanitization and history evidence
 
@@ -48,9 +50,9 @@ or artifact input changes are introduced by the report commit.
 - Reachable-object scan found zero forbidden candidate paths.
 - Reachable-text scan found zero concrete maintainer-home paths, private-key
   blocks, or common AWS/GitHub/OpenAI token shapes.
-- A `--no-local --single-branch --no-tags` clean clone contained two candidate
-  commits, one candidate local branch, one matching remote-tracking branch, no
-  tags, no forbidden path ancestry, and no unreachable objects.
+- The earlier `--no-local --single-branch --no-tags` clean-clone result belongs
+  to the pre-`64f1563…` candidate state. A current-SHA anonymous clone/mirror
+  check remains required after authorized publication.
 - The original migration checkout, frozen candidate/evidence, protected refs,
   remotes, and tags were not modified.
 
@@ -78,7 +80,12 @@ Workspace tests generated ignored `.ai-session` state during one local run. The
 state was detected, removed, and absent from the committed tree, reachable
 history, packages, and final candidate checkout.
 
-## Packages and install
+## Historical packages and install
+
+The artifacts in this section were built from
+`8d1929b85f4cc572813cbf503c22d2b55cb78ebb`, not the current candidate. They
+must not be attached to a `64f1563…` release or described as current-SHA
+evidence.
 
 Built with Python 3.14.6 using `build 1.5.0` and isolated setuptools build
 environments:
@@ -96,22 +103,28 @@ outside the source directory.
 A separate clean clone completed `pip install .`, import/version, validation,
 `pip check`, foundation tests, launcher tests, and the offline demo.
 
+Current-SHA wheel, sdist, and isolated install verification is **BLOCKED by the
+local audit environment**, which lacks both the `build` and `setuptools`
+modules. No dependency installation was authorized during the no-remote audit.
+The required GitHub Actions build/install matrix or another approved clean
+environment must produce new artifacts and evidence.
+
 The build emitted a non-blocking setuptools warning that the legacy TOML table
 form of package-license metadata becomes unsupported in 2027. This is a future
 metadata maintenance item, not a `0.2.0a1` failure.
 
 ## Demo
 
-The official 90-second script is
-`docs/demos/personal-ai-manager-demo.md`. It uses only:
+The canonical first external-user demo is
+`docs/demos/github-release-assistant.md`, using
+`examples/personal-ai/github-release-assistant.json`. It shows the real
+deterministic planning, routing, review, persistence, and approval-stop
+lifecycle through fake providers.
 
-- `examples/personal-ai/personal-ai-manager.json`;
-- `docs/assets/demos/personal-ai-manager-plan.json`; and
-- `docs/assets/demos/personal-ai-manager-demo-output.txt`.
-
-The demo truthfully shows deterministic planning and fake-adapter execution.
-It does not claim personal memory, real-provider quality, automatic edits,
-merge, push, publication, or a finished consumer UI.
+Four prerequisite tasks complete and `package` stops at
+`skipped_pending_human`. The demo does not inspect the repository, run its real
+tests, claim live-provider quality, approve the final task, edit release files,
+merge, push, tag, deploy, publish, or present a finished graphical client.
 
 ## Remaining blockers
 
@@ -122,12 +135,15 @@ merge, push, publication, or a finished consumer UI.
 2. **Remote and independent evidence.** GitHub Actions has not run on this local
    branch, and no independent privacy/security/install reviewer has signed the
    exact candidate.
-3. **Publication authority and host state.** No push, pull request, protected
+3. **Current-SHA package evidence.** Wheel, sdist, clean install, supported-
+   Python matrix, artifact scans, and hashes have not been produced for
+   `64f1563…`.
+4. **Publication authority and host state.** No push, pull request, protected
    review, tag, GitHub Release, anonymous hosted clone, live pull-ref audit, or
    hosting-provider cleanup was authorized or performed.
-4. **Release media recording.** The deterministic 90-second walkthrough is
-   ready, but a recording from the exact approved hosted candidate is still
-   needed if the public launch requires video evidence.
+5. **Release media recording.** The deterministic 90-second script is ready,
+   but a recording from the exact approved hosted candidate is still needed if
+   the public launch requires video evidence.
 
 ## Exact next actions
 

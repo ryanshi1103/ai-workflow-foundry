@@ -1,7 +1,8 @@
 # Sanitization Report
 
 Date: 2026-08-23
-Candidate: `release/v0.2.0-alpha.1-candidate`
+Runtime baseline candidate: `release/v0.2.0-alpha.1-candidate`
+Documentation-integrated candidate branch: `release/v0.2.0-alpha.1-final-candidate`
 Method: allowlist-only snapshot on a new root commit
 
 ## Decision
@@ -22,7 +23,8 @@ Only these top-level surfaces were admitted:
 
 - `.github/` community templates and release-readiness workflow;
 - `.gitignore`, `LICENSE`, `README.md`, `CHANGELOG.md`, `CODE_OF_CONDUCT.md`,
-  `CONTRIBUTING.md`, `SECURITY.md`, and `RELEASE_CHECKLIST.md`;
+  `CONTRIBUTING.md`, `SECURITY.md`, and the release checklist that has since
+  been consolidated into `docs/ALPHA_RELEASE_CHECKLIST.md`;
 - `MULTI_AGENT_OPERATOR_GUIDE.md` and `MULTI_AGENT_SECURITY_MODEL.md`;
 - `applications/mediaflow/` public contract only;
 - `branding/`, `catalog/`, `components/`, `core/`, `schemas/`, `src/`, `tests/`,

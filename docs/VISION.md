@@ -1,5 +1,10 @@
 # Vision
 
+This document states the product thesis. The canonical layer map is
+[FlowFoundry Product Architecture](FLOWFOUNDRY_PRODUCT_ARCHITECTURE.md); the
+long-term “Personal AI OS” name describes a roadmap direction, not the current
+Alpha product.
+
 ## Models are tools. Intelligence comes from coordination.
 
 The AI ecosystem is moving from one general model toward many specialized
@@ -89,7 +94,8 @@ much as successful generation.
 
 ## Long-term outcome
 
-The long-term direction is a **Personal Intelligence Infrastructure** in which
+The long-term direction is a **Personal AI OS / Personal Intelligence
+Infrastructure** in which
 models, tools, knowledge, workflows, and resources are coordinated around the
 person's goals:
 
@@ -118,4 +124,4 @@ desirable. The current implementation is an Alpha coordination foundation; the
 personal context and adaptive-manager layers remain roadmap work.
 
 See [Current Status](CURRENT_STATUS.md) for the implemented boundary and
-[Roadmap](ROADMAP.md) for staged acceptance criteria.
+[Product Roadmap](PRODUCT_ROADMAP.md) for staged acceptance criteria.

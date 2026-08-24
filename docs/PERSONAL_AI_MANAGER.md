@@ -10,6 +10,10 @@ This document is a design direction. The current repository implements the
 coordination foundation; it does not yet implement a complete personal context
 engine or adaptive manager.
 
+Within the [unified product architecture](FLOWFOUNDRY_PRODUCT_ARCHITECTURE.md),
+this design primarily describes the future Personal Context Layer and its
+feedback into the implemented Agent Coordination Layer.
+
 ## What the manager coordinates
 
 ### Models
@@ -166,5 +170,5 @@ with fewer unnecessary calls, less repeated setup, safer context handling, and
 clearer control. It should be judged by user value, recoverability, and trust—not
 by the number of agents it can run.
 
-See [VISION.md](VISION.md), [ROADMAP.md](ROADMAP.md), and
+See [VISION.md](VISION.md), [PRODUCT_ROADMAP.md](PRODUCT_ROADMAP.md), and
 [CURRENT_STATUS.md](CURRENT_STATUS.md).

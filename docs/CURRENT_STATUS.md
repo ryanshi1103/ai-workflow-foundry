@@ -1,7 +1,10 @@
 # Current Status
 
-Last audited: 2026-08-23
-Candidate: `release/v0.2.0-alpha.1-candidate`
+Last audited: 2026-08-25
+Candidate ref: `release/v0.2.0-alpha.1-final-candidate`
+Frozen runtime baseline SHA: `64f1563ba25278c7bceeedf24b7629c6ac463b76`
+Final documentation-integrated candidate SHA: **the commit containing this
+document; resolve with `git rev-parse HEAD`; not yet owner-approved**
 Package version: `0.2.0a1`
 
 FlowFoundry is an **Alpha developer preview** of a local-first coordination
@@ -21,7 +24,8 @@ runtime for bounded AI workflows. It is not a production personal AI manager.
   registered capabilities;
 - media-skill contracts, a sanitized private-MediaFlow boundary, and a
   deterministic nameplate workflow; and
-- a deterministic Personal AI Manager builder/reviewer demo.
+- deterministic Personal AI Manager and GitHub Release Assistant fixtures; the
+  release-assistant path stops at a synthetic `release` approval gate.
 
 ## Experimental
 
@@ -51,13 +55,23 @@ runtime for bounded AI workflows. It is not a production personal AI manager.
 
 ## Release evidence
 
+Available runtime-baseline local suites pass: 228 foundation tests, 90 workspace
+tests, 40 launcher checks, 4 deploy checks, and 3 tests each for Confera and
+Nameplate. Final integrated-candidate wheel/sdist, clean install, remote CI,
+independent review, and release recording remain unverified. Older package
+artifacts in the final report are labeled historical and must not be reused for
+the final candidate.
+
 See:
 
 - [Sanitization Report](SANITIZATION_REPORT.md)
 - [License Decision](LICENSE_DECISION.md)
 - [Launcher EOF Compatibility](launcher-eof-compatibility.md)
-- [90-second Personal AI Manager demo](demos/personal-ai-manager-demo.md)
+- [90-second GitHub Release Assistant demo](demos/github-release-assistant.md)
+- [Alpha Release Checklist](ALPHA_RELEASE_CHECKLIST.md)
+- [Limitations](LIMITATIONS.md)
 - [Final Release Report](../FINAL_RELEASE_REPORT.md)
 
-The final report is authoritative for exact test, package, clean-clone, and
-remaining external-gate results.
+The Alpha Release Checklist is authoritative for GO/NO-GO. The final report
+provides detailed baseline test, package, clean-clone, and external-gate
+evidence.
