@@ -12,6 +12,22 @@ evidence, approval, recovery, and project isolation.**
 FlowFoundry does not compete to be the smartest model. It coordinates eligible
 intelligence resources around a bounded human goal.
 
+## Thirty-second public frame
+
+**Why now:** AI tools are multiplying faster than people can coordinate their
+context, permissions, costs, evidence, and failure states.
+
+**What FlowFoundry does:** It turns a human goal and constraints into a bounded,
+reviewable workflow across eligible models and tools.
+
+**What makes the Alpha concrete:** Planning, routing, deterministic offline
+execution, review, approval, recovery, reports, and Git isolation are shipped.
+The mobile command center is designed. Personal context and the Personal AI OS
+are future work.
+
+**Invitation:** Try one offline workflow, inspect its evidence and approval
+boundary, then help improve installation, examples, testing, or operator UX.
+
 ## Important correction to the simple story
 
 It is inaccurate to say every alternative focuses only on model capability.

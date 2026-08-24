@@ -49,37 +49,33 @@ Status: **Current Alpha**
 - no critical security/privacy/license blocker; and
 - evidence-based priorities from external feedback.
 
-## Stage 2 — Personal AI Assistant
+## Stage 2 — Personal AI Command Center
 
-Status: **Future**
+Status: **Designed next; not implemented**
 
-Add a personal, consent-based context and interface layer around the existing
-coordination runtime.
+Add a narrow, approval-first interface around the existing local coordination
+runtime. The phone is a command and human-decision surface, not remote desktop
+and not an execution host.
 
 Planned capabilities:
 
-- goals and project priorities;
-- explicit/confirmed preferences;
-- provenance-aware knowledge collections;
-- decisions, outcomes, corrections, and temporary context;
-- inspect, correct, export, expire, forget, and memory-disabled controls;
-- explainable retrieval and provider-disclosure receipts;
-- personalized workflow recommendations;
 - iPhone-first PWA dashboard, task creation, approvals, timeline, and
   notifications; and
-- resource-aware recommendations within hard privacy, permission, and budget
-  constraints.
+- local-agent pairing, explicit permission/cost/evidence views, and bounded
+  commands with no unrestricted terminal.
 
-Stage 2 does not authorize autonomous financial, publishing, deployment, or
-permission-widening actions.
+Provider credentials remain on the computer. Stage 2 does not implement
+personal semantic memory or authorize autonomous financial, publishing,
+deployment, or permission-widening actions.
 
 ### Exit gate
 
-- personal context is portable and user-controlled;
-- recommendations cite evidence and uncertainty;
 - PWA pairing/approval security passes independent review;
-- repeated workflows improve user outcomes without hidden telemetry; and
-- users can disable/reset every adaptive behavior.
+- task, timeline, evidence, and stale/offline states pass external usability
+  validation;
+- no credential is stored on the phone and no unrestricted shell is exposed;
+  and
+- every approved action is exact, attributable, expiring, and auditable.
 
 ## Stage 3 — Personal AI Operating System
 
@@ -90,6 +86,11 @@ workflows, and approved intelligence resources.
 
 Planned direction:
 
+- explicit and confirmed preferences;
+- provenance-aware personal knowledge and outcome history;
+- inspect, correct, export, expire, forget, and memory-disabled controls;
+- explainable retrieval and provider-disclosure receipts;
+- personalized workflow recommendations;
 - portable capability/provider/workflow contracts;
 - cross-device control with explicit data placement;
 - local and remote model/resource scheduling;
@@ -125,4 +126,6 @@ Automation cannot override human authority or hard policy.
 
 Do not begin Stage 2 by ingesting personal data. First close the public Alpha,
 validate the first 100 users, and build only the narrow PWA control surface.
-Personal context follows provenance, export, deletion, and disclosure controls.
+Personal context belongs to the later Personal AI OS stage and follows privacy,
+provenance, user ownership, correction, export, deletion, and disclosure
+controls.

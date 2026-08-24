@@ -14,8 +14,15 @@ or broader side-effect authority.
 
 **Category:** Documentation
 **Difficulty:** Beginner
+**Skills:** Markdown, command-line basics, careful evidence capture
 **Suggested labels:** `type:documentation`, `area:docs`,
 `difficulty:first-issue`, `status:ready`
+
+**Problem:** A new user can run the first workflow but does not yet see a short,
+annotated real-output example beside the instructions.
+
+**Why it matters:** The approval stop is the first “aha” moment. Showing it
+accurately reduces confusion without requiring a live provider or fake screen.
 
 ### Description
 
@@ -50,8 +57,15 @@ PYTHONPATH=src python3 -m flowfoundry validate
 
 **Category:** Installation / documentation
 **Difficulty:** Beginner to intermediate
+**Skills:** Python virtual environments, pip, Markdown, reproducible reporting
 **Suggested labels:** `type:documentation`, `area:install`,
 `difficulty:first-issue`, `status:ready`
+
+**Problem:** The project lacks independent Python 3.11 evidence that a final
+wheel installs and reaches the first workflow outside the source checkout.
+
+**Why it matters:** A source-tree test cannot prove the experience a new user
+gets from the release artifact.
 
 ### Description
 
@@ -86,8 +100,15 @@ python3 -m unittest tests.test_packaged_resources -v
 
 **Category:** Testing
 **Difficulty:** Intermediate
+**Skills:** Python `unittest`, temporary directories, JSON assertions
 **Suggested labels:** `type:test`, `area:workflow`,
 `difficulty:first-issue`, `status:ready`
+
+**Problem:** The flagship fixture's routed roles and human approval stop need a
+single focused regression test that communicates the product contract.
+
+**Why it matters:** The public demo should fail loudly if a future change hides
+the approval boundary or turns synthetic execution into a broader claim.
 
 ### Description
 
@@ -120,8 +141,15 @@ python3 -m unittest tests.test_orchestration_cli -v
 
 **Category:** CLI user experience
 **Difficulty:** Beginner to intermediate
+**Skills:** Python, CLI error messages, focused regression tests
 **Suggested labels:** `type:bug`, `area:cli`, `difficulty:first-issue`,
 `status:ready`
+
+**Problem:** Reusing a Quick Start run ID can produce a confusing first-user
+failure without an obvious safe recovery path.
+
+**Why it matters:** Durable evidence should be preserved, while the user gets a
+clear next action instead of being tempted to delete state.
 
 ### Description
 
@@ -153,8 +181,15 @@ python3 -m unittest tests.test_orchestration_cli -v
 
 **Category:** Provider diagnostics / testing
 **Difficulty:** Intermediate
+**Skills:** Python fixtures, provider-readiness concepts, privacy-safe testing
 **Suggested labels:** `type:test`, `area:provider-adapter`,
 `difficulty:first-issue`, `status:ready`
+
+**Problem:** A missing provider executable or profile needs a deterministic
+diagnostic example that proves no credential is read and no retry is consumed.
+
+**Why it matters:** Trust starts before execution. Clear unavailable states help
+users distinguish environment setup from workspace or workflow failures.
 
 ### Description
 

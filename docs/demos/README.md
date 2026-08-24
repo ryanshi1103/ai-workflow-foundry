@@ -4,6 +4,17 @@ The release-candidate demos explain coordination through user outcomes. Each
 uses synthetic inputs, starts offline, and separates implemented behavior from
 future product direction.
 
+Public production materials:
+
+- [90-second flagship script](90_SECOND_DEMO_SCRIPT.md)
+- [30-second introduction](30_SECOND_INTRO.md)
+- [social media posts](SOCIAL_MEDIA_POSTS.md)
+- [launch story](LAUNCH_STORY.md)
+- [GitHub description](GITHUB_DESCRIPTION.md)
+
+These are prepared copy, not evidence that a recording, post, repository
+description change, or launch has occurred.
+
 ## Demo priority
 
 The strongest first public story is:

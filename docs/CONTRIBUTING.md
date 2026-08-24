@@ -10,6 +10,10 @@ large capability claims.
 For a paced first contribution, use the
 [Day 1 → Day 7 contributor journey](CONTRIBUTOR_JOURNEY.md).
 
+For a bounded starter task, review the
+[five maintained good-first-issue proposals](GOOD_FIRST_ISSUES.md). Each names
+the user problem, importance, skills, acceptance criteria, and test command.
+
 ## Before you start
 
 Read:

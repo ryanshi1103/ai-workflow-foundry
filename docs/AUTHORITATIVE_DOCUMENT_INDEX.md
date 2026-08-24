@@ -23,7 +23,7 @@ unless its asset manifest identifies the same candidate.
 |---|---|---|---|
 | Product landing | [README.md](../README.md) | Ten-second definition, current boundary, first install, first successful workflow | [Current Status](CURRENT_STATUS.md), [Alpha User Guide](ALPHA_USER_GUIDE.md) |
 | Architecture | [FlowFoundry Product Architecture](FLOWFOUNDRY_PRODUCT_ARCHITECTURE.md) | Canonical product layers, trust boundaries, and current/future separation | [Technical Architecture](ARCHITECTURE.md), [Multi-Agent Security Model](../MULTI_AGENT_SECURITY_MODEL.md) |
-| Roadmap | [Product Roadmap](PRODUCT_ROADMAP.md) | Current AI Coordination Layer and future Personal AI Assistant / Personal AI OS stages | [Personal AI OS Strategy](PERSONAL_AI_OS_STRATEGY.md), mobile design documents |
+| Roadmap | [Product Roadmap](PRODUCT_ROADMAP.md) | Current AI Coordination Layer, designed-next Personal AI Command Center, and future Personal AI OS stages | [Personal AI OS Strategy](PERSONAL_AI_OS_STRATEGY.md), mobile design documents |
 | Candidate and Alpha release | [Final Candidate Checklist](FINAL_CANDIDATE_CHECKLIST.md) for local assembly; [Alpha Release Checklist](ALPHA_RELEASE_CHECKLIST.md) for publication | Exact candidate identity and every mandatory GO/NO-GO gate | [Final Release Status](FINAL_RELEASE_STATUS.md), [Final Candidate Report](../FINAL_CANDIDATE_REPORT.md), [Release Day Runbook](RELEASE_DAY_RUNBOOK.md) |
 | Security | [Security Policy](../SECURITY.md) | Supported versions, trust boundaries, private vulnerability reporting, and disclosure expectations | [Multi-Agent Security Model](../MULTI_AGENT_SECURITY_MODEL.md), [Trust Audit](TRUST_AUDIT.md), [Alpha Limitations](LIMITATIONS.md) |
 
@@ -78,6 +78,11 @@ boundaries. They are not evidence of shipped Alpha behavior:
 - [Remote Agent Architecture](REMOTE_AGENT_ARCHITECTURE.md)
 - [Personal AI OS Strategy](PERSONAL_AI_OS_STRATEGY.md)
 - [Personal AI Manager](PERSONAL_AI_MANAGER.md)
+
+The Personal AI Manager/Assistant language in supporting strategy documents
+describes future user outcomes, not a separate shipped stage. The canonical
+roadmap names the next product surface **Personal AI Command Center** and the
+long-term stage **Personal AI OS**.
 
 Every public link to these documents must preserve the **Designed** or
 **Future** label.

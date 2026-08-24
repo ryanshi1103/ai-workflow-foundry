@@ -4,6 +4,10 @@ Use [AUTHORITATIVE_DOCUMENT_INDEX.md](AUTHORITATIVE_DOCUMENT_INDEX.md) when two
 documents appear to cover the same topic. It defines the canonical product,
 architecture, roadmap, and release sources.
 
+For audience-based navigation, presentation assets, designed/future labels, and
+superseded names, use the
+[Authoritative Document Map](AUTHORITATIVE_DOCUMENT_MAP.md).
+
 ## Start here
 
 1. [Root README](../README.md) — understand FlowFoundry in ten seconds.
@@ -53,8 +57,11 @@ architecture, roadmap, and release sources.
 - [Demo Recording Checklist](DEMO_RECORDING_CHECKLIST.md)
 - [Demo Asset Checklist](DEMO_ASSET_CHECKLIST.md)
 - [Demo Index](demos/README.md)
+- [90-second Flagship Script](demos/90_SECOND_DEMO_SCRIPT.md)
+- [Launch Story](demos/LAUNCH_STORY.md)
 - [Visual Product Story](VISUAL_STORY.md)
 - [Visual Design System](VISUAL_DESIGN.md)
+- [Overnight Product Audit](OVERNIGHT_PRODUCT_AUDIT.md)
 
 No concept image or rendered preview is runtime proof. Actual screenshots must
 identify the exact candidate SHA and execution mode.
@@ -78,6 +85,8 @@ identify the exact candidate SHA and execution mode.
 - [Final Product Review](PRODUCT_FINAL_REVIEW.md)
 - [GitHub Trusted-user Strategy](GITHUB_STAR_STRATEGY.md)
 - [Public Website Structure](WEBSITE_STRUCTURE.md)
+- [Website Content](WEBSITE_CONTENT.md)
+- [Marketing Launch Plan](MARKETING_LAUNCH_PLAN.md)
 
 ## Designed and future — not shipped
 

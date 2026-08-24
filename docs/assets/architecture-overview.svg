@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">FlowFoundry architecture overview</title>
+  <desc id="desc">A human goal enters a local coordination layer that plans, routes, executes, reviews, preserves evidence, and stops for human approval.</desc>
+  <defs>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10172f"/><stop offset="1" stop-color="#123947"/></linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#4bd4e6"/></marker>
+  </defs>
+  <rect x="1" y="1" width="1198" height="558" rx="28" fill="url(#panel)" stroke="#2b4168" stroke-width="2"/>
+  <g font-family="system-ui,-apple-system,Segoe UI,sans-serif">
+    <text x="64" y="72" fill="#f4f8ff" font-size="30" font-weight="700">One goal. Coordinated resources. Human control.</text>
+    <text x="64" y="108" fill="#9facca" font-size="18">CURRENT ALPHA · LOCAL-FIRST COORDINATION LAYER</text>
+    <g stroke="#4bd4e6" stroke-width="3" fill="none" marker-end="url(#arrow)"><path d="M230 286H326"/><path d="M716 286H800"/><path d="M1000 286H1080"/></g>
+    <rect x="56" y="214" width="174" height="144" rx="18" fill="#1d2b50" stroke="#8b7cff" stroke-width="2"/>
+    <text x="143" y="264" text-anchor="middle" fill="#f4f8ff" font-size="22" font-weight="700">Human goal</text><text x="143" y="298" text-anchor="middle" fill="#9facca" font-size="16">constraints</text><text x="143" y="324" text-anchor="middle" fill="#9facca" font-size="16">authority</text>
+    <rect x="326" y="164" width="390" height="244" rx="22" fill="#1d2b50" stroke="#4bd4e6" stroke-width="3"/>
+    <text x="521" y="210" text-anchor="middle" fill="#4bd4e6" font-size="25" font-weight="700">FlowFoundry</text>
+    <g fill="#17213d" stroke="#425984"><rect x="354" y="238" width="150" height="54" rx="12"/><rect x="536" y="238" width="150" height="54" rx="12"/><rect x="354" y="316" width="150" height="54" rx="12"/><rect x="536" y="316" width="150" height="54" rx="12"/></g>
+    <g fill="#f4f8ff" font-size="17" text-anchor="middle"><text x="429" y="272">Plan + route</text><text x="611" y="272">Execute</text><text x="429" y="350">Review</text><text x="611" y="350">Recover</text></g>
+    <rect x="800" y="188" width="200" height="196" rx="20" fill="#1d2b50" stroke="#43e6a0" stroke-width="2"/>
+    <text x="900" y="236" text-anchor="middle" fill="#43e6a0" font-size="22" font-weight="700">Evidence</text><text x="900" y="276" text-anchor="middle" fill="#f4f8ff" font-size="17">task state</text><text x="900" y="307" text-anchor="middle" fill="#f4f8ff" font-size="17">review + usage</text><text x="900" y="338" text-anchor="middle" fill="#f4f8ff" font-size="17">approval scope</text>
+    <path d="M1090 204 1160 245V327L1090 368 1020 327V245Z" fill="#302b43" stroke="#ffc65a" stroke-width="3"/>
+    <text x="1090" y="276" text-anchor="middle" fill="#ffc65a" font-size="18" font-weight="700">Human</text><text x="1090" y="302" text-anchor="middle" fill="#f4f8ff" font-size="17">approval</text><text x="1090" y="328" text-anchor="middle" fill="#9facca" font-size="14">when required</text>
+    <text x="521" y="460" text-anchor="middle" fill="#9facca" font-size="17">Models + tools are eligible resources—not the product authority</text>
+    <g fill="#17213d" stroke="#425984"><rect x="320" y="480" width="120" height="44" rx="22"/><rect x="460" y="480" width="120" height="44" rx="22"/><rect x="600" y="480" width="120" height="44" rx="22"/></g>
+    <g fill="#f4f8ff" font-size="15" text-anchor="middle"><text x="380" y="508">Models</text><text x="520" y="508">Local tools</text><text x="660" y="508">Projects</text></g>
+  </g>
+</svg>

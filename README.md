@@ -1,163 +1,160 @@
 <p align="center">
-  <img src="branding/logo.png" width="132" alt="FlowFoundry logo">
+  <img src="branding/logo.png" width="112" alt="FlowFoundry logo">
 </p>
 
-# FlowFoundry
+<h1 align="center">FlowFoundry</h1>
 
-**AI is moving from individual models to coordinated systems.**
-
-FlowFoundry is a local-first AI coordination layer that helps people manage
-models, tools, workflows, permissions, costs, and evidence around real goals.
-
-Local-first · Human-centered · Provider-aware · Open source foundation
-
-> **Alpha / developer preview.** The offline coordination path is runnable and
-> tested. Real-provider execution is explicit opt-in and not equally verified
-> across every provider. See [Current Status](docs/CURRENT_STATUS.md) before
-> depending on FlowFoundry in production.
-
-## Why FlowFoundry?
-
-**Problem:** AI tools are fragmented. People choose models, move context,
-reconcile outputs, watch costs, and decide which actions are safe—manually.
-
-**Solution:** FlowFoundry adds a coordination layer around a goal. It plans a
-bounded path, routes eligible capabilities, preserves evidence, and stops for
-human approval when an action crosses a permission boundary.
-
-| Traditional AI assistant | FlowFoundry |
-|---|---|
-| User chooses a model and writes a prompt | User defines a goal and constraints |
-| One assistant returns an answer | A bounded workflow coordinates suitable models and tools |
-| User manually combines outputs and checks effects | Review, evidence, recovery, and approvals are part of the workflow |
-
-ChatGPT, Claude, Copilot, Codex, DeepSeek, and local models are intelligence
-resources. FlowFoundry does not replace them; it coordinates eligible resources
-around the user's goal.
-
-Specialized models and tools are multiplying faster than people can manage
-their context, cost, privacy, and failure modes. **Models are tools.
-Intelligence comes from coordination.**
-
-**Start here:** understand it in 10 seconds above, reach the offline workflow in
-[30 minutes](#quick-start), or inspect the
-[current evidence and limitations](docs/LIMITATIONS.md). The complete external
-Alpha path is in the [First External Alpha User Guide](docs/ALPHA_USER_GUIDE.md).
-
-## Product boundary
-
-| Maturity | Product surface | Public claim |
-|---|---|---|
-| **SHIPPED — Alpha** | AI coordination layer | CLI/terminal planning, routing, offline execution, review, approval, recovery, reports, and Git isolation |
-| **DESIGNED — not implemented** | Mobile Command Center | PWA product, interaction, transport, and security specifications only |
-| **FUTURE** | Personal AI Assistant / Personal AI OS | Personal context, memory, preferences, and adaptive resource optimization are roadmap work |
-
-There is no shipped mobile app, complete personal-memory layer, or autonomous
-AI authority in the current Alpha.
-
-See the [unified product architecture](docs/FLOWFOUNDRY_PRODUCT_ARCHITECTURE.md)
-for the current runtime, future personal-context layer, and interface roadmap.
-
-## What is FlowFoundry?
-
-FlowFoundry is a local-first foundation for planning, routing, executing,
-reviewing, and recovering bounded AI workflows. It combines a provider-aware
-team runtime with project lifecycle management, explicit permissions, durable
-run state, Git-isolated writer candidates, human approval gates, and reusable
-workflow contracts.
-
-It exists because useful AI work is larger than a prompt. A real task also
-needs the right model, the right tools, controlled context, cost and permission
-limits, validation, human judgment, and a recovery path when something fails.
-
-FlowFoundry is different from a chatbot or an open-ended autonomous-agent loop:
-
-- it selects a minimum sufficient path instead of always spawning a large team;
-- it treats model output as a candidate until trusted code and people validate it;
-- it keeps real-provider use explicit and offline execution as the safe default;
-- it records unknown token or cost data as unknown instead of inventing estimates;
-- it isolates write-capable agents in managed Git worktrees and leaves the main
-  working tree untouched;
-- it integrates real workflow examples without pretending they share one UI or
-  dependency environment.
-
-## What works today
-
-| Status | Capability | Honest boundary |
-|---|---|---|
-| **Implemented** | Goal profiling and minimum-path planning | Rule-based; chooses single, reviewed, or bounded team execution |
-| **Implemented** | Offline multi-agent runs | Fake providers make planning, scheduling, review, retry, resume, and reports reproducible without network calls |
-| **Implemented** | Workspace and launcher runtime | Project selection, Claude/DeepSeek/Codex launch profiles, permissions, session records, recovery, and an adaptive terminal UI |
-| **Implemented** | Safety-bounded execution | Human approval gates, provider preflight, durable cancellation, partial-result preservation, and Git worktree isolation |
-| **Implemented** | Workflow/component contracts | Four cataloged components, two workflow contracts, and thirteen registered capabilities validate locally |
-| **Implemented** | Reference workflows | Media-skill contracts, a private MediaFlow boundary, and deterministic nameplate generation |
-| **Experimental** | Real-provider orchestration | Codex writer and DeepSeek-compatible reviewer paths have bounded live evidence; provider parity is incomplete |
-| **Experimental** | Cost-aware routing and memory | Measured usage and simple performance history exist; there is no complete pricing, quota, or learned optimizer |
-| **Planned** | Personal context engine | Long-term preferences, knowledge, and cross-workflow memory are not implemented |
-| **Planned** | Broad provider/plugin ecosystem | Gemini, Grok, general local-model adapters, and external plugin loading are future work |
-
-The evidence and limitations behind this table live in
-[docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md).
-
-## Product preview
+<p align="center"><strong>AI is moving from individual models to coordinated systems.</strong></p>
 
 <p align="center">
-  <img src="docs/assets/screenshots/launcher-preview.svg" width="820" alt="FlowFoundry adaptive project launcher preview">
+  FlowFoundry is a <strong>local-first AI coordination layer</strong>.<br>
+  Coordinate models and tools around human goals, permissions, evidence, and approval.
 </p>
 
-The current launcher is content-aware: it adapts to project names, branch names,
-visible metadata, CJK display width, and terminal size. The image above is a
-rendered product preview based on the current TUI contract; see the
-[machine-verified terminal layouts](docs/launcher-layout-examples.md).
+<p align="center">
+  <a href="#quick-start">Try the offline workflow</a> ·
+  <a href="#flagship-demo">See the flagship demo</a> ·
+  <a href="#contributing">Contribute</a> ·
+  <a href="docs/CURRENT_STATUS.md">Check current status</a>
+</p>
 
-The first public demo recording/GIF is still a release-media gate. The committed
-SVG demo cards are storyboards, not proof of a finished graphical client. The
-reproducible [GitHub Release Assistant](docs/demos/github-release-assistant.md)
-and [Personal AI Manager](docs/demos/personal-ai-manager-demo.md) walkthroughs
-are the current verified script sources.
+<p align="center">
+  <img src="docs/assets/architecture-overview.svg" width="920" alt="FlowFoundry coordinates a human goal through planning, routing, execution, review, evidence, and human approval">
+</p>
 
-## 90-second flagship demo
+> **Alpha / developer preview.** The deterministic offline coordination path
+> is runnable and tested. Public artifacts, external install evidence, and the
+> final demo recording are still release gates. Real-provider execution is
+> explicit opt-in and provider parity is incomplete. Read the
+> [current status](docs/CURRENT_STATUS.md) and
+> [limitations](docs/LIMITATIONS.md) before relying on FlowFoundry.
 
-> **User:** “Prepare my GitHub release.”
+## Why now?
 
-The [GitHub Release Assistant](docs/demos/github-release-assistant.md) exercises
-the current planner, capability router, offline agent identities, structured
-review, durable evidence, and approval gate. It routes planning to Claude
-Architect, code-oriented work to Codex Builder, security review to DeepSeek
-Reviewer, and the test stage to Local Tester—through deterministic fake
-providers, with no network call or model bill.
+AI tools are multiplying. A useful project may involve a coding model, a
+reviewer, local tools, project files, security checks, and a human decision.
+Each tool can be capable while the overall workflow remains fragmented.
 
-The demo ends at the human approval boundary. It does not run the project's real
-test suite, build distributable artifacts, write release files, push, tag,
-deploy, or publish.
+The problem is no longer only intelligence. It is coordination:
+
+- context gets copied between tools;
+- permissions and side effects are easy to lose track of;
+- cost and usage evidence is incomplete;
+- review happens separately from execution;
+- failures leave partial work that is hard to recover; and
+- the human approval boundary is often implicit.
+
+<p align="center">
+  <img src="docs/assets/product-evolution.svg" width="920" alt="Disconnected AI tools become a bounded FlowFoundry workflow with evidence and human control">
+</p>
+
+FlowFoundry does not compete with AI models. It coordinates eligible models,
+tools, workflows, permissions, costs, evidence, approvals, and recovery around
+a goal. **Use the minimum sufficient path—not the largest possible AI team.**
+
+## What exists today
+
+| Maturity | Product surface | Honest boundary |
+|---|---|---|
+| **SHIPPED — Alpha** | Planning, capability routing, deterministic offline execution, review, approval gates, recovery, reports, provider preflight, and Git isolation | CLI/terminal product; real-provider compatibility and cost completeness remain experimental |
+| **DESIGNED — not implemented** | Personal AI Command Center | Approval-first mobile/PWA specifications only; no shipped mobile application |
+| **FUTURE** | Personal AI OS | Consent-based context, preferences, provenance-aware memory, and adaptive resource optimization are not shipped |
+
+There is no autonomous publishing authority, complete personal-memory layer,
+or universal intelligence claim in the Alpha.
+
+## How FlowFoundry works
+
+```mermaid
+flowchart LR
+    G[Human goal] --> P[Planner]
+    P --> R[Capability routing]
+    R --> T[AI providers and local tools]
+    T --> V[Review and validation]
+    V --> A{Approval required?}
+    A -->|yes| H[Human decision]
+    A -->|no| E[Evidence and result]
+    H --> E
+    E -. failure or interruption .-> C[Recovery]
+    C --> P
+```
+
+The planner chooses a bounded path. Routing filters by capability, readiness,
+permission, workspace compatibility, and policy. Outputs remain candidates
+until review and validation complete. Consequential actions stop at a scoped
+human approval gate, while durable run state preserves evidence and recovery.
+
+Read the [product architecture](docs/FLOWFOUNDRY_PRODUCT_ARCHITECTURE.md) or
+the [module-level architecture](docs/ARCHITECTURE.md).
+
+## Why is it different?
+
+The comparison is about operating style, not a claim that other assistants or
+agent frameworks cannot coordinate work.
+
+| Concern | Traditional assistant interaction | FlowFoundry coordination workflow |
+|---|---|---|
+| Starting point | Choose a model and prompt it | Define a goal, constraints, and authority |
+| Coordination | The user carries context between interactions | A bounded plan records roles, dependencies, and state |
+| Permissions | Often managed outside the conversation | Declared tool and workspace permissions are part of execution |
+| Evidence | The answer or transcript is the main record | Tasks, reviews, usage, approvals, and reports remain inspectable |
+| Recovery | The user reconstructs interrupted work | Retry, resume, cancellation, and partial results are durable states |
+| Cost awareness | Checked separately or after the call | Provider-reported usage/cost is recorded; unknown remains unknown |
+| Human control | Depends on the surrounding product/workflow | Review and approval are separate, explicit decisions |
+
+ChatGPT, Claude, Copilot, Codex, DeepSeek, and local models can be intelligence
+resources. FlowFoundry is the local coordination and project-control boundary
+around eligible resources; it does not replace them.
+
+## Flagship demo
+
+> **Goal:** “Prepare my GitHub release.”
+
+<p align="center">
+  <img src="docs/assets/github-release-flow.svg" width="920" alt="GitHub Release Assistant moves from a bounded goal through planning, assigned roles, review, evidence, and a human approval stop">
+</p>
+
+The [GitHub Release Assistant](docs/demos/github-release-assistant.md) turns an
+explicit five-task fixture into a visible coordination lifecycle:
+
+1. validate the declared release context and plan;
+2. route planning, code-oriented, security-review, and test-stage roles;
+3. execute through deterministic fake providers;
+4. preserve task state, review, usage, and evidence; and
+5. stop the release-package task at `skipped_pending_human`.
+
+The current demo makes no cloud-provider call, does not inspect the repository,
+does not run the project's real tests, and does not write, push, tag, deploy, or
+publish. Its value is showing coordination and the human boundary—not pretending
+that a synthetic run created a real release.
 
 ## Quick start
 
-**Targets:** validate installation within 10 minutes and complete the first
-evidence/approval workflow within 30 minutes.
+**Target:** reach the first deterministic result in under 10 minutes from an
+approved source checkout. The external artifact-install target remains
+unverified until the release build and clean-install gates pass.
 
-Requirements: Python 3.11+ and Git. The public commands below become valid only
-after the immutable `v0.2.0-alpha.1` tag is published. Invitation-only testers
-must instead use the exact candidate SHA and source supplied by the release
-owner; never substitute a mutable branch head or the historical runtime
-baseline.
-
-### 0–10 minutes — install and validate
+Requirements: Python 3.11+ and Git.
 
 ```bash
-git clone --branch v0.2.0-alpha.1 --single-branch \
-  https://github.com/ryanshi1103/ai-workflow-foundry.git flowfoundry
-cd flowfoundry
-
 python3 -m venv .venv
 . .venv/bin/activate
 python3 -m pip install .
 
-# Validate the catalog, contracts, and capability registry.
+# Verify the bundled catalog, contracts, and capabilities.
 flowfoundry validate
+
+# Preview and run the offline flagship workflow.
+flowfoundry team plan examples/personal-ai/github-release-assistant.json
+flowfoundry team run \
+  examples/personal-ai/github-release-assistant.json \
+  --run-id first-flowfoundry-run
+
+# Inspect the evidence and approval boundary.
+flowfoundry team report first-flowfoundry-run
 ```
 
-Expected checkpoint:
+Expected validation checkpoint:
 
 ```text
 validated 4 FlowFoundry components
@@ -165,200 +162,71 @@ validated 2 workflow contracts
 validated 13 registered capabilities
 ```
 
-### 10–20 minutes — run the flagship offline workflow
+Expected workflow state: `completed_with_blockers`, with four tasks complete
+and `package` stopped at `skipped_pending_human`. That is a successful safety
+outcome. Do not approve it during the first walkthrough.
 
-```bash
-# Preview the five-task plan without creating run state.
-flowfoundry team plan \
-  examples/personal-ai/github-release-assistant.json
-
-# Run it through deterministic fake providers.
-flowfoundry team run \
-  examples/personal-ai/github-release-assistant.json \
-  --run-id first-alpha-workflow
-```
-
-### 20–30 minutes — inspect evidence and the human boundary
-
-```bash
-flowfoundry team status first-alpha-workflow
-flowfoundry team review first-alpha-workflow
-flowfoundry team report first-alpha-workflow
-```
-
-Success is `completed_with_blockers`: four tasks finish and `package` stops at
-`skipped_pending_human`. That is the intended approval boundary. Do not approve
-the task during first-user validation.
-
-The workflow uses deterministic fake providers: it does not inspect the
-repository, run its real tests, change files, make a network request, incur a
-model bill, push, tag, deploy, or publish. Routing identities are not evidence
-that the named cloud providers were called. Run IDs are durable; choose a new ID
-when repeating the command.
-
-If any checkpoint differs, use [Alpha Troubleshooting](docs/TROUBLESHOOTING.md)
-and report the exact candidate/artifact identity with sanitized output.
-
-To preview the minimum sufficient plan without creating run state:
-
-```bash
-printf '%s\n' '{"goal":"Review one README change"}' | \
-  flowfoundry team plan /dev/stdin
-```
+If installation or output differs, use the
+[installation guide](docs/INSTALLATION.md),
+[troubleshooting guide](docs/TROUBLESHOOTING.md), and
+[Alpha user guide](docs/ALPHA_USER_GUIDE.md). Do not add provider credentials
+to evaluate the offline path.
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    G[Human goal] --> P[Task profile and planner]
-    P --> R{Minimum path}
-    R -->|simple| S[Single agent]
-    R -->|higher risk| V[Agent plus reviewer]
-    R -->|cross-domain| M[Bounded meeting]
-    S --> X[Controlled execution]
-    V --> X
-    M --> X
-    X --> C[Reviewable candidate]
-    C --> H{Human approval needed?}
-    H -->|yes| A[Explicit approval]
-    H -->|no| Q[Validation]
-    A --> Q
-    Q --> O[Artifact, report, and recovery record]
-```
+FlowFoundry keeps models replaceable and separates four concerns:
 
-FlowFoundry separates provider selection, permissions, execution, review, and
-approval. This keeps coordination explainable and makes failures recoverable.
-Read the [architecture guide](docs/ARCHITECTURE.md) for module-level details.
+- **Runtime:** provider identities and deterministic/local capabilities;
+- **Coordination:** planning, routing, bounded execution, review, approval, and recovery;
+- **Personal context:** a future, consent-based layer—not a shipped memory system; and
+- **Interfaces:** CLI/terminal today, with an approval-first mobile concept designed for later.
 
-## Flagship demos
-
-These demos are product narratives with explicit maturity labels, not claims
-that every step already has a polished UI.
-
-| Demo | User value | Current state | Preview |
-|---|---|---|---|
-| [GitHub Release Assistant](docs/demos/github-release-assistant.md) | Coordinate planning, code-oriented work, security review, testing stage, evidence, and approval | **Alpha synthetic coordination demo**; no real project tests or release side effects | Verified fixture and CLI lifecycle; recording pending |
-| [Personal AI Manager](docs/demos/personal-ai-manager-demo.md) | Turn a goal and constraints into a minimum reviewed path | **Alpha coordination slice**; personal semantic memory is planned | Offline fixtures and script verified; recording pending |
-| [AI Project Manager](docs/demos/AI_PROJECT_MANAGER.md) | Coordinate a builder, reviewer, and tester with durable evidence | **Alpha synthetic lifecycle**; fake output is not application quality | [GIF storyboard](docs/assets/demos/ai-project-manager-placeholder.svg) |
-
-## Product examples
-
-| Example | What coordination means | Maturity |
-|---|---|---|
-| Personal AI Manager | Turn a goal, privacy boundary, budget, and available agents into a minimum reviewed path | Alpha coordination slice |
-| AI Project Manager | Coordinate implementation, review, validation, Git isolation, and approval | Alpha synthetic lifecycle |
-| Research Assistant | Select sources and specialist capabilities with provenance and review | Planned |
-| Learning Assistant | Build a goal-aware learning workflow from user-selected materials and feedback | Concept study |
-
-These examples share coordination contracts; they do not imply one universal
-model, unrestricted autonomy, or access to a user's data by default.
-
-The strongest near-term product story is human, not architectural: a developer
-asks, “Prepare my GitHub release.” The current demo validates a user-supplied
-task graph, routes its planning, code-oriented, review, and test-stage roles,
-persists synthetic evidence, and stops before the scoped release approval. It
-does not inspect the repository or run real tests. A student learning-and-career
-plan is a compelling later vision, but it depends on the planned personal-context
-layer and is not presented as a current Alpha demo.
-
-The future phone experience is a **human approval and intelligence interface**,
-not remote desktop. It submits goals, reviews plans, shows evidence-backed
-progress, and signs exact actions while projects and credentials remain on the
-computer. This direction is designed but not implemented; see the
-[Mobile AI Command Center](docs/MOBILE_AI_COMMAND_CENTER.md).
-
-## Repository components
-
-| Layer | Component | Maturity |
-|---|---|---|
-| Coordination runtime | `src/flowfoundry/orchestration/` | Alpha |
-| Project runtime | [AI Workspace Manager](core/workspace-manager/README.md) | Beta |
-| Media workflow pack | [Confera Media Skills](components/confera-media-skills/README.md) | Beta |
-| Private media boundary | [Huiying / MediaFlow](applications/mediaflow/README.md) | Contract only; implementation excluded |
-| Document automation | [Print-ready Nameplate Generator](workflows/print-ready-nameplate-generator/README.md) | Stable focused workflow |
-
-The monorepo is the integration point. Components keep separate boundaries when
-their users, dependencies, licenses, data, or release processes differ.
-
-## Safety model
-
-- Local and fake-provider execution is the default.
-- Network and real-provider use require explicit operator intent.
-- Provider readiness and workspace compatibility are separate preflight gates.
-- AI output is untrusted until schema checks, review, validation, and any
-  required human approval complete.
-- Write-capable tasks use FlowFoundry-owned Git worktrees with immutable base
-  commits and exclusive writer leases.
-- Destructive actions, candidate merge, push, PR creation, and publication are
-  outside the automatic runtime today.
-
-See the [security model](MULTI_AGENT_SECURITY_MODEL.md) and
-[operator guide](MULTI_AGENT_OPERATOR_GUIDE.md).
+Security, privacy, cost, provenance, evidence, and human authority remain
+cross-cutting controls. See the
+[authoritative document map](docs/AUTHORITATIVE_DOCUMENT_MAP.md) for the
+official product, architecture, roadmap, security, and release sources.
 
 ## Roadmap
 
-The long-term direction is a personal AI manager that coordinates models,
-tools, knowledge, privacy, cost, time, and human feedback. It is a staged
-engineering direction—not a claim of autonomous general intelligence.
+<p align="center">
+  <img src="docs/assets/roadmap.svg" width="920" alt="FlowFoundry roadmap from the current Alpha coordination layer to a designed Personal AI Command Center and future Personal AI OS">
+</p>
 
-1. **Foundation** — local runtime, contracts, recovery, and safety boundaries.
-2. **Multi-agent orchestration** — minimum-path teams, review, budgets, and
-   provider adapters.
-3. **Personal context engine** — consent-based preferences, knowledge, and
-   portable memory.
-4. **Adaptive AI manager** — evidence-based model and workflow selection.
-5. **Personal AI OS** — an open coordination substrate across tools
-   and devices, with the human retaining authority.
+1. **Current — AI Coordination Layer:** make planning, routing, review,
+   approval, recovery, and evidence trustworthy for external Alpha users.
+2. **Next — Personal AI Command Center:** validate an approval-first mobile PWA
+   boundary without storing credentials or exposing an unrestricted shell.
+3. **Future — Personal AI OS:** explore user-owned context, provenance,
+   preferences, and resource optimization with privacy and human authority.
 
-Read the canonical [three-stage product roadmap](docs/PRODUCT_ROADMAP.md). The Personal AI
-Assistant and Personal AI OS stages are future direction, not Alpha claims.
+Stages are evidence gates, not calendar promises. Read the canonical
+[product roadmap](docs/PRODUCT_ROADMAP.md).
 
 ## Contributing
 
-FlowFoundry needs contributors interested in orchestration, provider adapters,
-workflow contracts, privacy, developer experience, testing, and human-centered
-AI infrastructure.
+FlowFoundry is especially useful for contributors interested in local-first AI
+infrastructure, orchestration, safety boundaries, developer experience, testing,
+and technical communication.
 
-Start with [CONTRIBUTING.md](CONTRIBUTING.md), then choose a scoped issue or
-open a design discussion before a large architectural change. New capabilities
-should include a clear trust boundary, offline tests, failure behavior, and an
-honest maturity label.
+- **Developers:** improve CLI clarity, workflow fixtures, isolation, and tests.
+- **Students:** improve tutorials, examples, and first-install feedback.
+- **Researchers:** help define evaluation, provenance, and reproducible evidence.
+- **AI builders:** strengthen provider diagnostics without widening authority.
 
-The launch backlog contains exactly
-[five reviewed good-first-issue proposals](docs/GOOD_FIRST_ISSUES.md). They are
-not considered open community work until a maintainer verifies them against the
-final candidate and publishes them.
+Start with [CONTRIBUTING.md](CONTRIBUTING.md), follow the
+[Day 1 → Day 7 journey](docs/CONTRIBUTOR_JOURNEY.md), or review the
+[five scoped starter issues](docs/GOOD_FIRST_ISSUES.md). Small, evidenced
+changes are preferred over broad capability claims.
 
-Useful contributor commands:
+## Trust and project status
 
-```bash
-PYTHONPATH=src python3 -m flowfoundry validate
-PYTHONPATH=src python3 -m unittest discover -s tests -v
-python3 -m unittest discover -s components/confera-media-skills/tests -v
-python3 -m unittest discover -s workflows/print-ready-nameplate-generator/tests -v
-```
-
-## Documentation
-
-- [Authoritative document index](docs/AUTHORITATIVE_DOCUMENT_INDEX.md)
-- [Current status](docs/CURRENT_STATUS.md)
-- [Product architecture](docs/FLOWFOUNDRY_PRODUCT_ARCHITECTURE.md)
-- [Product roadmap](docs/PRODUCT_ROADMAP.md)
-- [Alpha release checklist](docs/ALPHA_RELEASE_CHECKLIST.md)
-- [First external Alpha user guide](docs/ALPHA_USER_GUIDE.md)
-- [Known limitations](docs/LIMITATIONS.md)
-- [GitHub Release Assistant demo](docs/demos/github-release-assistant.md)
-- [Contribution guide](CONTRIBUTING.md)
+- [Current capabilities and evidence](docs/CURRENT_STATUS.md)
+- [Known Alpha limitations](docs/LIMITATIONS.md)
 - [Security policy](SECURITY.md)
+- [Documentation map](DOCUMENTATION_MAP.md)
+- [Final candidate and release gates](docs/FINAL_CANDIDATE_CHECKLIST.md)
+- [Community operating model](docs/COMMUNITY_OPERATING_MODEL.md)
 
-## Release and license status
-
-This candidate uses a new-root, allowlist-only history and must not be confused
-with the preserved migration history. Feedback Intelligence is excluded because
-its publication license is unresolved. No push, merge, tag, or release has been
-performed. See the [sanitization report](docs/SANITIZATION_REPORT.md),
-[license decision](docs/LICENSE_DECISION.md), and
-[final release report](FINAL_RELEASE_REPORT.md).
-
-The repository root package is MIT licensed. Included components retain their
-own license files and documented boundaries.
+FlowFoundry is MIT licensed. No push, tag, release, mobile product, personal
+memory system, or automatic publication capability is implied by this
+documentation branch.
