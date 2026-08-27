@@ -8,20 +8,27 @@
 
 <p align="center">
   <strong>Local-first Adaptive AI Team Runtime.</strong><br>
-  The current Alpha is a coordination layer that profiles each goal, chooses
-  the minimum sufficient path, and preserves permissions, evidence, and human authority.
+  <strong>Current Alpha: AI Coordination Layer.</strong>
 </p>
 
-<p align="center"><code>Goal → Profile → Minimum Sufficient Team → Execute → Validate</code></p>
+<p align="center"><strong>你定目标，AI组队实现</strong></p>
 
 <p align="center">
-  <sub>local-first · adaptive team sizing · bounded meetings · execution · validation · recovery</sub>
+  Give FlowFoundry a goal. It profiles the work, chooses the smallest sufficient
+  execution path, coordinates the required AI and tools within bounded permissions,
+  validates the result, and preserves evidence.
+</p>
+
+<p align="center"><code>Goal → Decision Context → Profile → Minimum Sufficient Path → Execute → Validate → Human Gate → Evidence / Recovery</code></p>
+
+<p align="center">
+  <sub>local-first · adaptive team sizing · bounded AI Meetings · decision continuity · human authority</sub>
 </p>
 
 <p align="center">
   <a href="#quick-start">Try the offline workflow</a> ·
   <a href="#flagship-demo">See the flagship demo</a> ·
-  <a href="#contributing">Contribute</a> ·
+  <a href="#bounded-ai-meetings">Understand AI Meetings</a> ·
   <a href="docs/CURRENT_STATUS.md">Check current status</a>
 </p>
 
@@ -30,9 +37,9 @@
 </p>
 
 > **Alpha / developer preview.** The deterministic offline coordination path
-> is runnable and tested. Public artifacts, external install evidence, and the
-> final demo recording are still release gates. Real-provider execution is
-> explicit opt-in and provider parity is incomplete. Read the
+> and Decision Inheritance read path are runnable and tested. Real-provider
+> execution remains explicit opt-in, provider parity is incomplete, and remote
+> CI, independent review, and final demo media remain publication gates. Read the
 > [current status](docs/CURRENT_STATUS.md) and
 > [limitations](docs/LIMITATIONS.md) before relying on FlowFoundry.
 
@@ -61,25 +68,33 @@ FlowFoundry does not compete with AI models. It coordinates eligible models,
 tools, workflows, permissions, costs, evidence, approvals, and recovery around
 a goal. **Use the minimum sufficient path—not the largest possible AI team.**
 
-## What exists today
+## What works today
 
 | Maturity | Product surface | Honest boundary |
 |---|---|---|
-| **SHIPPED — Alpha** | Planning, capability routing, deterministic offline execution, review, approval gates, recovery, reports, provider preflight, and Git isolation | CLI/terminal product; real-provider compatibility and cost completeness remain experimental |
+| **SHIPPED — Alpha** | Goal profiling, Minimum Sufficient Path selection, deterministic offline execution, bounded Meetings, decision inheritance, review, approval gates, cancellation, recovery, evidence/reporting, provider preflight, workspace isolation, and Git-isolated writer candidates | CLI/terminal product; real-provider compatibility, cost completeness, and broad live-provider Meeting coverage remain experimental |
 | **DESIGNED — not implemented** | Personal AI Command Center | Approval-first mobile/PWA specifications only; no shipped mobile application |
-| **FUTURE** | Personal AI OS | Consent-based context, preferences, provenance-aware memory, and adaptive resource optimization are not shipped |
+| **FUTURE** | Personal AI OS direction | Personal context/memory, learning management, product/project management, and adaptive AI-resource management are not shipped |
 
-There is no autonomous publishing authority, complete personal-memory layer,
-or universal intelligence claim in the Alpha.
+The current source also validates four component manifests, two workflow
+contracts, thirteen registered capabilities, and a 36-entry project Decision
+Ledger. There is no autonomous publishing authority, automatic decision
+write-back, complete personal-memory layer, or universal intelligence claim in
+the Alpha.
 
-## How FlowFoundry works
+## Minimum Sufficient Path
 
 ```mermaid
 flowchart LR
-    G[Human goal] --> P[Planner]
-    P --> R[Capability routing]
-    R --> T[AI providers and local tools]
-    T --> V[Review and validation]
+    G[Human goal] --> D[Applicable project decisions]
+    D --> P[Task profile]
+    P --> M{Smallest sufficient path}
+    M -->|simple| S[One Agent]
+    M -->|review needed| R[Agent + reviewer]
+    M -->|materially different views| T[Bounded team / Meeting]
+    S --> V[Execute + validate]
+    R --> V
+    T --> V
     V --> A{Approval required?}
     A -->|yes| H[Human decision]
     A -->|no| E[Evidence and result]
@@ -88,19 +103,56 @@ flowchart LR
     C --> P
 ```
 
-The profiler first asks whether one Agent is sufficient. It adds independent
-review when risk requires it and uses a bounded team only when complementary
-views matter. A Meeting starts from one Context Pack, gathers independent
-Round 1 views, stops early when they converge, or opens targeted Round 2 only
-for detected conflicts; unresolved dissent remains in the result.
+The core principle is the smallest sufficient Agent or Team: if one Agent is
+sufficient, do not use two; if two suffice, do not use five. The deterministic
+profile chooses `single_agent`, `single_agent_reviewer`, or a bounded
+`multi_agent` path and records why.
 
 Routing then filters by capability, readiness, permission, workspace
 compatibility, and policy. Outputs remain candidates until review and
 validation complete. Consequential actions stop at a scoped human approval
 gate, while durable run state preserves evidence and recovery.
 
+## Bounded AI Meetings
+
+A FlowFoundry Meeting is not “ask every model the same question.” It is a
+bounded coordination protocol:
+
+```text
+Applicable project decisions
+  → one Context Pack before Round 1
+  → independent views
+  → deterministic conflict detection
+  → targeted cross-review / Round 2 only for actual disagreement
+  → early consensus, convergence, or preserved dissent
+  → decision and evidence output
+```
+
+Simple work avoids a Meeting. Where complementary perspectives have material
+value, participants reason independently before seeing one another's views.
+The Meeting can stop early on consensus, focus Round 2 on detected conflicts,
+and preserve unresolved dissent rather than manufacturing agreement.
+
+## Decision continuity
+
+Projects should not forget binding decisions just because the next Agent starts
+a new session. Before relevant task or Meeting reasoning begins, FlowFoundry
+validates the project Decision Ledger, selects exact domain/surface matches, and
+injects the authoritative wording into a bounded `ACTIVE PROJECT DECISIONS`
+section:
+
+```text
+Decision Ledger → validate → select applicable decisions → Context Pack → task / Meeting
+```
+
+Implemented now: **read, validate, select, inject, and warn**. Superseded and
+non-binding records cannot masquerade as current authority, and a proposed
+value that occupies an active binding semantic slot generates a conflict
+warning. Not implemented: automatic promotion, automatic `BINDING`, automatic
+Human approval, automatic supersession, or automatic ledger write-back.
+
 Read the [product architecture](docs/FLOWFOUNDRY_PRODUCT_ARCHITECTURE.md) or
-the [module-level architecture](docs/ARCHITECTURE.md).
+the [Decision / Meeting model](docs/MEETING_DECISION_ADOPTION_MODEL.md).
 
 ## Why is it different?
 
@@ -132,11 +184,15 @@ around eligible resources; it does not replace them.
 The [GitHub Release Assistant](docs/demos/github-release-assistant.md) turns an
 explicit five-task fixture into a visible coordination lifecycle:
 
-1. validate the declared release context and plan;
-2. route planning, code-oriented, security-review, and test-stage roles;
-3. execute through deterministic fake providers;
-4. preserve task state, review, usage, and evidence; and
+1. resolve applicable release decisions before execution;
+2. validate the declared task profile and dependency plan;
+3. assign only the roles declared necessary by this fixture;
+4. execute through deterministic fake providers and preserve evidence; and
 5. stop the release-package task at `skipped_pending_human`.
+
+Those five fixture tasks do not imply that every FlowFoundry run needs a
+Planner, Builder, Reviewer, and Tester. The runtime's ordinary policy is still
+the Minimum Sufficient Path.
 
 The current demo makes no cloud-provider call, does not inspect the repository,
 does not run the project's real tests, and does not write, push, tag, deploy, or
@@ -209,7 +265,8 @@ official product, architecture, roadmap, security, and release sources.
 </p>
 
 1. **Current — AI Coordination Layer:** make planning, routing, review,
-   approval, recovery, and evidence trustworthy for external Alpha users.
+   Meetings, decision continuity, approval, recovery, and evidence trustworthy
+   for external Alpha users.
 2. **Next — Personal AI Command Center:** validate an approval-first mobile PWA
    boundary without storing credentials or exposing an unrestricted shell.
 3. **Future — Personal AI OS:** explore user-owned context, provenance,
@@ -237,6 +294,7 @@ changes are preferred over broad capability claims.
 ## Trust and project status
 
 - [Current capabilities and evidence](docs/CURRENT_STATUS.md)
+- [Decision and Meeting model](docs/MEETING_DECISION_ADOPTION_MODEL.md)
 - [Known Alpha limitations](docs/LIMITATIONS.md)
 - [Historical decision ledger](docs/DECISION_LEDGER.md)
 - [Security policy](SECURITY.md)

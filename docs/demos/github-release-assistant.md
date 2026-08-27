@@ -13,9 +13,10 @@ Without a coordinator, a developer switches among code, test, documentation,
 security, and release tools, then manually decides whether the evidence is good
 enough to act. A release is not one model prompt.
 
-FlowFoundry makes that coordination visible: one goal becomes a bounded task
-graph, suitable roles receive each stage, evidence is persisted, and the run
-stops before an approval-controlled action.
+FlowFoundry makes that coordination visible: applicable release decisions are
+resolved before execution, one goal becomes a bounded task graph, suitable
+roles receive each stage, evidence is persisted, and the run stops before an
+approval-controlled action.
 
 This demo exercises those coordination mechanics through the current runtime.
 It does not claim that FlowFoundry already performs a complete repository audit,
@@ -32,6 +33,12 @@ The fixture is an explicit task graph. FlowFoundry validates and executes that
 graph; it does not pretend the natural-language sentence alone generated a
 complete release workflow.
 
+Before the first fake-provider result, the runtime validates the project
+Decision Ledger and writes a bounded `artifacts/decision-context.json`. If the
+fixture becomes a Meeting, the validated `ACTIVE PROJECT DECISIONS` section is
+copied into the Meeting Context Pack before Round 1. The demo does not promote
+or write any decision back to the ledger.
+
 ## Actual agent assignments
 
 | Task | Routed identity | Current demo behavior |
@@ -43,7 +50,10 @@ complete release workflow.
 | Prepare evidence package | Codex Builder | Stops pending the built-in `release` approval class |
 
 These are registry routing identities. The demo does not compare live model
-quality or imply that provider credentials are configured.
+quality or imply that provider credentials are configured. They are the roles
+declared necessary by this five-task fixture, not a rule that every run needs
+four roles. Ordinary tasks use the Minimum Sufficient Path and may use one
+Agent, one Agent plus a reviewer, or a bounded team.
 
 ## Before recording
 
@@ -94,7 +104,9 @@ flowfoundry team plan examples/personal-ai/github-release-assistant.json
 
 Show the five-task dependency path and the high-risk approval requirement on
 `package`. Explain that this is a validated explicit plan, not an AI-generated
-repository audit.
+repository audit. Also show the resolved decision IDs in
+`artifacts/decision-context.json`; the proof is that they are present before
+provider reasoning, not that a model repeats them.
 
 ### 30–60 seconds — coordinate the AI team
 
@@ -175,6 +187,7 @@ durable approval lifecycle, not release-package quality.
 The demo passes only when:
 
 - the exact committed fixture is used;
+- applicable project decisions are resolved before fake-provider execution;
 - real-provider execution remains disabled;
 - `analyze` routes to `claude-architect`;
 - `code` routes to `codex-builder`;

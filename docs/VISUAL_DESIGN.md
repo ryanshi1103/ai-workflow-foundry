@@ -10,7 +10,7 @@ Brand promise: **One goal. The smallest sufficient AI team.**
 
 Official category: **Local-first Adaptive AI Team Runtime.**
 
-Current product stage: **local-first AI coordination layer.**
+Current product stage: **AI Coordination Layer.**
 
 The Council Mark expresses independent capabilities organized around one
 shared goal or resolved outcome. The principal star is not a superior model
@@ -42,9 +42,9 @@ in `branding/BRAND_ASSET_SPEC.md`:
 
 The Human-approved Council direction supersedes the earlier SYNTHESIS
 rail/junction/block prototypes. SYNTHESIS remains an important historical
-Meeting decision, not the current production direction. The older
-three-input/check/output `branding/logo.png` raster is a legacy asset and must
-not be used as authority for new surfaces.
+Meeting decision, not the current production direction. `branding/logo.png`
+is a deterministic 512 px raster export of the canonical Council Mark SVG; the
+SVG and locked geometry remain authoritative.
 
 Do not place provider logos inside the mark. Do not interpret the principal
 star as a preferred provider. FlowFoundry remains provider-independent.

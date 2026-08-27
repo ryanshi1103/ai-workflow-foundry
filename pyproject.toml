@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "flowfoundry-ai"
 version = "0.2.0a1"
-description = "Local-first catalog, workspace runtime, and foundations for safety-bounded AI workflows"
+description = "Local-first adaptive AI team runtime for bounded, evidence-preserving workflows"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}

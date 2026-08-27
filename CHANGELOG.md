@@ -11,6 +11,13 @@ release name `v0.2.0-alpha.1`. Publication still requires every gate in
 ### Productization
 
 - Reframed the project as an AI coordination layer with honest maturity labels.
+- Restored the binding FlowFoundry identity, smallest-sufficient positioning,
+  Chinese headline, and Human-approved Council Mark across the GitHub surface.
+- Added deterministic Decision Inheritance: validate the project ledger, select
+  applicable `BINDING`/`ADOPTED` decisions, inject exact wording before task or
+  Meeting reasoning, and warn on occupied semantic slots without write-back.
+- Made Minimum Sufficient Path selection and bounded AI Meetings first-class in
+  the public product explanation.
 - Added current-status, vision, architecture, personal AI manager, roadmap,
   demo, visual design, contribution, security, marketing, and launch documents.
 - Added GitHub homepage quick start, architecture diagram, product preview, and
