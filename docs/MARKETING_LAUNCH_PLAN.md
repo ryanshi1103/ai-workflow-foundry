@@ -10,14 +10,16 @@ feedback. Stars and impressions are secondary signals.
 
 ## Message
 
+> One goal. The smallest sufficient AI team.
+
 > AI is moving from individual models to coordinated systems.
 
 > Do not chase every new model. Build a system that coordinates them.
 
-FlowFoundry is a local-first AI coordination layer for goals, models, tools,
-permissions, costs, evidence, human decisions, and recovery. It does not
-replace models or people; it makes a bounded multi-resource workflow visible
-and reviewable.
+FlowFoundry is a Local-first Adaptive AI Team Runtime. Its current Alpha is a
+coordination layer for goals, models, tools, permissions, costs, evidence,
+human decisions, and recovery. It does not replace models or people; it makes
+a bounded minimum-sufficient workflow visible and reviewable.
 
 ## Audience and reason to care
 

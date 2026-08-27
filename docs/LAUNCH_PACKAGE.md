@@ -34,10 +34,10 @@ More models do not remove that coordination burden.
 
 ### Solution
 
-FlowFoundry is a local-first AI coordination layer. It turns a bounded goal into
-an inspectable workflow across eligible models and deterministic tools, with
-explicit planning, routing, review, approval, recovery, cost evidence, and Git
-isolation.
+FlowFoundry is a Local-first Adaptive AI Team Runtime. Its current Alpha turns a
+bounded goal into the minimum sufficient inspectable workflow across eligible
+models and deterministic tools, with explicit planning, routing, review,
+approval, recovery, cost evidence, and Git isolation.
 
 FlowFoundry does not replace ChatGPT, Claude, Copilot, Codex, DeepSeek, or local
 models. It coordinates eligible intelligence resources around the user's goal

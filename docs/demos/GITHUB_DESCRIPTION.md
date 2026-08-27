@@ -4,12 +4,12 @@ Status: proposed repository metadata; not applied remotely
 
 ## Repository description
 
-Local-first AI coordination layer for models, tools, workflows, permissions,
-evidence, approvals, and recovery.
+Local-first Adaptive AI Team Runtime for minimum-sufficient paths across
+models, tools, permissions, evidence, approvals, and recovery.
 
 ## Short alternative
 
-Coordinate AI tools around human goals, evidence, and approval.
+One goal. The smallest sufficient AI team.
 
 ## Suggested topics
 

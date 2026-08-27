@@ -20,6 +20,12 @@ superseded names, use the
 
 ## Product and engineering
 
+- [Decision Ledger](DECISION_LEDGER.md) — binding, adopted, advisory, open,
+  superseded, and lost decisions with provenance.
+- [Historical Decision Drift Audit](HISTORICAL_DECISION_DRIFT_AUDIT.md) —
+  accumulated decisions compared with the current candidate.
+- [Meeting Decision Adoption Model](MEETING_DECISION_ADOPTION_MODEL.md) —
+  design for carrying converged Meetings into later context and surfaces.
 - [Product Architecture](FLOWFOUNDRY_PRODUCT_ARCHITECTURE.md) — canonical
   product layers and trust boundaries.
 - [Technical Architecture](ARCHITECTURE.md) — module-level implementation.
@@ -78,6 +84,9 @@ identify the exact candidate SHA and execution mode.
 
 ## Positioning and trust
 
+- [DeepSeek Contribution Adoption](DEEPSEEK_CONTRIBUTION_ADOPTION_REPORT.md)
+- [Codex Contribution Adoption](CODEX_CONTRIBUTION_ADOPTION_REPORT.md)
+- [Human Decision Queue](HUMAN_DECISION_QUEUE.md)
 - [Final Competitive Positioning](COMPETITIVE_POSITIONING_FINAL.md)
 - [Detailed Positioning Reference](POSITIONING.md)
 - [Trust Audit](TRUST_AUDIT.md)

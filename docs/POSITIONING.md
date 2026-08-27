@@ -5,12 +5,15 @@ Sources checked: official product documentation on 2026-08-24
 
 ## Positioning statement
 
-**FlowFoundry is a local-first coordination layer for people who use multiple AI
-models and tools and need one consistent system for goals, permissions, costs,
-evidence, approval, recovery, and project isolation.**
+**FlowFoundry is a Local-first Adaptive AI Team Runtime. Its current Alpha is a
+coordination layer for people who use AI models and tools and need one
+consistent system for goals, permissions, costs, evidence, approval, recovery,
+and project isolation.**
 
 FlowFoundry does not compete to be the smartest model. It coordinates eligible
 intelligence resources around a bounded human goal.
+
+Primary tagline: **One goal. The smallest sufficient AI team.**
 
 ## Thirty-second public frame
 

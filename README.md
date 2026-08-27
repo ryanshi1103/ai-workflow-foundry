@@ -1,14 +1,21 @@
 <p align="center">
-  <img src="branding/logo.png" width="112" alt="FlowFoundry logo">
+  <img src="branding/logo.svg" width="112" alt="FlowFoundry Council Mark: one principal star above three council stars">
 </p>
 
 <h1 align="center">FlowFoundry</h1>
 
-<p align="center"><strong>AI is moving from individual models to coordinated systems.</strong></p>
+<p align="center"><strong>One goal. The smallest sufficient AI team.</strong></p>
 
 <p align="center">
-  FlowFoundry is a <strong>local-first AI coordination layer</strong>.<br>
-  Coordinate models and tools around human goals, permissions, evidence, and approval.
+  <strong>Local-first Adaptive AI Team Runtime.</strong><br>
+  The current Alpha is a coordination layer that profiles each goal, chooses
+  the minimum sufficient path, and preserves permissions, evidence, and human authority.
+</p>
+
+<p align="center"><code>Goal → Profile → Minimum Sufficient Team → Execute → Validate</code></p>
+
+<p align="center">
+  <sub>local-first · adaptive team sizing · bounded meetings · execution · validation · recovery</sub>
 </p>
 
 <p align="center">
@@ -30,6 +37,8 @@
 > [limitations](docs/LIMITATIONS.md) before relying on FlowFoundry.
 
 ## Why now?
+
+**AI is moving from individual models to coordinated systems.**
 
 AI tools are multiplying. A useful project may involve a coding model, a
 reviewer, local tools, project files, security checks, and a human decision.
@@ -79,10 +88,16 @@ flowchart LR
     C --> P
 ```
 
-The planner chooses a bounded path. Routing filters by capability, readiness,
-permission, workspace compatibility, and policy. Outputs remain candidates
-until review and validation complete. Consequential actions stop at a scoped
-human approval gate, while durable run state preserves evidence and recovery.
+The profiler first asks whether one Agent is sufficient. It adds independent
+review when risk requires it and uses a bounded team only when complementary
+views matter. A Meeting starts from one Context Pack, gathers independent
+Round 1 views, stops early when they converge, or opens targeted Round 2 only
+for detected conflicts; unresolved dissent remains in the result.
+
+Routing then filters by capability, readiness, permission, workspace
+compatibility, and policy. Outputs remain candidates until review and
+validation complete. Consequential actions stop at a scoped human approval
+gate, while durable run state preserves evidence and recovery.
 
 Read the [product architecture](docs/FLOWFOUNDRY_PRODUCT_ARCHITECTURE.md) or
 the [module-level architecture](docs/ARCHITECTURE.md).
@@ -222,6 +237,7 @@ changes are preferred over broad capability claims.
 
 - [Current capabilities and evidence](docs/CURRENT_STATUS.md)
 - [Known Alpha limitations](docs/LIMITATIONS.md)
+- [Historical decision ledger](docs/DECISION_LEDGER.md)
 - [Security policy](SECURITY.md)
 - [Documentation map](DOCUMENTATION_MAP.md)
 - [Final candidate and release gates](docs/FINAL_CANDIDATE_CHECKLIST.md)

@@ -1,75 +1,99 @@
 # Visual Design System
 
-FlowFoundry should look like dependable infrastructure: calm, precise,
-technical, and human-centered. Visuals should explain coordination and trust,
-not decorate the repository with futuristic AI clichés.
+FlowFoundry should feel decisive, adaptive, grounded, capable, clear, and
+constructive. It is dependable infrastructure with a friendly product surface,
+not futuristic AI decoration.
 
 ## Brand position
 
-Core idea: **many capabilities enter a controlled coordination core; one
-reviewable outcome leaves.**
+Brand promise: **One goal. The smallest sufficient AI team.**
+
+Official category: **Local-first Adaptive AI Team Runtime.**
+
+Current product stage: **local-first AI coordination layer.**
+
+The Council Mark expresses independent capabilities organized around one
+shared goal or resolved outcome. The principal star is not a superior model
+ruling the smaller stars.
 
 Keywords:
 
-- coordination;
-- intelligence infrastructure;
-- personal AI;
-- open source;
-- human-centered;
-- controlled and recoverable.
+- decisive;
+- adaptive;
+- grounded;
+- capable;
+- clear;
+- constructive.
 
-Avoid robots, glowing brains, humanoids, magic sparkles, unreadable dashboards,
-and claims of autonomous intelligence.
+Avoid robots, glowing brains, humanoids, generic magic sparkles, orbit rings,
+crowns, rank symbols, unreadable dashboards, and claims of autonomous
+intelligence.
 
 ## Logo concept
 
-The existing mark already expresses the desired idea:
+The canonical source is `branding/logo.svg`; its locked geometry is specified
+in `branding/BRAND_ASSET_SPEC.md`:
 
-- three input nodes represent models, tools, and context;
-- paths converge into a central diamond/check representing coordination and
-  validation;
-- one output node represents a reviewable artifact;
-- the dark foundation color signals infrastructure;
-- violet, cyan, and green distinguish inputs, flow, and verified output.
+- one principal star above three equal council stars;
+- one repeated mother curve for all four stars;
+- an exact `2:1` principal-to-council scale ratio;
+- fixed centers on a `24 × 24` grid; and
+- a monochrome silhouette that remains authoritative without material effects.
 
-Keep `branding/logo.svg` as the editable source and `branding/logo.png` as the
-GitHub-compatible raster export. Future refinements should preserve this
-semantic structure and test legibility at 24, 48, 128, and 512 pixels.
+The Human-approved Council direction supersedes the earlier SYNTHESIS
+rail/junction/block prototypes. SYNTHESIS remains an important historical
+Meeting decision, not the current production direction. The older
+three-input/check/output `branding/logo.png` raster is a legacy asset and must
+not be used as authority for new surfaces.
 
-Do not place provider logos inside the mark. FlowFoundry must remain visibly
-provider-independent.
+Do not place provider logos inside the mark. Do not interpret the principal
+star as a preferred provider. FlowFoundry remains provider-independent.
 
 ## README banner concept
 
-Recommended 1600×480 composition:
+The GitHub first screen uses this semantic order:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│ [FlowFoundry mark]  FLOWFOUNDRY                                 │
-│                     AI Coordination Layer for Personal AI       │
+│ [Council Mark]  FLOWFOUNDRY                                    │
+│                 One goal. The smallest sufficient AI team.     │
+│                 Local-first Adaptive AI Team Runtime            │
 │                                                                 │
-│ Goal  →  Coordinator  →  Models / Tools / Context  →  Review   │
+│ Goal → Profile → Minimum Sufficient Team → Execute → Validate  │
 │                                                                 │
-│ Local-first · Human-centered · Open source                      │
+│ local-first · bounded meetings · validation · recovery         │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-Use a dark navy-to-deep-teal background, generous negative space, thin flow
-lines, and one clear sentence. The banner should not list every provider,
-feature, or roadmap phase. Export SVG plus a 2× PNG and keep all source files in
-`branding/`.
-
-The current README intentionally uses the existing logo and a text-based first
-screen until a reproducible banner is approved.
+The current README uses the approved app-icon SVG on its controlled midnight
+field rather than inventing a new banner. A future banner may add the hierarchy
+above after release-asset and contrast validation. It must not list every
+provider, feature, or roadmap phase.
 
 ## Color system
 
+Identity and functional state colors are separate systems.
+
+### Identity palette
+
 | Token | Hex | Use |
 |---|---|---|
-| Foundation navy | `#10172F` | primary background |
+| Midnight field | `#09142B` → `#172A52` | controlled app/avatar background |
+| Charles Blue | `#20365F` | solid mark on light controlled surfaces |
+| Warm ivory | `#F4F1EA` | solid mark on dark controlled surfaces |
+| Ice blue/periwinkle | material range | restrained glass body on midnight field |
+
+Glass is presentation, not geometry. Do not use translucent glass directly on
+white or uncontrolled photography. Production contrast still requires release
+validation.
+
+### Functional state palette
+
+| Token | Hex | Use |
+|---|---|---|
+| Foundation navy | `#10172F` | terminal/product background |
 | Surface navy | `#1D2B50` | panels and terminal selections |
-| Coordination violet | `#8B7CFF` | multi-input or planning paths |
-| Flow cyan | `#4BD4E6` | active coordination and links |
+| Flow cyan | `#4BD4E6` | active coordination and links, not brand geometry |
 | Verified green | `#43E6A0` | successful validation or safe completion |
 | Attention amber | `#FFC65A` | experimental state or human decision |
 | Risk red | `#FF6B78` | blockers and destructive risk only |
@@ -77,7 +101,30 @@ screen until a reproducible banner is approved.
 | Secondary text | `#9FACCA` | metadata and annotations |
 
 Never use green for a model-generated answer before validation. Never use red
-for ordinary incomplete roadmap work.
+for ordinary incomplete roadmap work. Functional colors do not recolor
+individual Council stars.
+
+## Favicon and avatar rules
+
+- Use the controlled-field app icon for GitHub avatar and favicon contexts.
+- Minimum app/favicon size is `16 px`; minimum standalone mark is `24 px`.
+- Keep the four-star geometry and exact `2:1` ratio at every size.
+- No wordmark, tagline, extra star, orbit, crown, face, arrow, or provider mark
+  appears inside an avatar.
+- For monochrome use pure black or pure white, not simulated glass.
+
+## Campus poster hierarchy
+
+The adopted campus order is:
+
+1. `你定目标，AI组队实现`;
+2. large Council Mark;
+3. one plain-Chinese explanation—the exact canonical sentence remains open;
+4. compact proof: `目标 → 组队执行 → 检查交付`;
+5. one real, verified action or QR target; and
+6. small FlowFoundry name and English tagline.
+
+Do not fabricate a URL, download claim, QR code, event, or shipped capability.
 
 ## Typography
 
@@ -143,8 +190,9 @@ described as recorded product behavior.
 
 Before public launch, prepare:
 
-- approved README banner (`.svg` and 2× `.png`);
-- light and dark logo exports;
+- release-validated Council app icon, light/dark/monochrome exports, favicon,
+  and checksums;
+- optional approved README banner (`.svg` and 2× `.png`);
 - one actual launcher screenshot;
 - AI Project Manager poster, GIF/MP4, and transcript;
 - Open Graph social card with the exact public release version;

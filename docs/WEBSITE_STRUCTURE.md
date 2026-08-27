@@ -34,11 +34,15 @@ is a successful local install and first workflow, not a page view or a star.
 
 **Message**
 
-> AI is moving from individual models to coordinated systems.
+> One goal. The smallest sufficient AI team.
 
-FlowFoundry is a local-first AI coordination layer that helps people manage
-models, tools, workflows, permissions, costs, evidence, and human approvals
-around a goal.
+FlowFoundry is a Local-first Adaptive AI Team Runtime. Its current Alpha is a
+coordination layer that chooses the minimum sufficient path across models,
+tools, workflows, permissions, costs, evidence, and human approvals around a
+goal.
+
+Use “AI is moving from individual models to coordinated systems” in the
+problem/why-now section, not as the primary tagline.
 
 **Goal:** Make the category and product boundary understandable without
 scrolling.

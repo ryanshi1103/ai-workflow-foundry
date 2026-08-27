@@ -8,12 +8,13 @@ Product truth: [Current Status](CURRENT_STATUS.md)
 
 **Eyebrow:** Local-first · Human-controlled · Open source
 
-## AI is moving from individual models to coordinated systems.
+## One goal. The smallest sufficient AI team.
 
-FlowFoundry is a local-first AI coordination layer. Define the goal and
-constraints; coordinate eligible models, tools, workflows, permissions, costs,
-evidence, approvals, and recovery without making one provider the product
-authority.
+FlowFoundry is a **Local-first Adaptive AI Team Runtime**. Its current Alpha is
+an AI coordination layer: define the goal and constraints, choose the minimum
+sufficient path, and coordinate eligible models, tools, workflows,
+permissions, costs, evidence, approvals, and recovery without making one
+provider the product authority.
 
 **Primary action:** Try the offline workflow
 
@@ -29,6 +30,8 @@ parity remain incomplete.
 ## Problem
 
 ### More AI tools create more coordination work.
+
+**AI is moving from individual models to coordinated systems.**
 
 Developers now move between coding assistants, reviewers, terminals, project
 files, security tools, and model interfaces. Every transition can lose context,

@@ -6,8 +6,9 @@ Status: draft copy; publication requires separate authorization
 
 AI is moving from individual models to coordinated systems.
 
-FlowFoundry is a local-first layer for coordinating models, tools, permissions,
-costs, evidence, recovery, and human approval around a goal.
+FlowFoundry is a Local-first Adaptive AI Team Runtime: one goal, the smallest
+sufficient path across models, tools, permissions, costs, evidence, recovery,
+and human approval.
 
 Do not chase every new model. Build a system that coordinates them.
 
@@ -26,7 +27,7 @@ FlowFoundry makes that coordination visible—and stops before publishing.
 
 ## Hacker News submission
 
-**Title:** FlowFoundry – a local-first coordination layer for AI tools
+**Title:** FlowFoundry – a local-first adaptive AI team runtime
 
 **First comment:** FlowFoundry explores an opinionated layer around human goals,
 minimum-sufficient routing, explicit permissions, durable evidence, review vs

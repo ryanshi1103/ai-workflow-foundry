@@ -11,6 +11,7 @@ Index remains the formal precedence and release-evidence authority.
 | Need | Official document | Purpose |
 |---|---|---|
 | Understand FlowFoundry | [README](../README.md) | Thirty-second product story, current boundary, demo, and first workflow |
+| Recover binding/adopted project decisions | [Decision Ledger](DECISION_LEDGER.md) | Historical authority, provenance, implementation, and supersession |
 | Verify what exists | [Current Status](CURRENT_STATUS.md) | Implemented, experimental, and planned capability evidence |
 | Understand product layers | [Product Architecture](FLOWFOUNDRY_PRODUCT_ARCHITECTURE.md) | Canonical runtime, coordination, context, and interface boundaries |
 | Understand implementation | [Technical Architecture](ARCHITECTURE.md) | Module and runtime responsibilities |

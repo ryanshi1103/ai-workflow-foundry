@@ -6,9 +6,9 @@ assertion that every named product integrates with the current release.
 
 ## Positioning statement
 
-> FlowFoundry is a local-first AI coordination layer that helps people manage
-> models, tools, workflows, permissions, costs, evidence, and human approvals
-> around a goal.
+> FlowFoundry is a Local-first Adaptive AI Team Runtime. Its current Alpha is a
+> coordination layer that helps people manage models, tools, workflows,
+> permissions, costs, evidence, and human approvals around a goal.
 
 AI is moving from individual model interactions toward systems that coordinate
 multiple intelligence resources. FlowFoundry does not attempt to replace those
@@ -62,8 +62,9 @@ The human remains responsible for goals and material side effects.
 
 ### One sentence
 
-FlowFoundry is a local-first AI coordination layer for managing models, tools,
-workflows, permissions, costs, evidence, and human approvals around a goal.
+FlowFoundry is a Local-first Adaptive AI Team Runtime for the smallest
+sufficient path across models, tools, workflows, permissions, costs, evidence,
+and human approvals around a goal.
 
 ### Thirty seconds
 

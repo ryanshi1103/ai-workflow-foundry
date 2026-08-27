@@ -2,9 +2,10 @@
 
 ## What is FlowFoundry?
 
-FlowFoundry is a local-first AI coordination layer. It helps a human organize
-supported models, tools, workflows, permissions, costs, evidence, and approval
-boundaries around a goal.
+FlowFoundry is a Local-first Adaptive AI Team Runtime. Its current Alpha is a
+coordination layer that helps a human organize the minimum sufficient path
+across supported models, tools, workflows, permissions, costs, evidence, and
+approval boundaries around a goal.
 
 ## Is it another AI model or chatbot?
 
