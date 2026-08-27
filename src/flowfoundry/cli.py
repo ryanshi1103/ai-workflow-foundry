@@ -91,6 +91,12 @@ def main(argv: list[str] | None = None) -> int:
             components = validate_catalog(args.catalog)
             print(f"validated {len(components)} FlowFoundry components")
 
+            from .orchestration.decisions import DecisionLedger
+
+            if DecisionLedger.exists(Path.cwd()):
+                ledger = DecisionLedger.load(Path.cwd())
+                print(f"validated {len(ledger.records)} project decisions")
+
             # Also validate workflow contracts if the directory exists
             from .workflow_contract import CONTRACTS_DIR as default_contracts
 

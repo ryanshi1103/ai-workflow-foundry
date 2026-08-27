@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .approvals import ApprovalGate
+from .decisions import DecisionContextService
 from .evaluator import evaluate_review
 from .execution import ProviderExecutionHandle
 from .isolation import WorktreeError, WorktreeManager
@@ -382,6 +383,13 @@ class MeetingRuntime:
             return
 
         plan = workspace.plan()
+        decision_context = DecisionContextService().prepare(
+            workspace,
+            max_chars=max(
+                2_000,
+                min(9_000, meeting_plan.context_char_limit * 3 // 4),
+            ),
+        )
         relevant_files: list[str] = []
         constraints: list[str] = []
         previous_decisions: list[str] = []
@@ -408,6 +416,7 @@ class MeetingRuntime:
             "workspace_ref": str(workspace.project_root),
             "relevant_artifact_refs": self._bounded_items(relevant_files, 60, 500),
             "previous_decisions": self._bounded_items(previous_decisions, 20, 500),
+            "decision_context": decision_context,
             "acceptance_criteria": self._bounded_items(acceptance, 80, 300),
             "requested_output_schema": {
                 "position": "non-empty recommendation",
@@ -436,6 +445,19 @@ class MeetingRuntime:
             if populated:
                 largest = max(populated, key=lambda field: len(json.dumps(context[field])))
                 context[largest].pop()
+                removed = True
+                continue
+            decision_items = context["decision_context"].get("items", [])
+            if decision_items:
+                omitted = context["decision_context"]["omitted_decision_ids"]
+                omitted.append(decision_items.pop()["ID"])
+                removed = True
+                continue
+            non_authoritative = context["decision_context"].get(
+                "non_authoritative_context", []
+            )
+            if non_authoritative:
+                non_authoritative.pop()
                 removed = True
                 continue
             goal = str(context["task_goal"])

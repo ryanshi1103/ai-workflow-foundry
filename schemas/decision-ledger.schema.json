@@ -4,9 +4,10 @@
   "title": "FlowFoundry Decision Ledger",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "generated_at", "candidate_base", "decisions"],
+  "required": ["schema_version", "project_id", "generated_at", "candidate_base", "decisions"],
   "properties": {
-    "schema_version": {"const": 1},
+    "schema_version": {"const": 2},
+    "project_id": {"type": "string", "pattern": "^[a-z][a-z0-9._-]{0,79}$"},
     "generated_at": {"type": "string", "format": "date-time"},
     "candidate_base": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "decisions": {
@@ -15,14 +16,31 @@
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "decision_id", "domain", "date", "decision", "status", "authority",
+          "decision_id", "domain", "affected_surface", "project_scope",
+          "semantic_slot", "semantic_value", "date", "decision", "status", "authority",
           "participants", "originating_contribution", "meeting_id", "round",
           "human_gate", "evidence", "current_surface", "implementation_status",
-          "superseded_by", "notes"
+          "supersedes", "superseded_by", "notes"
         ],
         "properties": {
           "decision_id": {"type": "string", "pattern": "^FF-[A-Z]+-[0-9]{3}$"},
-          "domain": {"enum": ["PRODUCT", "BRAND", "RUNTIME", "UX", "RELEASE", "FUTURE", "ARCHITECTURE"]},
+          "domain": {"enum": ["PRODUCT", "BRAND", "RUNTIME", "MEETING", "UX", "RELEASE", "SECURITY", "PRIVACY", "DOCUMENTATION", "GITHUB", "MOBILE", "FUTURE-VISION", "ARCHITECTURE"]},
+          "affected_surface": {
+            "type": "array",
+            "items": {
+              "enum": ["architecture", "brand", "campus-poster", "cancellation", "component-boundaries", "contributor-experience", "cost-accounting", "demo", "documentation", "future-vision", "github", "github-hero", "launcher", "meeting-context", "mobile-design", "privacy-boundary", "provider-selection", "readme", "recovery", "release", "runtime-routing", "security-boundary", "tool-policy", "visual-identity", "workflow-contracts", "workspace-isolation"]
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "project_scope": {
+            "type": "array",
+            "items": {"type": "string", "pattern": "^[a-z][a-z0-9._-]{0,79}$"},
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "semantic_slot": {"type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]{0,79}$"},
+          "semantic_value": {"type": ["string", "null"], "minLength": 1, "maxLength": 4000},
           "date": {"type": "string", "format": "date"},
           "decision": {"type": "string", "minLength": 1},
           "status": {"enum": ["BINDING", "ADOPTED", "ADVISORY", "OPEN", "SUPERSEDED", "LOST", "CONFLICTING", "NEEDS_HUMAN_REVIEW"]},
@@ -43,6 +61,7 @@
           "evidence": {"type": "array", "items": {"type": "string"}, "minItems": 1},
           "current_surface": {"type": "array", "items": {"type": "string"}},
           "implementation_status": {"type": "string"},
+          "supersedes": {"type": "array", "items": {"type": "string", "pattern": "^FF-[A-Z]+-[0-9]{3}$"}, "uniqueItems": true},
           "superseded_by": {"type": ["string", "null"]},
           "notes": {"type": "string"}
         }

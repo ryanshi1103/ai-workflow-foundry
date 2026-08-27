@@ -1,17 +1,40 @@
 # Meeting Decision Adoption Model
 
-Status: design only; no frozen runtime change in this reconciliation
+Status: read-path inheritance implemented; decision write-back remains design only
+
+## Implemented read path
+
+FlowFoundry now performs the smallest safe inheritance step before an ordinary
+task or bounded Meeting reaches a provider:
+
+```text
+Task
+  → deterministic task profile and declared scope
+  → validate Decision Ledger
+  → resolve exact domain / affected-surface / project-scope matches
+  → inject ACTIVE PROJECT DECISIONS
+  → emit warnings for occupied slots and unresolved relevant decisions
+  → continue task or Meeting
+```
+
+The implementation is deliberately `READ → VALIDATE → SELECT → INJECT → WARN`.
+It does not create, promote, approve, write, or supersede a decision. A run
+persists one bounded `artifacts/decision-context.json`; Meetings copy that
+validated section into `artifacts/meeting/context-pack.json` before Round 1.
+The preserved artifact is reused on resume so participants in one Meeting do
+not receive changing authority context between rounds.
 
 ## Finding
 
-FlowFoundry currently has durable Meeting execution, not durable decision
-adoption.
+FlowFoundry has durable Meeting execution and read-path decision inheritance,
+but it still does not have automatic durable decision adoption.
 
 The runtime preserves Context Packs, independent contributions, conflicts,
 targeted cross-review, convergence, dissent, budgets, receipts, and experience.
-What it does not do is convert an accepted convergence into a typed project
-decision with authority, affected surfaces, adoption tasks, verification, and
-automatic future context injection.
+What it still does not do is convert a new convergence into a typed project
+decision with authority, adoption tasks, verification, or automatic write-back.
+Previously reconciled typed decisions now do receive deterministic future
+context injection.
 
 That gap explains the observed failure:
 
@@ -108,19 +131,47 @@ Meeting completion and product adoption are different states:
 
 A run report must never equate `CONVERGED` with `VERIFIED`.
 
+## Decision Ledger read contract
+
+Schema v2 records explicit `project_scope`, `affected_surface`,
+`semantic_slot`, `semantic_value`, `supersedes`, and `superseded_by` fields.
+The runtime does not parse the narrative `current_surface` field to infer
+authority. It also does not infer authority from provider identity or from the
+free-text `authority` field. Trusted runtime code recognizes only the status
+policy below:
+
+- inherited as authority: `BINDING`, `ADOPTED`;
+- never inherited as authority: `ADVISORY`, `OPEN`, `SUPERSEDED`, `LOST`,
+  `CONFLICTING`, `NEEDS_HUMAN_REVIEW`.
+
+`ADVISORY` can be requested explicitly as non-authoritative historical
+context. It remains separately labeled and cannot enter the active item list.
+
+The validator fails closed for malformed/stale JSON, duplicate IDs, missing
+authoritative text or evidence references, unsupported statuses/domains/
+surfaces, unsafe paths, symlinked or oversized ledgers, broken reverse links,
+supersession cycles, and two active `BINDING` decisions in one exclusive
+project semantic slot.
+
 ## Relevant-decision context packs
 
-Before a later task or Meeting begins, a deterministic selector should query
+Before a later task or Meeting begins, the deterministic selector queries
 the ledger by:
 
 - domain and affected surface;
 - active status (`BINDING` and `ADOPTED` by default);
 - project and product scope;
 - supersession chain;
-- freshness/current implementation state; and
-- explicit user exclusions.
+- explicit declared global scope, when present; and
+- explicit semantic-slot proposals, when present.
 
-The task Context Pack should include a small `prior_decisions` section:
+Applicability is exact: matching domain, matching affected surface, or an
+explicitly included global scope. The first version uses no LLM and performs
+no fuzzy semantic classification. Goal keywords provide a deterministic
+default, while task input may declare `decision_scope` with domains, affected
+surfaces, project scopes, and proposed slot values.
+
+The task Context Pack contains a bounded `ACTIVE PROJECT DECISIONS` section:
 
 ```text
 BINDING
@@ -134,9 +185,18 @@ OPEN
 - Exact plain-Chinese explanation
 ```
 
-Advisory material should be opt-in by relevance. Superseded decisions should
-appear only when provenance or conflict analysis requires them. This keeps
-context bounded without forgetting authority.
+Each active item carries ID, status, domain, surface, semantic slot, exact
+decision text, authority, supersession, and source. Exact decision text is
+never paraphrased or partially truncated. When the byte/character budget is
+reached, whole lower-priority items are omitted; the pack records an omission
+count and the bounded subset of omitted IDs that fits.
+The ledger and decision text are treated as untrusted structured data: they
+cannot widen permissions, select tools, execute code, or authorize effects.
+
+Relevant `OPEN` and `NEEDS_HUMAN_REVIEW` entries produce warnings rather than
+instructions. A proposed value that differs from an active `BINDING` value in
+the same explicit semantic slot produces `DECISION_CONFLICT_WARNING`. The
+runtime preserves the proposal and existing value and makes no replacement.
 
 ## Surface verification
 
@@ -167,18 +227,26 @@ A later task cannot silently replace a decision. It must provide:
 This is how the Council Mark can validly supersede SYNTHESIS without erasing
 the tagline, Chinese headline, or smallest-sufficient principle.
 
-## Minimal future implementation
+## Implemented now / not implemented
 
-The smallest low-risk implementation after release is a read-only context-pack
-step, not automatic mutation:
+Implemented now:
 
 1. validate `.flowfoundry/decision-ledger.json`;
 2. select active decisions by requested domain/surface;
 3. inject their exact IDs, statuses, decisions, and evidence refs into the
    next task's Context Pack;
 4. emit a warning when a task proposes language for an occupied BINDING slot;
-5. require an explicit supersession record before verification can pass.
+5. preserve supersession provenance and exclude superseded authority;
+6. persist proof that applicable IDs were present before provider reasoning.
 
-Write-back, automatic adoption tasks, and Human Gate UI can follow after the
-read-only selector proves useful. This reconciliation intentionally does not
-alter the frozen runtime.
+Not implemented:
+
+- model-generated automatic decisions;
+- automatic promotion to `BINDING` or `ADOPTED`;
+- automatic Human Gate approval;
+- automatic ledger mutation or supersession;
+- autonomous semantic-slot replacement; or
+- autonomous GitHub changes based on inferred decisions.
+
+Write-back, adoption tasks, surface verification, and Human Gate UI remain a
+separate future governance phase.

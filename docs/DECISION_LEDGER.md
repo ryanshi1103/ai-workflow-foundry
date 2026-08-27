@@ -12,6 +12,14 @@ The machine-readable authority is
 `.flowfoundry/decision-ledger.json`, validated by
 `schemas/decision-ledger.schema.json`.
 
+Schema v2 adds deterministic read-path fields: project scope, affected
+surfaces, exclusive semantic slot/value, and bidirectional supersession links.
+The runtime inherits only `BINDING` and `ADOPTED` entries that match the current
+task. It preserves exact decision wording and provider provenance; provider
+identity never changes authority. See
+[Meeting Decision Adoption Model](MEETING_DECISION_ADOPTION_MODEL.md) for the
+implemented resolver, Context Pack, warning, and security contract.
+
 ## Status rules
 
 - **BINDING** — currently authoritative and not superseded.

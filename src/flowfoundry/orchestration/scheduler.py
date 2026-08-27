@@ -13,6 +13,7 @@ from threading import Semaphore
 from typing import Any
 
 from .approvals import ApprovalGate
+from .decisions import DecisionContextService
 from .evaluator import evaluate_review
 from .isolation import WorktreeError, WorktreeManager
 from .mailbox import Mailbox
@@ -64,6 +65,13 @@ class RunScheduler:
 
     def run(self, workspace: RunWorkspace) -> dict[str, Any]:
         plan = workspace.plan()
+        context_limit = 10_000
+        if plan.meeting_plan is not None:
+            context_limit = max(
+                2_000,
+                min(9_000, plan.meeting_plan.context_char_limit * 3 // 4),
+            )
+        DecisionContextService().prepare(workspace, max_chars=context_limit)
         if plan.meeting_plan is not None:
             return MeetingRuntime(
                 self.router,
@@ -158,6 +166,7 @@ class RunScheduler:
         return changed
 
     def _execute_task(self, workspace: RunWorkspace, task: TaskSpec) -> None:
+        task = DecisionContextService.inject_task(workspace, task)
         if workspace.manifest().get("cancel_requested"):
             workspace.update_task(
                 task.id,

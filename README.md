@@ -173,6 +173,7 @@ Expected validation checkpoint:
 
 ```text
 validated 4 FlowFoundry components
+validated 36 project decisions
 validated 2 workflow contracts
 validated 13 registered capabilities
 ```
