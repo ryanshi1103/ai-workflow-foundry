@@ -2,18 +2,24 @@
 set -uo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+MONOREPO_ROOT="$(cd "$PROJECT_ROOT/../.." && pwd)"
 SCRIPT="${CC_TEST_SCRIPT:-$PROJECT_ROOT/bin/cc}"
-TEST_ROOT="$(mktemp -d)"
+PYTHON_SOURCE="$MONOREPO_ROOT/src/flowfoundry/workspace/cli/launcher.py"
+TEST_TMP_BASE="$MONOREPO_ROOT/.test-tmp"
+mkdir -p "$TEST_TMP_BASE"
+TEST_ROOT="$(mktemp -d -p "$TEST_TMP_BASE")"
 FAKE_HOME="$TEST_ROOT/home"
 FAKE_BIN="$TEST_ROOT/bin"
 STATE_HOME="$TEST_ROOT/state"
 OUTPUT="$TEST_ROOT/output"
 EXEC_LOG="$TEST_ROOT/exec.log"
+TEST_PROJECT="$FAKE_HOME/Projects/launcher-fixture"
 PASSED=0
 FAILED=0
 
 cleanup() {
     rm -rf "$TEST_ROOT"
+    rmdir "$TEST_TMP_BASE" 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -27,6 +33,10 @@ fail() {
     FAILED=$((FAILED + 1))
 }
 
+show_output() {
+    sed 's/^/  launcher: /' "$OUTPUT" 2>/dev/null || true
+}
+
 assert_contains() {
     local file="$1" pattern="$2" description="$3"
     if grep -qF -- "$pattern" "$file"; then
@@ -36,7 +46,8 @@ assert_contains() {
     fi
 }
 
-mkdir -p "$FAKE_HOME/.codex" "$FAKE_BIN" "$STATE_HOME/cc-launcher"
+mkdir -p "$FAKE_HOME/.codex" "$FAKE_BIN" "$STATE_HOME/cc-launcher" "$TEST_PROJECT"
+git -C "$TEST_PROJECT" init -q
 
 for profile in manual readonly auto full; do
     printf 'model = "gpt-5.6-sol"\n' > "$FAKE_HOME/.codex/gpt56-sol-${profile}.config.toml"
@@ -70,7 +81,13 @@ FAKE_CURL
 
 cat > "$FAKE_BIN/claude" <<'FAKE_CLAUDE'
 #!/bin/bash
-exit 0
+if [[ "${1:-}" == "--version" ]]; then
+    echo "claude-cli test"
+    exit 0
+fi
+printf 'command=claude\nargs=%s\nproject=%s\nmode=%s\nconfig=%s\n' \
+    "$*" "${CC_ACTIVE_PROJECT:-}" "${CC_PROJECT_MODE:-}" "${CLAUDE_CONFIG_DIR:-}" \
+    > "$CC_TEST_EXEC_LOG"
 FAKE_CLAUDE
 
 chmod +x "$FAKE_BIN/codex" "$FAKE_BIN/aiproj" "$FAKE_BIN/timeout" "$FAKE_BIN/curl" "$FAKE_BIN/claude"
@@ -93,8 +110,9 @@ run_launcher() {
     printf '%s' "$input" | env -u SSH_CONNECTION -u SSH_TTY \
         HOME="$FAKE_HOME" \
         XDG_STATE_HOME="$STATE_HOME" \
+        PYTHONPATH="$MONOREPO_ROOT/src" \
         PATH="$FAKE_BIN:/usr/bin:/bin" \
-        _CC_PRESET_PROJECT="$PROJECT_ROOT" \
+        _CC_PRESET_PROJECT="$TEST_PROJECT" \
         CC_TEST_EXEC_LOG="$EXEC_LOG" \
         "${remote_env[@]}" \
         "$SCRIPT" > "$OUTPUT" 2>&1
@@ -114,7 +132,7 @@ $mode
 yes
 "; then
         assert_contains "$EXEC_LOG" "args=--profile $profile" "Codex $mode uses $profile"
-        assert_contains "$EXEC_LOG" "project=$PROJECT_ROOT" "Codex $mode exports CC_ACTIVE_PROJECT"
+        assert_contains "$EXEC_LOG" "project=$TEST_PROJECT" "Codex $mode exports CC_ACTIVE_PROJECT"
     else
         fail "Codex $mode reaches intercepted exec"
     fi
@@ -232,42 +250,62 @@ else
     fail "Codex q return flow exits successfully"
 fi
 
-if run_launcher "c
+run_launcher "c
 m
 yes
-"; then
-    assert_contains "$EXEC_LOG" "command=aiproj" "Claude branch reaches intercepted aiproj exec"
-    assert_contains "$EXEC_LOG" "--provider claude" "Claude native provider preserved"
+"
+claude_status=$?
+if [[ -e "$EXEC_LOG" ]]; then
+    assert_contains "$EXEC_LOG" "command=claude" "Claude branch reaches intercepted native CLI"
+    assert_contains "$EXEC_LOG" "project=$TEST_PROJECT" "Claude branch preserves selected project"
+    assert_contains "$EXEC_LOG" "config=$FAKE_HOME/.claude-native" "Claude native config isolation preserved"
+    if [[ $claude_status -ne 0 ]]; then
+        assert_contains "$OUTPUT" "Transcript parsing produced no real user prompt" "synthetic Claude run reports expected finalization limitation"
+    fi
 else
     fail "Claude branch still launches"
+    show_output
 fi
 
-if run_launcher "d
+run_launcher "d
 m
 yes
-"; then
-    assert_contains "$EXEC_LOG" "command=aiproj" "DeepSeek branch reaches intercepted aiproj exec"
-    assert_contains "$EXEC_LOG" "--provider deepseek" "DeepSeek provider preserved"
+"
+deepseek_status=$?
+if [[ -e "$EXEC_LOG" ]]; then
+    assert_contains "$EXEC_LOG" "command=claude" "DeepSeek branch reaches intercepted compatible CLI"
+    assert_contains "$EXEC_LOG" "project=$TEST_PROJECT" "DeepSeek branch preserves selected project"
+    assert_contains "$EXEC_LOG" "config=$FAKE_HOME/.claude-deepseek" "DeepSeek config isolation preserved"
+    if [[ $deepseek_status -ne 0 ]]; then
+        assert_contains "$OUTPUT" "Transcript parsing produced no real user prompt" "synthetic DeepSeek run reports expected finalization limitation"
+    fi
 else
     fail "DeepSeek branch still launches"
+    show_output
 fi
 
-if run_launcher "c
+run_launcher "c
 b
 remote-yes
 yes
-" true; then
+" true
+remote_claude_status=$?
+if [[ -e "$EXEC_LOG" ]]; then
     assert_contains "$EXEC_LOG" "--permission-mode bypassPermissions" "remote Claude bypass accepts two confirmations"
+    if [[ $remote_claude_status -ne 0 ]]; then
+        assert_contains "$OUTPUT" "Transcript parsing produced no real user prompt" "synthetic remote Claude run reports expected finalization limitation"
+    fi
 else
     fail "remote Claude bypass reaches intercepted exec after two confirmations"
+    show_output
 fi
 
-assert_contains "$SCRIPT" 'PROVIDER="claude"' "Claude branch remains in source"
-assert_contains "$SCRIPT" 'PROVIDER="deepseek"' "DeepSeek branch remains in source"
-assert_contains "$SCRIPT" 'exec "$CODEX_BIN" --profile "$CODEX_PROFILE"' "Codex native TUI exec remains in source"
-assert_contains "$SCRIPT" 'exec aiproj launch-here' "launch-here prevents timestamp top-level projects"
-assert_contains "$SCRIPT" 'https://api.openai.com/' "Codex preflight checks the OpenAI HTTPS endpoint"
-if grep -qF '/dev/tcp/8.8.8.8/53' "$SCRIPT"; then
+assert_contains "$PYTHON_SOURCE" '"claude"' "Claude branch remains in source"
+assert_contains "$PYTHON_SOURCE" '"deepseek"' "DeepSeek branch remains in source"
+assert_contains "$PYTHON_SOURCE" 'os.execv(codex_bin' "Codex native TUI exec remains in source"
+assert_contains "$PYTHON_SOURCE" 'launch_here(' "launch-here prevents timestamp top-level projects"
+assert_contains "$PYTHON_SOURCE" 'https://api.openai.com/' "Codex preflight checks the OpenAI HTTPS endpoint"
+if grep -qF '/dev/tcp/8.8.8.8/53' "$PYTHON_SOURCE"; then
     fail "Codex preflight no longer relies on public DNS TCP port 53"
 else
     pass "Codex preflight no longer relies on public DNS TCP port 53"

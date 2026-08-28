@@ -1,0 +1,19 @@
+FlowFoundry Personal AI Manager — normalized offline evidence
+
+input: examples/personal-ai/personal-ai-manager.json
+routing mode: single_agent_reviewer
+estimated fake-adapter calls: 2
+tasks: build -> review
+build permissions: read_workspace, write_workspace
+review permissions: read_workspace
+run status: completed
+completed tasks: build, review
+unfinished tasks: none
+human actions required: false
+provider executions: none
+generated files: tasks/build/result.json, tasks/review/result.json
+commits: none
+next step: review final artifacts
+
+This normalized asset omits timestamps, hashes, and checkout paths. It was
+verified against an offline run and is not a transcript of a real model call.

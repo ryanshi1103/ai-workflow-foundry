@@ -1,34 +1,85 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <title id="title">FlowFoundry AI</title>
-  <desc id="desc">Three controlled workflow paths entering a bright verified core and leaving as one artifact.</desc>
+  <title id="title">FlowFoundry Glass Council Mark</title>
+  <desc id="desc">One principal glass star above three equal council stars on a restrained midnight field.</desc>
   <defs>
-    <linearGradient id="background" x1="48" y1="32" x2="464" y2="480" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#111936"/>
-      <stop offset="0.55" stop-color="#18275a"/>
-      <stop offset="1" stop-color="#0d4f58"/>
+    <linearGradient id="field" x1="72" y1="54" x2="438" y2="468" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#172A52"/>
+      <stop offset=".55" stop-color="#0E1D3C"/>
+      <stop offset="1" stop-color="#09142B"/>
     </linearGradient>
-    <linearGradient id="flow" x1="108" y1="96" x2="408" y2="416" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#8b7cff"/>
-      <stop offset="0.5" stop-color="#4bd4e6"/>
-      <stop offset="1" stop-color="#43e6a0"/>
+    <radialGradient id="fieldLight" cx="0" cy="0" r="1" gradientTransform="translate(237 184) rotate(90) scale(260)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F74A7" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#4F74A7" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="glass" x1="178" y1="116" x2="345" y2="378" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E6FDFF" stop-opacity=".94"/>
+      <stop offset=".28" stop-color="#8FE8F3" stop-opacity=".82"/>
+      <stop offset=".62" stop-color="#76A9E4" stop-opacity=".74"/>
+      <stop offset="1" stop-color="#A694E8" stop-opacity=".8"/>
     </linearGradient>
-    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#071020" flood-opacity="0.45"/>
-    </filter>
+    <linearGradient id="edge" x1="160" y1="110" x2="360" y2="390" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D8FCFF" stop-opacity=".86"/>
+      <stop offset=".42" stop-color="#67D7E8" stop-opacity=".58"/>
+      <stop offset="1" stop-color="#B2A4F0" stop-opacity=".62"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="193" y1="130" x2="312" y2="278" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D6F8FA" stop-opacity=".34"/>
+      <stop offset="1" stop-color="#82C8DE" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="innerGlass" cx="0" cy="0" r="1" gradientTransform="translate(225 154) rotate(50) scale(230)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D9FBFF" stop-opacity=".46"/>
+      <stop offset=".48" stop-color="#81D9E8" stop-opacity=".26"/>
+      <stop offset="1" stop-color="#8575D1" stop-opacity=".36"/>
+    </radialGradient>
+    <radialGradient id="aura" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#82E8F3" stop-opacity=".34"/>
+      <stop offset=".42" stop-color="#65C7E4" stop-opacity=".17"/>
+      <stop offset="1" stop-color="#6684D0" stop-opacity="0"/>
+    </radialGradient>
+    <path id="star" d="M0-1C.12-.42.42-.12 1 0 .42.12.12.42 0 1-.12.42-.42.12-1 0-.42-.12-.12-.42 0-1Z"/>
+    <clipPath id="mainClip"><use href="#star" transform="translate(256 184) scale(86)"/></clipPath>
   </defs>
-  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#background)"/>
-  <g fill="none" stroke="url(#flow)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M112 132h76c36 0 52 22 52 54v70"/>
-    <path d="M112 256h128"/>
-    <path d="M112 380h76c36 0 52-22 52-54v-70"/>
-    <path d="M324 256h76"/>
+
+  <rect x="16" y="16" width="480" height="480" rx="116" fill="url(#field)"/>
+  <rect x="16" y="16" width="480" height="480" rx="116" fill="url(#fieldLight)"/>
+  <rect x="17" y="17" width="478" height="478" rx="115" fill="none" stroke="#A6DCEB" stroke-opacity=".16" stroke-width="2"/>
+
+  <g fill="url(#aura)">
+    <circle cx="256" cy="184" r="126"/>
+    <circle cx="136" cy="352" r="68" opacity=".66"/>
+    <circle cx="256" cy="390" r="68" opacity=".66"/>
+    <circle cx="376" cy="352" r="68" opacity=".66"/>
   </g>
-  <g fill="#f4fbff" stroke="#152451" stroke-width="12">
-    <circle cx="112" cy="132" r="30"/>
-    <circle cx="112" cy="256" r="30"/>
-    <circle cx="112" cy="380" r="30"/>
+
+  <g fill="#030817" opacity=".34" transform="translate(0 9)">
+    <use href="#star" transform="translate(256 184) scale(86)"/>
+    <use href="#star" transform="translate(136 352) scale(43)"/>
+    <use href="#star" transform="translate(256 390) scale(43)"/>
+    <use href="#star" transform="translate(376 352) scale(43)"/>
   </g>
-  <path d="M256 174 338 256 256 338 174 256Z" fill="url(#flow)" stroke="#dffcff" stroke-width="12" filter="url(#shadow)"/>
-  <path d="m220 257 25 25 52-58" fill="none" stroke="#102047" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-  <rect x="382" y="226" width="60" height="60" rx="17" fill="#f4fbff" stroke="#43e6a0" stroke-width="12"/>
+
+  <g fill="url(#glass)">
+    <use href="#star" transform="translate(256 184) scale(86)"/>
+    <use href="#star" transform="translate(136 352) scale(43)"/>
+    <use href="#star" transform="translate(256 390) scale(43)"/>
+    <use href="#star" transform="translate(376 352) scale(43)"/>
+  </g>
+  <g fill="none" stroke="url(#edge)" stroke-linejoin="round">
+    <use href="#star" transform="translate(256 184) scale(86)" stroke-width=".038"/>
+    <use href="#star" transform="translate(136 352) scale(43)" stroke-width=".076"/>
+    <use href="#star" transform="translate(256 390) scale(43)" stroke-width=".076"/>
+    <use href="#star" transform="translate(376 352) scale(43)" stroke-width=".076"/>
+  </g>
+
+  <g fill="url(#innerGlass)" opacity=".72">
+    <use href="#star" transform="translate(256 184) scale(68)"/>
+    <use href="#star" transform="translate(136 352) scale(34)"/>
+    <use href="#star" transform="translate(256 390) scale(34)"/>
+    <use href="#star" transform="translate(376 352) scale(34)"/>
+  </g>
+
+  <g clip-path="url(#mainClip)" opacity=".72">
+    <path d="M160 115C217 101 286 108 347 145C302 149 258 172 226 212C205 184 184 153 160 115Z" fill="url(#shine)"/>
+    <path d="M206 254C259 271 310 254 345 218C327 272 292 305 249 316C231 297 217 276 206 254Z" fill="#55499C" fill-opacity=".2"/>
+  </g>
 </svg>

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "id": "mediaflow",
+  "aliases": ["huiying-media-workbench", "meeting-media-auto", "meeting-media-desktop"],
+  "display_name": "Huiying / MediaFlow",
+  "summary": "Private local-first media product integrated through a sanitized workflow, policy, and capability contract.",
+  "kind": "reference-application",
+  "maturity": "beta",
+  "source": {
+    "url": "https://github.com/ryanshi1103/huiying-media-workbench",
+    "license": "Private source; FlowFoundry contract only"
+  },
+  "integration": {
+    "mode": "compatible-extension"
+  },
+  "capabilities": [
+    "controlled media discovery",
+    "reviewable media pipeline",
+    "platform-separated local delivery",
+    "approval-gated export"
+  ],
+  "design_patterns": [
+    "immutable source media",
+    "single shared core",
+    "explicit platform adapters",
+    "separate review and export approval"
+  ],
+  "lifecycle": {
+    "stages": ["discover controlled input", "inspect", "propose", "review", "approve export", "finalize"],
+    "approvals": ["human proposal review", "separate export approval"]
+  },
+  "safety": {
+    "local_first": true,
+    "preserves_originals": true,
+    "review_before_side_effects": true,
+    "secrets": "local-user-config",
+    "network": "Offline by default; any provider use is explicitly configured in the private product and is not enabled by the public contract."
+  }
+}
