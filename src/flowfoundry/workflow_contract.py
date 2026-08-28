@@ -7,14 +7,15 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .catalog import CatalogError, _require_text, _require_unique_text_list
+from .catalog import CatalogError, _require_text
+from .resources import resource_path
 
 # Re-export for convenience — workflow contracts are validated separately
 # from component manifests but share the same error type.
 __all__ = ["CatalogError", "validate_workflow_contract", "load_workflow_contracts"]
 
 
-CONTRACTS_DIR = Path(__file__).resolve().parents[2] / "workflows" / "contracts"
+CONTRACTS_DIR = resource_path("workflows", "contracts")
 
 STAGE_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SEMVER_PATTERN = re.compile(

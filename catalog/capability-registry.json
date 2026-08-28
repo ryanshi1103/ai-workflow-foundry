@@ -8,7 +8,7 @@
       "provided_by": "ai-workspace-manager",
       "adapter": {
         "type": "deterministic-command",
-        "entry_point": "flowfoundry.workspace.project",
+        "entry_point": "flowfoundry.workspace.lifecycle.project",
         "requires_network": false,
         "requires_secrets": false
       },
@@ -21,7 +21,7 @@
       "provided_by": "ai-workspace-manager",
       "adapter": {
         "type": "deterministic-command",
-        "entry_point": "flowfoundry.workspace.cc_launcher",
+        "entry_point": "flowfoundry.workspace.cli.launcher",
         "requires_network": false,
         "requires_secrets": false
       },
@@ -34,7 +34,7 @@
       "provided_by": "ai-workspace-manager",
       "adapter": {
         "type": "python-module",
-        "entry_point": "flowfoundry.workspace.recovery",
+        "entry_point": "flowfoundry.workspace.sessions.recovery",
         "requires_network": false,
         "requires_secrets": false
       },
@@ -47,7 +47,7 @@
       "provided_by": "ai-workspace-manager",
       "adapter": {
         "type": "deterministic-command",
-        "entry_point": "flowfoundry.workspace.maintain",
+        "entry_point": "flowfoundry.workspace.maintenance.projects",
         "requires_network": false,
         "requires_secrets": false
       },
@@ -106,52 +106,13 @@
       "maturity": "beta"
     },
     {
-      "id": "structured-feedback-import",
-      "display_name": "Structured feedback import",
-      "description": "Import feedback from CSV, JSON, and Apify sources with validation and deduplication.",
-      "provided_by": "feedback-analysis-system",
+      "id": "controlled-media-path-validation",
+      "display_name": "Controlled media path validation",
+      "description": "Validate portable media references at the public/private boundary without resolving or modifying private product data.",
+      "provided_by": "mediaflow",
       "adapter": {
         "type": "python-module",
-        "entry_point": "src.services.import_service",
-        "requires_network": false,
-        "requires_secrets": false
-      },
-      "maturity": "beta"
-    },
-    {
-      "id": "ai-assisted-classification",
-      "display_name": "AI-assisted classification",
-      "description": "Classify feedback sentiment, category, severity, and confidence using AI with original-output preservation.",
-      "provided_by": "feedback-analysis-system",
-      "adapter": {
-        "type": "python-module",
-        "entry_point": "src.services.analysis_service",
-        "requires_network": true,
-        "requires_secrets": true
-      },
-      "maturity": "beta"
-    },
-    {
-      "id": "human-review-dashboard",
-      "display_name": "Human review dashboard",
-      "description": "Web dashboard for reviewing, correcting, and approving AI-classified feedback before operational use.",
-      "provided_by": "feedback-analysis-system",
-      "adapter": {
-        "type": "python-module",
-        "entry_point": "app:server",
-        "requires_network": false,
-        "requires_secrets": false
-      },
-      "maturity": "beta"
-    },
-    {
-      "id": "auditable-local-export",
-      "display_name": "Auditable local export",
-      "description": "Export reviewed feedback with full audit trail — original AI output preserved alongside human corrections.",
-      "provided_by": "feedback-analysis-system",
-      "adapter": {
-        "type": "python-module",
-        "entry_point": "src.services.export_service",
+        "entry_point": "flowfoundry.applications.mediaflow:validate_controlled_relative_path",
         "requires_network": false,
         "requires_secrets": false
       },

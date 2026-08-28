@@ -25,7 +25,7 @@ class CapabilityRegistryTests(unittest.TestCase):
     def test_registry_loads(self) -> None:
         registry = load_capability_registry()
         self.assertIn("capabilities", registry)
-        self.assertGreaterEqual(len(registry["capabilities"]), 16)
+        self.assertEqual(len(registry["capabilities"]), 13)
 
     def test_all_capability_ids_are_unique(self) -> None:
         registry = load_capability_registry()

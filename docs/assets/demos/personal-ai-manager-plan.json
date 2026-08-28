@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "goal": "Review one project README locally and propose one clearer sentence. Preserve the original, use no real provider or network, and require an independent review before presenting the result.",
+  "tasks": [
+    {
+      "id": "build",
+      "title": "Execute the requested work",
+      "role": "builder",
+      "required_capabilities": ["documentation"],
+      "preferred_capabilities": [],
+      "dependencies": [],
+      "inputs": {
+        "goal": "Review one project README locally and propose one clearer sentence. Preserve the original, use no real provider or network, and require an independent review before presenting the result."
+      },
+      "expected_outputs": ["implementation", "change_summary"],
+      "risk_level": "low",
+      "approval_requirements": [],
+      "required_permissions": ["read_workspace", "write_workspace"],
+      "validation_commands": [],
+      "retry_limit": 1,
+      "timeout_seconds": 300,
+      "review_required": true,
+      "fallback_agent": null
+    },
+    {
+      "id": "review",
+      "title": "Independently review the result",
+      "role": "reviewer",
+      "required_capabilities": ["review"],
+      "preferred_capabilities": [],
+      "dependencies": ["build"],
+      "inputs": {"source_task": "build"},
+      "expected_outputs": ["review_decision", "findings"],
+      "risk_level": "low",
+      "approval_requirements": [],
+      "required_permissions": ["read_workspace"],
+      "validation_commands": [],
+      "retry_limit": 1,
+      "timeout_seconds": 300,
+      "review_required": false,
+      "fallback_agent": null
+    }
+  ],
+  "task_profile": {
+    "task_type": "documentation",
+    "complexity": 2,
+    "uncertainty": 1,
+    "impact": 2,
+    "failure_risk": 1,
+    "reversibility": "easy",
+    "context_size": "medium",
+    "coding_requirement": false,
+    "research_requirement": false,
+    "multimodal_requirement": false,
+    "privacy_requirement": "high",
+    "estimated_workload": "small",
+    "expected_quality": 3,
+    "evidence": ["classified as documentation"]
+  },
+  "routing_decision": {
+    "mode": "single_agent_reviewer",
+    "reasons": ["operator explicitly selected execution mode"],
+    "estimated_agent_calls": 2
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "goal": "Prepare a reviewable GitHub release evidence package. Do not push, tag, deploy, publish, or enable a real provider.",
+  "tasks": [
+    {
+      "id": "analyze",
+      "title": "Analyze the declared release context",
+      "role": "architect",
+      "required_capabilities": ["planning", "documentation"],
+      "inputs": {
+        "scope": "Review the user-provided project and release constraints"
+      },
+      "expected_outputs": ["release_plan", "risk_summary"],
+      "required_permissions": ["read_workspace"]
+    },
+    {
+      "id": "code",
+      "title": "Prepare the code verification candidate",
+      "role": "builder",
+      "required_capabilities": ["implementation", "python"],
+      "dependencies": ["analyze"],
+      "inputs": {
+        "scope": "Summarize the code verification required before release"
+      },
+      "expected_outputs": ["code_check_candidate", "change_summary"],
+      "required_permissions": ["read_workspace"],
+      "review_required": true
+    },
+    {
+      "id": "analysis",
+      "title": "Review security and release evidence",
+      "role": "reviewer",
+      "required_capabilities": ["review", "security_review"],
+      "dependencies": ["code"],
+      "inputs": {
+        "source_task": "code"
+      },
+      "expected_outputs": ["review_decision", "security_findings"],
+      "required_permissions": ["read_workspace"]
+    },
+    {
+      "id": "test",
+      "title": "Record the test stage",
+      "role": "tester",
+      "required_capabilities": ["testing", "python"],
+      "dependencies": ["analysis"],
+      "inputs": {
+        "source_task": "code"
+      },
+      "expected_outputs": ["test_stage_result"],
+      "required_permissions": ["read_workspace"]
+    },
+    {
+      "id": "package",
+      "title": "Prepare the synthetic release evidence package",
+      "role": "builder",
+      "required_capabilities": ["documentation"],
+      "dependencies": ["test"],
+      "inputs": {
+        "scope": "Aggregate the synthetic plan, review, and test-stage records",
+        "action": "release"
+      },
+      "expected_outputs": ["release_notes_candidate", "evidence_package"],
+      "risk_level": "high",
+      "approval_requirements": ["release"],
+      "required_permissions": ["read_workspace"]
+    }
+  ]
+}

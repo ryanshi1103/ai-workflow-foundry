@@ -7,16 +7,15 @@ import json
 import sys
 from pathlib import Path
 
-from .catalog import CatalogError, get_component, load_catalog, validate_catalog
 from .capability_registry import (
     check_workflow_capabilities,
     cross_reference_catalog,
     load_capability_registry,
 )
+from .catalog import CatalogError, get_component, load_catalog, validate_catalog
 from .workflow_contract import (
     cross_reference_stages,
     load_workflow_contracts,
-    validate_workflow_contract,
 )
 
 
@@ -54,6 +53,11 @@ def build_parser() -> argparse.ArgumentParser:
     from .project_cli import add_project_parser
     add_project_parser(subparsers)
 
+    # Local-first multi-agent orchestration group.
+    from .orchestration.cli import add_team_parser
+
+    add_team_parser(subparsers)
+
     return parser
 
 
@@ -64,6 +68,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "project":
             from .project_cli import dispatch_project
             return dispatch_project(args.project_command, args)
+
+        if args.command == "team":
+            from .orchestration.cli import dispatch_team
+
+            return dispatch_team(args)
 
         if args.command == "list":
             for component in load_catalog(args.catalog):
@@ -81,6 +90,12 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "validate":
             components = validate_catalog(args.catalog)
             print(f"validated {len(components)} FlowFoundry components")
+
+            from .orchestration.decisions import DecisionLedger
+
+            if DecisionLedger.exists(Path.cwd()):
+                ledger = DecisionLedger.load(Path.cwd())
+                print(f"validated {len(ledger.records)} project decisions")
 
             # Also validate workflow contracts if the directory exists
             from .workflow_contract import CONTRACTS_DIR as default_contracts

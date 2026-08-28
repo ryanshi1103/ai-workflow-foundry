@@ -1,13 +1,33 @@
 #!/bin/bash
 # cc — unified launcher (Claude / DeepSeek / Codex)
-# Thin wrapper — delegates to flowfoundry.cc Python module.
-# Fall back to legacy deployed copy if the repo package isn't importable.
+# Thin wrapper — delegates to the flowfoundry.cc Python module.
+# Interactive TTY vs plain dispatch, and _CC_PLAIN handling, live in
+# flowfoundry.workspace.cli.launcher.main / tui.is_tui_session.
 set -euo pipefail
 
-# Try the repo package first (monorepo dev mode)
-if python3 -c "import flowfoundry.workspace.cc_launcher" 2>/dev/null; then
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+MONOREPO_ROOT="$(cd "$SCRIPT_DIR/../../.." 2>/dev/null && pwd || true)"
+
+# Source-checkout mode: make the monorepo package importable without requiring
+# an editable install.  A deployed wrapper has no matching src/flowfoundry
+# directory and therefore uses the installed package normally.
+if [[ -d "$MONOREPO_ROOT/src/flowfoundry" ]]; then
+    export PYTHONPATH="$MONOREPO_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+fi
+
+# Probe module availability without importing ``flowfoundry.cc``: importing
+# that entry-point module executes the launcher and would consume stdin once
+# before the real invocation (most visibly breaking piped EOF handling).
+if python3 -c 'import importlib.util; raise SystemExit(importlib.util.find_spec("flowfoundry.cc") is None)' 2>/dev/null; then
     exec python3 -m flowfoundry.cc "$@"
 fi
 
-# Fall back to legacy deployed copy
-exec python3 -m flowfoundry.cc "$@"
+# Reliable fallback: the pre-unification legacy launcher that deploy.sh
+# preserves as cc-legacy.  Used when the unified package is not importable
+# (e.g. before the editable install, or after a failed re-install).
+if [[ -x "$HOME/.local/bin/cc-legacy" ]]; then
+    exec "$HOME/.local/bin/cc-legacy" "$@"
+fi
+
+echo "错误: flowfoundry 包不可用，且未找到 cc-legacy 回退。" >&2
+exit 1

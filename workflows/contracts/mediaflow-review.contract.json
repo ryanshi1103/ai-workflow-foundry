@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "id": "mediaflow-review",
+  "display_name": "MediaFlow Review and Export",
+  "version": "1.0.0",
+  "description": "Sanitized local-first media workflow from controlled input discovery through separate review and export approval.",
+  "stages": [
+    {
+      "id": "discover-inputs",
+      "name": "Discover controlled inputs",
+      "description": "Validate relative paths under a host-controlled root without modifying source media.",
+      "required_inputs": [
+        {
+          "id": "media-paths",
+          "description": "Portable relative paths to authorized media",
+          "content_type": "application/json"
+        }
+      ],
+      "produces": {
+        "artifacts": [
+          {
+            "id": "controlled-media-set",
+            "description": "Validated media references without embedded media bytes",
+            "content_type": "application/json"
+          }
+        ],
+        "review_required": false
+      },
+      "adapter": {
+        "type": "python-module",
+        "entry_point": "flowfoundry.applications.mediaflow:validate_controlled_relative_path",
+        "timeout_seconds": 30
+      }
+    },
+    {
+      "id": "inspect-media",
+      "name": "Inspect controlled media",
+      "description": "Collect bounded technical evidence without modifying originals.",
+      "depends_on": ["discover-inputs"],
+      "produces": {
+        "artifacts": [
+          {
+            "id": "media-evidence",
+            "description": "Structured, reviewable technical evidence",
+            "content_type": "application/json"
+          }
+        ],
+        "review_required": false
+      },
+      "adapter": {
+        "type": "claude-skill",
+        "entry_point": "components/confera-media-skills/skills/confera-media-inspector",
+        "timeout_seconds": 300
+      }
+    },
+    {
+      "id": "propose-timeline",
+      "name": "Propose storyboard and timeline",
+      "description": "Produce a bounded candidate that cannot approve or render itself.",
+      "depends_on": ["inspect-media"],
+      "produces": {
+        "artifacts": [
+          {
+            "id": "timeline-candidate",
+            "description": "Versioned storyboard and timeline candidate",
+            "content_type": "application/json"
+          }
+        ],
+        "review_required": true
+      },
+      "adapter": {
+        "type": "claude-skill",
+        "entry_point": "components/confera-media-skills/skills/confera-timeline-review",
+        "timeout_seconds": 300
+      }
+    },
+    {
+      "id": "review-candidate",
+      "name": "Review candidate",
+      "description": "A human accepts, rejects, or revises the proposal without exporting media.",
+      "depends_on": ["propose-timeline"],
+      "produces": {
+        "artifacts": [
+          {
+            "id": "review-decision",
+            "description": "Human decision referencing an exact candidate revision",
+            "content_type": "application/json"
+          }
+        ],
+        "review_required": true
+      },
+      "adapter": {
+        "type": "manual",
+        "entry_point": "Private MediaFlow review interface"
+      }
+    },
+    {
+      "id": "finalize-output",
+      "name": "Finalize approved output",
+      "description": "The private application validates approval and writes a non-overwriting local artifact.",
+      "depends_on": ["review-candidate"],
+      "produces": {
+        "artifacts": [
+          {
+            "id": "validated-media-output",
+            "description": "Locally validated output with audit metadata",
+            "content_type": "video/mp4"
+          }
+        ],
+        "review_required": false
+      },
+      "adapter": {
+        "type": "manual",
+        "entry_point": "Private MediaFlow finalizer"
+      }
+    }
+  ],
+  "approval_gates": [
+    {
+      "id": "approve-export",
+      "name": "Approve export",
+      "after_stage": "review-candidate",
+      "description": "Confirm the exact reviewed revision before any final media output is written.",
+      "scope": "export",
+      "auto_approve_policy": "never"
+    }
+  ],
+  "capabilities_required": [
+    "controlled-media-path-validation",
+    "media-evidence-inspection",
+    "storyboard-and-timeline-review",
+    "quality-and-export-planning"
+  ],
+  "safety": {
+    "local_first": true,
+    "network_policy": "The public contract performs no provider call. Private adapters must declare and explicitly enable any network use.",
+    "side_effects": [
+      {
+        "stage_id": "finalize-output",
+        "description": "Writes a new validated output without overwriting source media or an existing formal output.",
+        "kind": "file_write",
+        "reversible": true
+      }
+    ]
+  },
+  "idempotency": {
+    "key_source": "input-hash",
+    "description": "An unchanged input set and candidate revision do not repeat a completed finalization."
+  }
+}

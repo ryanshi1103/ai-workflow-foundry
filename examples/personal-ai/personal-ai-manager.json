@@ -1,0 +1,7 @@
+{
+  "goal": "Review one project README locally and propose one clearer sentence. Preserve the original, use no real provider or network, and require an independent review before presenting the result.",
+  "execution_mode": "single_agent_reviewer",
+  "task_profile": {
+    "privacy_requirement": "high"
+  }
+}

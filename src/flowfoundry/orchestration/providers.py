@@ -1,0 +1,756 @@
+"""Provider adapters. Real command execution is disabled unless explicitly enabled."""
+
+from __future__ import annotations
+
+import json
+import os
+import time
+from dataclasses import dataclass, field, replace
+from pathlib import Path
+from typing import Protocol
+
+from ..workspace.providers.config import (
+    claude_profile_provider,
+    prepare_claude_profile_environment,
+)
+from .execution import ManagedProcessResult, ProviderExecutionHandle
+from .models import (
+    AgentSpec,
+    MeetingContribution,
+    ProviderResult,
+    ReviewDecision,
+    TaskSpec,
+    UsageMetrics,
+)
+from .tool_policy import (
+    ProviderToolExposure,
+    ToolPolicyStore,
+    persist_tool_observation,
+)
+from .workspace import atomic_write_json
+
+_NATIVE_PROVIDERS = frozenset({"codex", "claude", "deepseek"})
+_DEPENDENCY_CONTEXT_LIMIT = 12_000
+_RESULT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "success": {"type": "boolean"},
+        "summary": {"type": "string"},
+        "outputs": {
+            "type": "object",
+            "properties": {
+                "details": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                "artifact_refs": {"type": "array", "items": {"type": "string"}},
+            },
+            "required": ["details", "artifact_refs"],
+            "additionalProperties": False,
+        },
+        "review": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "enum": [
+                        "APPROVED",
+                        "APPROVED_WITH_NOTES",
+                        "BLOCKED",
+                        "REVIEW_PENDING",
+                    ],
+                },
+                {"type": "null"},
+            ]
+        },
+        "findings": {"type": "array", "items": {"type": "string"}},
+        "contribution": {
+            "anyOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "position": {"type": "string"},
+                        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                        "key_reasons": {"type": "array", "items": {"type": "string"}},
+                        "risks": {"type": "array", "items": {"type": "string"}},
+                        "assumptions": {"type": "array", "items": {"type": "string"}},
+                        "blocking_concerns": {"type": "array", "items": {"type": "string"}},
+                        "evidence_refs": {"type": "array", "items": {"type": "string"}},
+                        "acceptance_constraints_met": {"type": "boolean"},
+                        "dissent": {"type": "boolean"},
+                        "action": {
+                            "anyOf": [
+                                {"type": "string", "enum": ["defend", "revise", "reject", "combine"]},
+                                {"type": "null"},
+                            ]
+                        },
+                        "position_changed": {"type": "boolean"},
+                        "resolved": {"anyOf": [{"type": "boolean"}, {"type": "null"}]},
+                        "remaining_dissent": {"type": "boolean"},
+                        "new_evidence": {"type": "array", "items": {"type": "string"}},
+                    },
+                    "required": [
+                        "position",
+                        "confidence",
+                        "key_reasons",
+                        "risks",
+                        "assumptions",
+                        "blocking_concerns",
+                        "evidence_refs",
+                        "acceptance_constraints_met",
+                        "dissent",
+                        "action",
+                        "position_changed",
+                        "resolved",
+                        "remaining_dissent",
+                        "new_evidence",
+                    ],
+                    "additionalProperties": False,
+                },
+                {"type": "null"},
+            ]
+        },
+    },
+    "required": ["success", "summary", "outputs", "review", "findings", "contribution"],
+    "additionalProperties": False,
+}
+
+
+class Provider(Protocol):
+    def execute(
+        self,
+        task: TaskSpec,
+        agent: AgentSpec,
+        task_dir: Path,
+        project_root: Path,
+    ) -> ProviderResult: ...
+
+
+@dataclass
+class FakeProvider:
+    """Deterministic provider used by tests and the public example."""
+
+    execution_kind = "mock"
+    failures_before_success: dict[str, int] = field(default_factory=dict)
+    reviews: dict[str, ReviewDecision] = field(default_factory=dict)
+    meeting_positions: dict[str, str] = field(default_factory=dict)
+    round2_positions: dict[str, str] = field(default_factory=dict)
+    meeting_confidence: dict[str, float] = field(default_factory=dict)
+    failures_by_agent: dict[str, int] = field(default_factory=dict)
+    calls: dict[str, int] = field(default_factory=dict)
+
+    def execute(
+        self,
+        task: TaskSpec,
+        agent: AgentSpec,
+        task_dir: Path,
+        project_root: Path,
+    ) -> ProviderResult:
+        count = self.calls.get(task.id, 0) + 1
+        self.calls[task.id] = count
+        if count <= self.failures_before_success.get(task.id, 0):
+            return ProviderResult(False, f"synthetic failure {count}")
+        if self.failures_by_agent.get(agent.id, 0) > 0:
+            self.failures_by_agent[agent.id] -= 1
+            return ProviderResult(False, f"synthetic agent failure: {agent.id}")
+        review = self.reviews.get(task.id)
+        source_participant = str(task.inputs.get("source_participant", task.id))
+        if task.inputs.get("meeting_round") == 2:
+            review = self.reviews.get(source_participant, review)
+        if task.role == "reviewer" and review is None:
+            review = ReviewDecision.APPROVED
+        contribution = None
+        meeting_round = task.inputs.get("meeting_round")
+        if meeting_round in {1, 2}:
+            initial_position = self.meeting_positions.get(source_participant, "proceed")
+            position = (
+                self.round2_positions.get(source_participant, initial_position)
+                if meeting_round == 2
+                else initial_position
+            )
+            blockers: tuple[str, ...] = ()
+            if review == ReviewDecision.BLOCKED:
+                position = self.meeting_positions.get(source_participant, "block")
+                blockers = ("synthetic blocking review",)
+            elif review == ReviewDecision.REVIEW_PENDING:
+                position = self.meeting_positions.get(source_participant, "pending")
+                blockers = ("review remains pending",)
+            changed = meeting_round == 2 and position != initial_position
+            resolution_supplied = (
+                meeting_round == 2 and source_participant in self.round2_positions
+            )
+            contribution = MeetingContribution(
+                position=position,
+                confidence=self.meeting_confidence.get(source_participant, 0.9),
+                key_reasons=(f"synthetic view from {source_participant}",),
+                blocking_concerns=blockers,
+                acceptance_constraints_met=review != ReviewDecision.REVIEW_PENDING,
+                action="revise" if changed else ("defend" if meeting_round == 2 else None),
+                position_changed=changed,
+                resolved=resolution_supplied if meeting_round == 2 else None,
+                remaining_dissent=meeting_round == 2 and not resolution_supplied,
+            )
+        return ProviderResult(
+            True,
+            f"synthetic {agent.role} completed {task.id}",
+            outputs={"task_id": task.id, "agent_id": agent.id, "synthetic": True},
+            review=review,
+            contribution=contribution,
+            usage=UsageMetrics(
+                input_tokens=0,
+                output_tokens=0,
+                latency_ms=0,
+                estimated_cost_usd=0.0,
+                token_status="measured",
+                cost_status="measured",
+            ),
+        )
+
+
+class DryRunProvider(FakeProvider):
+    """Alias with explicit intent for CLI dry-run execution."""
+
+
+class LocalCommandProvider:
+    # Scheduler contract: any task that is allowed to mutate files must receive
+    # a managed execution workspace before this provider is invoked.
+    requires_managed_worktree = True
+    execution_kind = "real"
+
+    def __init__(self, *, enabled: bool = False) -> None:
+        self.enabled = enabled
+
+    def execute(
+        self,
+        task: TaskSpec,
+        agent: AgentSpec,
+        task_dir: Path,
+        project_root: Path,
+    ) -> ProviderResult:
+        if not self.enabled:
+            return ProviderResult(False, "real provider execution is disabled")
+        if agent.provider in _NATIVE_PROVIDERS:
+            return self._execute_native(task, agent, task_dir, project_root)
+        if task.tool_policy_mode == "minimum_sufficient":
+            tool_exposure, policy_attempt_ref = ToolPolicyStore(task_dir).resolve(
+                task, agent.provider
+            )
+            observation_ref, observation = persist_tool_observation(
+                task_dir, tool_exposure.policy
+            )
+            return ProviderResult(
+                False,
+                tool_exposure.policy.reason,
+                outputs={
+                    "tool_policy_ref": "tool-exposure-policy.json",
+                    "tool_policy_attempt_ref": policy_attempt_ref,
+                    "tool_policy": tool_exposure.policy.compact_receipt(),
+                    "tool_observation_ref": observation_ref,
+                    "tool_observation": observation.to_dict(),
+                    "error_code": tool_exposure.policy.reason,
+                },
+                usage=UsageMetrics(
+                    input_tokens=0,
+                    output_tokens=0,
+                    latency_ms=0,
+                    estimated_cost_usd=0.0,
+                    token_status="measured",
+                    cost_status="measured",
+                ),
+            )
+        command = [
+            part.replace("{task_file}", str(task_dir / "task.json"))
+            for part in agent.command_template
+        ]
+        started = time.monotonic()
+        completed = self._execute_managed(
+            command,
+            task=task,
+            agent=agent,
+            task_dir=task_dir,
+            project_root=project_root,
+        )
+        latency_ms = round((time.monotonic() - started) * 1000)
+        if completed.cancelled or completed.state == "cancel_unverified":
+            return ProviderResult(
+                False,
+                (
+                    "local command cancellation could not verify process identity"
+                    if completed.state == "cancel_unverified"
+                    else "local command cancelled"
+                ),
+                outputs={
+                    "stdout": completed.stdout[-40_000:],
+                    "stderr": completed.stderr[-40_000:],
+                    "execution_ref": completed.execution_ref,
+                },
+                usage=UsageMetrics(latency_ms=latency_ms),
+                cancelled=completed.cancelled,
+                partial_result=completed.partial_result,
+                termination=completed.termination,
+            )
+        if completed.timed_out:
+            return ProviderResult(
+                False,
+                f"local command timed out after {task.timeout_seconds} seconds",
+                outputs={
+                    "stdout": completed.stdout[-40_000:],
+                    "stderr": completed.stderr[-40_000:],
+                    "execution_ref": completed.execution_ref,
+                },
+                usage=UsageMetrics(latency_ms=latency_ms),
+                partial_result=completed.partial_result,
+                termination=completed.termination,
+            )
+        return ProviderResult(
+            completed.returncode == 0,
+            f"local command exited {completed.returncode}",
+            outputs={
+                "stdout": completed.stdout,
+                "stderr": completed.stderr,
+                "execution_ref": completed.execution_ref,
+            },
+            usage=UsageMetrics(latency_ms=latency_ms),
+            termination=completed.termination,
+        )
+
+    def _execute_native(
+        self,
+        task: TaskSpec,
+        agent: AgentSpec,
+        task_dir: Path,
+        project_root: Path,
+    ) -> ProviderResult:
+        tool_exposure, policy_attempt_ref = ToolPolicyStore(task_dir).resolve(
+            task, agent.provider
+        )
+        policy = tool_exposure.policy
+        policy_outputs = {
+            "tool_policy_ref": "tool-exposure-policy.json",
+            "tool_policy_attempt_ref": policy_attempt_ref,
+            "tool_policy": policy.compact_receipt(),
+        }
+        if not policy.runnable:
+            observation_ref, observation = persist_tool_observation(task_dir, policy)
+            return ProviderResult(
+                False,
+                policy.reason,
+                outputs={
+                    **policy_outputs,
+                    "tool_observation_ref": observation_ref,
+                    "tool_observation": observation.to_dict(),
+                    "error_code": policy.reason,
+                },
+                usage=UsageMetrics(
+                    input_tokens=0,
+                    output_tokens=0,
+                    latency_ms=0,
+                    estimated_cost_usd=0.0,
+                    token_status="measured",
+                    cost_status="measured",
+                ),
+            )
+        schema_path = task_dir / "provider-result.schema.json"
+        result_path = task_dir / "provider-output.json"
+        atomic_write_json(schema_path, _RESULT_SCHEMA)
+        result_path.unlink(missing_ok=True)
+        prompt, task_context, dependency_context = self._task_prompt_components(task, task_dir)
+        command = self._native_command(
+            agent, task, schema_path, result_path, tool_exposure=tool_exposure
+        )
+        child_env = os.environ.copy()
+        if agent.provider in {"claude", "deepseek"}:
+            if agent.runtime_profile is None:
+                return ProviderResult(
+                    False,
+                    "PROVIDER_PROFILE_UNVERIFIED",
+                    outputs={
+                        **policy_outputs,
+                        "error_code": "PROVIDER_PROFILE_UNVERIFIED",
+                    },
+                    usage=UsageMetrics(latency_ms=0),
+                )
+            if claude_profile_provider(agent.runtime_profile) != agent.provider:
+                return ProviderResult(
+                    False,
+                    "PROVIDER_PROFILE_MISMATCH",
+                    outputs={
+                        **policy_outputs,
+                        "error_code": "PROVIDER_PROFILE_MISMATCH",
+                    },
+                    usage=UsageMetrics(latency_ms=0),
+                )
+            try:
+                prepare_claude_profile_environment(agent.runtime_profile, child_env)
+            except ValueError:
+                return ProviderResult(
+                    False,
+                    "PROVIDER_PROFILE_MISMATCH",
+                    outputs={
+                        **policy_outputs,
+                        "error_code": "PROVIDER_PROFILE_MISMATCH",
+                    },
+                    usage=UsageMetrics(latency_ms=0),
+                )
+
+        request_metrics_ref = "provider-request-metrics.json"
+        atomic_write_json(
+            task_dir / request_metrics_ref,
+            self._request_metrics(
+                agent.provider,
+                prompt,
+                task_context,
+                dependency_context,
+            ),
+        )
+        started = time.monotonic()
+        completed = self._execute_managed(
+            command,
+            task=task,
+            agent=agent,
+            task_dir=task_dir,
+            project_root=project_root,
+            env=child_env,
+            input_text=prompt,
+        )
+        latency_ms = round((time.monotonic() - started) * 1000)
+        if completed.cancelled or completed.state == "cancel_unverified":
+            partial = self._native_result(
+                completed.stdout,
+                result_path,
+                latency_ms,
+                task_dir=task_dir,
+                tool_exposure=tool_exposure,
+            )
+            return replace(
+                partial,
+                success=False,
+                summary=(
+                    f"{agent.provider} cancellation could not verify process identity"
+                    if completed.state == "cancel_unverified"
+                    else f"{agent.provider} command cancelled"
+                ),
+                outputs={
+                    **partial.outputs,
+                    **policy_outputs,
+                    "request_metrics_ref": request_metrics_ref,
+                    "stdout": completed.stdout[-40_000:],
+                    "stderr": completed.stderr[-40_000:],
+                    "execution_ref": completed.execution_ref,
+                },
+                cancelled=completed.cancelled,
+                partial_result=completed.partial_result or result_path.is_file(),
+                termination=completed.termination,
+            )
+        if completed.timed_out:
+            observation_ref, observation = persist_tool_observation(task_dir, policy)
+            return ProviderResult(
+                False,
+                f"{agent.provider} timed out after {task.timeout_seconds} seconds",
+                outputs={
+                    **policy_outputs,
+                    "tool_observation_ref": observation_ref,
+                    "tool_observation": observation.to_dict(),
+                    "request_metrics_ref": request_metrics_ref,
+                    "stdout": completed.stdout[-40_000:],
+                    "stderr": completed.stderr[-40_000:],
+                    "execution_ref": completed.execution_ref,
+                },
+                usage=UsageMetrics(latency_ms=latency_ms),
+                partial_result=completed.partial_result or result_path.is_file(),
+                termination=completed.termination,
+            )
+        if completed.returncode != 0:
+            observation_ref, observation = persist_tool_observation(task_dir, policy)
+            return ProviderResult(
+                False,
+                f"{agent.provider} command exited {completed.returncode}",
+                outputs={
+                    **policy_outputs,
+                    "tool_observation_ref": observation_ref,
+                    "tool_observation": observation.to_dict(),
+                    "request_metrics_ref": request_metrics_ref,
+                    "stdout": completed.stdout[-40_000:],
+                    "stderr": completed.stderr[-40_000:],
+                    "execution_ref": completed.execution_ref,
+                },
+                usage=UsageMetrics(latency_ms=latency_ms),
+                termination=completed.termination,
+            )
+        result = self._native_result(
+            completed.stdout,
+            result_path,
+            latency_ms,
+            task_dir=task_dir,
+            tool_exposure=tool_exposure,
+        )
+        return replace(
+            result,
+            outputs={
+                **result.outputs,
+                **policy_outputs,
+                "request_metrics_ref": request_metrics_ref,
+                "execution_ref": completed.execution_ref,
+            },
+            termination=completed.termination,
+        )
+
+    @staticmethod
+    def _execute_managed(
+        command: list[str],
+        *,
+        task: TaskSpec,
+        agent: AgentSpec,
+        task_dir: Path,
+        project_root: Path,
+        env: dict[str, str] | None = None,
+        input_text: str | None = None,
+    ) -> ManagedProcessResult:
+        handle = ProviderExecutionHandle.start(
+            command,
+            provider=agent.provider,
+            task_id=task.id,
+            participant_id=agent.id,
+            task_dir=task_dir,
+            project_root=project_root,
+            env=env,
+        )
+        return handle.communicate(input_text, timeout_seconds=task.timeout_seconds)
+
+    @staticmethod
+    def _native_command(
+        agent: AgentSpec,
+        task: TaskSpec,
+        schema_path: Path,
+        result_path: Path,
+        *,
+        tool_exposure: ProviderToolExposure | None = None,
+    ) -> list[str]:
+        if agent.provider == "codex":
+            sandbox = (
+                "read-only"
+                if "write_workspace" not in task.required_permissions
+                or task.inputs.get("meeting_round")
+                else "workspace-write"
+            )
+            return [
+                agent.command_template[0],
+                "exec",
+                "--ephemeral",
+                "--color",
+                "never",
+                "--sandbox",
+                sandbox,
+                "--output-schema",
+                str(schema_path),
+                "--output-last-message",
+                str(result_path),
+                "-",
+            ]
+        permission = (
+            "plan"
+            if "write_workspace" not in task.required_permissions
+            or task.inputs.get("meeting_round")
+            else "acceptEdits"
+        )
+        command = [
+            agent.command_template[0],
+            "--print",
+            "--output-format",
+            "json",
+            "--json-schema",
+            json.dumps(_RESULT_SCHEMA, separators=(",", ":")),
+            "--no-session-persistence",
+            "--permission-mode",
+            permission,
+        ]
+        if tool_exposure is not None:
+            command.extend(tool_exposure.cli_args)
+        return command
+
+    @staticmethod
+    def _task_prompt(task: TaskSpec, task_dir: Path) -> str:
+        prompt, _, _ = LocalCommandProvider._task_prompt_components(task, task_dir)
+        return prompt
+
+    @staticmethod
+    def _task_prompt_components(task: TaskSpec, task_dir: Path) -> tuple[str, str, str]:
+        dependency_artifacts: dict[str, object] = {}
+        run_root = task_dir.parent.parent
+        for dependency in task.dependencies:
+            result_path = run_root / "tasks" / dependency / "result.json"
+            if result_path.is_file():
+                try:
+                    with result_path.open(encoding="utf-8") as handle:
+                        content = handle.read(_DEPENDENCY_CONTEXT_LIMIT + 1)
+                    if len(content) > _DEPENDENCY_CONTEXT_LIMIT:
+                        dependency_artifacts[dependency] = {
+                            "artifact_ref": str(result_path),
+                            "artifact_truncated": True,
+                            "preview": content[:_DEPENDENCY_CONTEXT_LIMIT],
+                        }
+                    else:
+                        dependency_artifacts[dependency] = json.loads(content)
+                except (OSError, json.JSONDecodeError):
+                    dependency_artifacts[dependency] = {"status": "artifact_unreadable"}
+        context = {
+            "task": task.to_dict(),
+            "dependency_artifacts": dependency_artifacts,
+        }
+        task_context = json.dumps(context["task"], indent=2, ensure_ascii=False)
+        dependency_context = json.dumps(dependency_artifacts, indent=2, ensure_ascii=False)
+        meeting_instruction = ""
+        if task.inputs.get("meeting_round") == 1:
+            meeting_instruction = (
+                " This is an independent Round 1 view: read the shared context_pack_ref, do not "
+                "seek other participants' output, and populate contribution with position, confidence, "
+                "reasons, risks, assumptions, blockers, and evidence references."
+            )
+        elif task.inputs.get("meeting_round") == 2:
+            meeting_instruction = (
+                " This is a targeted cross-review: read only conflict_pack_ref and relevant evidence, "
+                "then defend, revise, reject, or combine; populate all cross-review contribution fields."
+            )
+        prompt = (
+            "Execute this bounded FlowFoundry task in the current project workspace. "
+            "Inspect only the context needed, respect the declared permissions, and do not "
+            "expose credentials. Return only a JSON object matching the requested schema. "
+            "For reviewer tasks, set review to one of APPROVED, APPROVED_WITH_NOTES, BLOCKED, "
+            "or REVIEW_PENDING."
+            + meeting_instruction
+            + " Context:\n"
+            + json.dumps(context, indent=2, ensure_ascii=False)
+        )
+        return prompt, task_context, dependency_context
+
+    @staticmethod
+    def _request_metrics(
+        provider: str,
+        prompt: str,
+        task_context: str,
+        dependency_context: str,
+    ) -> dict[str, object]:
+        schema = json.dumps(_RESULT_SCHEMA, separators=(",", ":"))
+
+        def sizes(value: str) -> tuple[int, int]:
+            return len(value), len(value.encode("utf-8"))
+
+        prompt_chars, prompt_bytes = sizes(prompt)
+        task_chars, task_bytes = sizes(task_context)
+        schema_chars, schema_bytes = sizes(schema)
+        dependencies = json.loads(dependency_context)
+        dependency_values = (
+            [json.dumps(value, indent=2, ensure_ascii=False) for value in dependencies.values()]
+            if isinstance(dependencies, dict)
+            else []
+        )
+        dependency_chars = sum(len(value) for value in dependency_values)
+        dependency_bytes = sum(len(value.encode("utf-8")) for value in dependency_values)
+        dependency_count = len(dependency_values)
+        return {
+            "schema_version": 1,
+            "metric_kind": "native_provider_request_envelope",
+            "provider": provider,
+            "prompt_chars": prompt_chars,
+            "prompt_bytes": prompt_bytes,
+            "task_context_chars": task_chars,
+            "task_context_bytes": task_bytes,
+            "schema_chars": schema_chars,
+            "schema_bytes": schema_bytes,
+            "dependency_artifact_count": dependency_count,
+            "dependency_artifact_chars": dependency_chars,
+            "dependency_artifact_bytes": dependency_bytes,
+            "tokens_comparable": False,
+        }
+
+    @staticmethod
+    def _native_result(
+        stdout: str,
+        result_path: Path,
+        latency_ms: int,
+        *,
+        task_dir: Path | None = None,
+        tool_exposure: ProviderToolExposure | None = None,
+    ) -> ProviderResult:
+        wrapper: dict[str, object] = {}
+        envelope: object = None
+        if result_path.is_file():
+            try:
+                envelope = json.loads(result_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                envelope = None
+        if envelope is None:
+            try:
+                parsed = json.loads(stdout)
+                if isinstance(parsed, dict):
+                    wrapper = parsed
+                    envelope = parsed.get("structured_output", parsed.get("result", parsed))
+            except json.JSONDecodeError:
+                envelope = None
+        if isinstance(envelope, str):
+            try:
+                envelope = json.loads(envelope)
+            except json.JSONDecodeError:
+                envelope = None
+        observation_outputs: dict[str, object] = {}
+        if task_dir is not None and tool_exposure is not None:
+            observation_ref, observation = persist_tool_observation(
+                task_dir, tool_exposure.policy, wrapper
+            )
+            observation_outputs = {
+                "tool_observation_ref": observation_ref,
+                "tool_observation": observation.to_dict(),
+            }
+        if not isinstance(envelope, dict):
+            return ProviderResult(
+                False,
+                "provider did not return the required structured result",
+                outputs={"stdout": stdout[-40_000:], **observation_outputs},
+                usage=UsageMetrics(latency_ms=latency_ms),
+            )
+
+        review_value = envelope.get("review")
+        try:
+            review = ReviewDecision(str(review_value)) if review_value is not None else None
+        except ValueError:
+            review = ReviewDecision.REVIEW_PENDING
+        outputs = envelope.get("outputs")
+        findings = envelope.get("findings")
+        contribution_data = envelope.get("contribution")
+        usage = wrapper.get("usage") if isinstance(wrapper.get("usage"), dict) else {}
+        input_tokens = _nonnegative_int(usage.get("input_tokens"))
+        output_tokens = _nonnegative_int(usage.get("output_tokens"))
+        cost = _nonnegative_float(wrapper.get("total_cost_usd"))
+        return ProviderResult(
+            success=bool(envelope.get("success", False)),
+            summary=str(envelope.get("summary", "provider returned no summary")),
+            outputs={
+                **(outputs if isinstance(outputs, dict) else {}),
+                **observation_outputs,
+            },
+            review=review,
+            findings=tuple(str(item) for item in findings) if isinstance(findings, list) else (),
+            contribution=(
+                MeetingContribution.from_dict(contribution_data)
+                if isinstance(contribution_data, dict)
+                else None
+            ),
+            usage=UsageMetrics(
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                latency_ms=latency_ms,
+                estimated_cost_usd=cost,
+                token_status=(
+                    "measured"
+                    if input_tokens is not None and output_tokens is not None
+                    else "unavailable"
+                ),
+                cost_status="measured" if cost is not None else "unavailable",
+            ),
+        )
+
+
+def _nonnegative_int(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+
+
+def _nonnegative_float(value: object) -> float | None:
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0:
+        return float(value)
+    return None

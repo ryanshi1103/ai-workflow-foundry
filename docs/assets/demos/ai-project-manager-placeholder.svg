@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="t d">
+  <title id="t">AI Project Manager demo storyboard placeholder</title>
+  <desc id="d">A placeholder card showing goal, plan, research, code, test, and human approval.</desc>
+  <rect width="960" height="540" rx="28" fill="#10172f"/>
+  <text x="60" y="78" fill="#60d9e9" font-family="system-ui, sans-serif" font-size="30" font-weight="700">Demo 1 · AI Project Manager</text>
+  <text x="60" y="120" fill="#9facca" font-family="system-ui, sans-serif" font-size="20">GIF storyboard placeholder · prototype path</text>
+  <g fill="#1d2b50" stroke="#4bd4e6" stroke-width="2">
+    <rect x="58" y="204" width="120" height="68" rx="12"/><rect x="205" y="204" width="120" height="68" rx="12"/><rect x="352" y="204" width="120" height="68" rx="12"/><rect x="499" y="204" width="120" height="68" rx="12"/><rect x="646" y="204" width="120" height="68" rx="12"/><rect x="793" y="204" width="120" height="68" rx="12"/>
+  </g>
+  <g fill="#f4f8ff" font-family="system-ui, sans-serif" font-size="18" text-anchor="middle">
+    <text x="118" y="246">Goal</text><text x="265" y="246">Plan</text><text x="412" y="246">Research</text><text x="559" y="246">Code</text><text x="706" y="246">Test</text><text x="853" y="235">Human</text><text x="853" y="257">approval</text>
+  </g>
+  <g stroke="#43e6a0" stroke-width="4"><path d="M178 238h27"/><path d="M325 238h27"/><path d="M472 238h27"/><path d="M619 238h27"/><path d="M766 238h27"/></g>
+  <rect x="60" y="352" width="840" height="92" rx="14" fill="#17213d"/>
+  <text x="480" y="391" text-anchor="middle" fill="#ffc65a" font-family="system-ui, sans-serif" font-size="20">Recording follows after a deterministic research fixture and launch gates are complete.</text>
+  <text x="480" y="423" text-anchor="middle" fill="#9facca" font-family="system-ui, sans-serif" font-size="17">No automatic merge, push, or deployment is implied.</text>
+</svg>

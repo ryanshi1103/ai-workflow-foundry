@@ -7,7 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from ai_project_manager import auto_name, maintain
+from flowfoundry.workspace.lifecycle import auto_name
+from flowfoundry.workspace.maintenance import projects as maintain
 
 
 class ProjectMaintenanceTests(unittest.TestCase):

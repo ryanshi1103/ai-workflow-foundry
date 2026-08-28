@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Private security vulnerability report
+    url: https://github.com/ryanshi1103/ai-workflow-foundry/security/advisories/new
+    about: Report vulnerabilities and privacy exposures privately. Never paste secrets into an issue.
+  - name: Contributor and architecture guide
+    url: https://github.com/ryanshi1103/ai-workflow-foundry/blob/main/docs/CONTRIBUTING.md
+    about: Read the proposal, trust-boundary, and testing expectations before opening an issue.
