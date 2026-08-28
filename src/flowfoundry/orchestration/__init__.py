@@ -1,0 +1,73 @@
+"""Local-first, resumable multi-agent orchestration primitives."""
+
+from .discovery import ProviderDiscovery, ProviderStatus
+from .execution import ProviderExecutionHandle
+from .memory import AgentPerformanceMemory
+from .models import (
+    AgentSpec,
+    ExecutionMode,
+    MeetingBudget,
+    MeetingContribution,
+    MeetingPlan,
+    MeetingState,
+    ReviewDecision,
+    RiskLevel,
+    RoutingDecision,
+    TaskPlan,
+    TaskProfile,
+    TaskSpec,
+    TaskStatus,
+    UsageMetrics,
+)
+from .planner import RuleBasedPlanner
+from .provider_setup import ProviderSetupFlow
+from .reconciliation import (
+    DurableRunReconciler,
+    ReconciliationResult,
+    ReconciliationState,
+)
+from .registry import AgentRegistry, default_registry
+from .tool_policy import (
+    TaskToolRequirement,
+    ToolCapability,
+    ToolExposurePolicy,
+    ToolPolicyMode,
+)
+from .workspace_preflight import (
+    WorkspaceCompatibilityPreflight,
+    WorkspacePreflightResult,
+)
+
+__all__ = [
+    "AgentRegistry",
+    "AgentPerformanceMemory",
+    "AgentSpec",
+    "ExecutionMode",
+    "MeetingBudget",
+    "MeetingContribution",
+    "MeetingPlan",
+    "MeetingState",
+    "ProviderDiscovery",
+    "ProviderExecutionHandle",
+    "ProviderSetupFlow",
+    "ProviderStatus",
+    "DurableRunReconciler",
+    "ReconciliationResult",
+    "ReconciliationState",
+    "ReviewDecision",
+    "RiskLevel",
+    "RoutingDecision",
+    "RuleBasedPlanner",
+    "TaskPlan",
+    "TaskProfile",
+    "TaskSpec",
+    "TaskStatus",
+    "TaskToolRequirement",
+    "ToolCapability",
+    "ToolExposurePolicy",
+    "ToolPolicyMode",
+    "UsageMetrics",
+    "WorkspaceCompatibilityPreflight",
+    "WorkspacePreflightResult",
+    "default_registry",
+]

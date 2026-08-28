@@ -1,12 +1,16 @@
-__pycache__/
-*.py[cod]
+**/__pycache__/
+**/*.py[cod]
 .pytest_cache/
 .ruff_cache/
+.test-tmp/
+.flowfoundry-runs
+.flowfoundry/runs/
 .venv/
 dist/
 build/
 *.egg-info/
 .ai-session/
+docs/sessions/
 .env
 
 # Workspace-manager virtual device files

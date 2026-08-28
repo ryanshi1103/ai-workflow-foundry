@@ -16,9 +16,58 @@ The repository currently contains these implemented layers:
 4. The deterministic CSV-to-PPTX nameplate workflow.
 5. The FlowFoundry catalog contract: machine-readable declarations and a
    dependency-free validator for every physically bundled component.
+6. The bounded orchestration runtime: adaptive task routing, meetings, durable
+   provider cancellation, and managed Git worktrees for write-capable candidate
+   execution.
 
-The future workflow execution layer is deliberately documented as a roadmap,
-not presented as completed code.
+Automatic candidate integration and publication remain roadmap capabilities;
+the implemented writer-isolation layer deliberately stops at candidate diff and
+validation.
+
+## Minimum-sufficient tool exposure
+
+Explicitly classified v0 tasks follow a provider-independent execution path:
+
+```text
+Task requirement
+  -> Required capability
+  -> Tool exposure policy
+  -> Provider translation
+  -> Native runtime command
+```
+
+v0 covers only `NO_EXTERNAL_ACTION` and `READ_EXACT_FILE`. Unclassified legacy
+tasks preserve provider-default exposure and are recorded as not covered. A
+strict minimum-policy task with an unsupported capability or provider fails
+closed instead of silently exposing the default tool set. Provider protocol
+auxiliaries such as `StructuredOutput` are recorded separately from task tools.
+
+Tool exposure controls which capabilities the model can see. It is independent
+from permission checks that decide whether a request may execute, and it is not
+an OS sandbox, filesystem isolation boundary, or network isolation mechanism.
+Unexpected tool requests are evidence; they do not widen a running policy.
+
+## Provider/workspace compatibility
+
+Provider readiness and workspace compatibility are separate execution gates:
+
+```text
+Provider READY
+  + Task workspace compatible
+  -> Provider attempt allowed
+```
+
+The scheduler runs workspace preflight after selecting an agent and resolving
+its execution workspace, but before incrementing attempts or spawning a native
+process. Codex currently requires a readable Git worktree. A non-Git user or
+project workspace is blocked with durable guidance and zero provider calls;
+FlowFoundry never initializes Git there automatically and does not add
+`--skip-git-repo-check`.
+
+An explicitly requested `flowfoundry_disposable` workspace is created inside
+the owned run boundary. Only that origin may be initialized as an empty Git
+worktree before Codex execution. This narrow ownership proof prevents a `/tmp`
+path or caller-supplied directory from being treated as disposable by guesswork.
 
 ## Shared lifecycle
 

@@ -22,18 +22,21 @@ jobs:
 
   workspace-runtime:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: core/workspace-manager
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: ./tests/test-cc.sh
-      - run: ./tests/test-cc-eof-fix.sh
-      - run: ./tests/test-deploy-profile-preservation.sh
-      - run: PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Test workspace launcher contract
+        run: ./core/workspace-manager/tests/test-cc.sh
+      - name: Test launcher permissions and EOF handling
+        run: ./core/workspace-manager/tests/test-cc-eof-fix.sh
+      - name: Test deployment profile preservation
+        run: ./core/workspace-manager/tests/test-deploy-profile-preservation.sh
+      - name: Test workspace Python runtime
+        run: >-
+          PYTHONPATH=src python3 -m unittest discover
+          -s core/workspace-manager/tests -p 'test_*.py' -v
 
   integrated-components:
     runs-on: ubuntu-latest
@@ -48,12 +51,13 @@ jobs:
           python3 -m unittest discover -s components/confera-media-skills/tests -v
           python3 -m unittest discover -s workflows/print-ready-nameplate-generator/tests -v
       - name: Install feedback application
-        run: python3 -m pip install -e "applications/feedback-analysis-system[dev]"
+        run: python3 -m pip install -e "applications/feedback-intelligence-system[dev]"
       - name: Lint feedback application
         run: |
-          ruff check applications/feedback-analysis-system/src \
-            applications/feedback-analysis-system/tests \
-            applications/feedback-analysis-system/app.py \
-            applications/feedback-analysis-system/pages
+          ruff check applications/feedback-intelligence-system/feedback_intelligence \
+            applications/feedback-intelligence-system/src \
+            applications/feedback-intelligence-system/tests \
+            applications/feedback-intelligence-system/app.py \
+            applications/feedback-intelligence-system/pages
       - name: Test feedback application
-        run: pytest applications/feedback-analysis-system/tests -q
+        run: pytest applications/feedback-intelligence-system/tests -q

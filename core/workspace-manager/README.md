@@ -27,8 +27,10 @@ foundation.
 - `aiproj`: project creation, selection, session tracking, finalization and recovery.
 - `cc-projects-maintain`: quick/deep workspace inspection, indexing, duplicate
   review and retention-aware quarantine maintenance.
-- `ai_project_manager`: Python modules for hooks, redaction, transcripts,
-  recovery, auto-naming and safe filesystem operations.
+- `flowfoundry.workspace`: canonical Python runtime for lifecycle, providers,
+  hooks, redaction, transcripts, recovery, auto-naming and safe filesystem
+  operations. Public command names remain compatible and import the canonical
+  subpackages directly.
 - systemd user timers and Codex profile templates for repeatable deployment.
 
 ## Safety properties
@@ -72,13 +74,17 @@ The maintenance configuration example intentionally uses
 ## Project layout
 
 ```text
-bin/                    launchers and command entry points
-src/ai_project_manager/ Python implementation
-config/codex/           permission/profile templates
-config/systemd/         user timers and services
-scripts/                backup-first deployment
-tests/                  shell and Python regressions
-docs/                   architecture and installation notes
+core/workspace-manager/bin/       compatibility command entry points
+src/flowfoundry/workspace/cli/    interactive and project CLI logic
+src/flowfoundry/workspace/providers/ portable provider/profile policy
+src/flowfoundry/workspace/lifecycle/ stable project and shared launch API
+src/flowfoundry/workspace/sessions/ stable hooks, transcripts, recovery API
+src/flowfoundry/workspace/sessions/finalization/ composable finalize stages
+src/flowfoundry/workspace/policy/  redaction and local-state boundaries
+src/flowfoundry/workspace/maintenance/ inventory and retention operations
+core/workspace-manager/config/    portable profiles and systemd examples
+core/workspace-manager/scripts/   backup-first deployment
+core/workspace-manager/tests/     shell and Python regressions
 ```
 
 ## Scope of this public snapshot
