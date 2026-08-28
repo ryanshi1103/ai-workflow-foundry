@@ -1,0 +1,85 @@
+name: release-readiness
+
+on:
+  pull_request:
+    paths:
+      - "pyproject.toml"
+      - "src/**"
+      - "catalog/**"
+      - "schemas/**"
+      - "workflows/contracts/**"
+      - ".github/workflows/release-readiness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wheel-install:
+    name: wheel install / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Build wheel
+        run: python -m pip wheel --no-deps --wheel-dir dist .
+
+      - name: Check wheel paths
+        shell: python
+        run: |
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          wheels = list(Path("dist").glob("*.whl"))
+          if len(wheels) != 1:
+              raise SystemExit(f"expected one wheel, found {len(wheels)}")
+
+          blocked_names = {
+              ".env",
+              "auth.json",
+              "credentials",
+              "credential",
+              "secret",
+              "secrets",
+          }
+          with ZipFile(wheels[0]) as archive:
+              names = archive.namelist()
+
+          problems = []
+          for name in names:
+              parts = set(Path(name).parts)
+              if "docs" in parts and "sessions" in parts:
+                  problems.append(name)
+              if parts.intersection(blocked_names):
+                  problems.append(name)
+          if problems:
+              raise SystemExit("blocked wheel paths: " + ", ".join(problems))
+          print(f"checked {len(names)} wheel entries")
+
+      - name: Install wheel in isolated environment
+        run: |
+          python -m venv .release-venv
+          .release-venv/bin/python -m pip install --no-index dist/*.whl
+          .release-venv/bin/python -m pip check
+
+      - name: Validate installed resources outside source tree
+        run: |
+          validation_dir="$(mktemp -d)"
+          cd "$validation_dir"
+          "$GITHUB_WORKSPACE/.release-venv/bin/flowfoundry" validate
+          "$GITHUB_WORKSPACE/.release-venv/bin/flowfoundry" list
