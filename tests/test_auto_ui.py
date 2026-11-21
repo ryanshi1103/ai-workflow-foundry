@@ -327,6 +327,8 @@ class PtyAutoSmokeTests(unittest.TestCase):
                 "answer = {'status':'PARTIAL','question':'项目现状是什么？',"
                 "'answer':'项目记录可用。','sources':[{'path':'state'}]}\n"
                 "with patch.object(auto_ui, 'ask_project', return_value=answer), "
+                "patch.object(tui, 'provider_availability', "
+                "return_value={tui.PROVIDER_CODEX: True}), "
                 "patch.object(tui.launcher, '_fast_determine_project', return_value=None):\n"
                 "    raise SystemExit(tui.tui_main())\n"
                 % (str(repo / "src"), str(projects))
