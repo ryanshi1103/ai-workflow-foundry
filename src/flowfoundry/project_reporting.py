@@ -123,6 +123,11 @@ def save_task_report(
     final_head = _git(root, "rev-parse", "HEAD")
     changed, added, removed = _changed_files(root)
     relative_report = report_path.relative_to(root)
+    complete_result_section = (
+        "\n## Complete final result\n\n" + report.complete_result + "\n"
+        if report.complete_result
+        else ""
+    )
     body = f"""# {report.task}
 
 TASK: {report.task}
@@ -192,7 +197,7 @@ STATUS: {report.status}
 ## Final judgment
 
 {report.final_judgment}
-{f'''\n## Complete final result\n\n{report.complete_result}\n''' if report.complete_result else ''}
+{complete_result_section}
 
 ## Next three actions
 
