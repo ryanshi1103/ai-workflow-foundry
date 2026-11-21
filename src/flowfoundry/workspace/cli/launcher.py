@@ -1,4 +1,4 @@
-"""Python port of the ``cc`` unified launcher (Claude / DeepSeek / Codex).
+"""Python port of the ``cc`` unified launcher.
 
 Replaces the 1000-line bash script with a maintainable, testable Python
 implementation.  Behaviour is intentionally identical so the daily user
@@ -15,9 +15,11 @@ import sys
 from pathlib import Path
 from typing import Callable
 
+from ...permissions import SESSION_PERMISSION_CEILINGS
 from ..providers import (
     CLAUDE_PERMISSION_MODES,
     CODEX_PROFILES,
+    GROK_PERMISSION_LEVELS,
     PROVIDER_NAMES,
     prepare_claude_environment,
 )
@@ -189,22 +191,24 @@ def _confirm_remote(mode_name: str) -> bool:
 
 def _choose_provider(project_dir: Path) -> str | None:
     print()
-    _print_banner(f"Claude / DeepSeek / Codex 项目启动器\n\n项目: {project_dir}")
+    _print_banner(f"Classic CC 项目启动器\n\n项目: {project_dir}")
     print("║  选择工具:                               ║")
     print("║  c   Claude（Anthropic 原生）            ║")
     print("║  d   DeepSeek V4 Pro                     ║")
     print("║  o   OpenAI Codex（GPT-5.6 Sol）         ║")
+    print("║  g   Grok Build（官方 CLI）              ║")
+    print("║  a   Auto（FlowFoundry 自动路由）        ║")
     print("║  q   退出                                ║")
     print("╚══════════════════════════════════════════╝")
     print()
-    choice = _prompt("请选择 (c/d/o/q): ").lower()
+    choice = _prompt("请选择 (c/d/o/g/a/q): ").lower()
     if _prompt_closed:
         print("输入已关闭，已取消。")
         return "error"
     if choice == "q":
         print("已取消。")
         return None
-    if choice in {"c", "d", "o"}:
+    if choice in {"c", "d", "o", "g", "a"}:
         return choice
     print("无效选择，已取消。")
     return "error"
@@ -256,6 +260,58 @@ def _choose_codex_mode() -> dict | None:
         return dict(CODEX_PROFILES[choice])
     print("无效选择，已取消。")
     return {"error": True}
+
+
+def _choose_grok_mode() -> dict | None:
+    """Choose one canonical CC authority ceiling for official Grok Build."""
+    print()
+    print("╔══════════════════════════════════════════╗")
+    print("║  Grok Build — 官方 CLI                  ║")
+    print("╠══════════════════════════════════════════╣")
+    for level, cfg in GROK_PERMISSION_LEVELS.items():
+        print(f"║  {level}   {cfg['name']}")
+        print(f"║      {cfg['detail']}")
+    print("║  q   返回                                ║")
+    print("╚══════════════════════════════════════════╝")
+    print()
+    choice = _prompt("请选择 (1/2/3/4/q): ").lower()
+    if choice == "q":
+        return None
+    try:
+        level = int(choice)
+        config = GROK_PERMISSION_LEVELS[level]
+    except (KeyError, ValueError):
+        print("无效选择，已取消。")
+        return {"error": True}
+    return {
+        "level": level,
+        "name": config["name"],
+        "detail": config["detail"],
+        "is_full": config["is_full"],
+    }
+
+
+def _choose_flowfoundry_permission() -> dict[str, object] | None:
+    """Choose one session authority ceiling for automatic goal execution."""
+    print()
+    print("╔══════════════════════════════════════════╗")
+    print("║  FlowFoundry Auto · 本次会话权限上限     ║")
+    print("╠══════════════════════════════════════════╣")
+    print("║  1   只读规划                            ║")
+    print("║  2   项目内自动修改                      ║")
+    print("║  3   手动确认                            ║")
+    print("║  4   完全访问 ⚠                          ║")
+    print("║  q   返回                                ║")
+    print("╚══════════════════════════════════════════╝")
+    print()
+    choice = _prompt("请选择 (1/2/3/4/q): ").lower()
+    if choice == "q":
+        return None
+    try:
+        return dict(SESSION_PERMISSION_CEILINGS[int(choice)])
+    except (KeyError, ValueError):
+        print("无效选择，已取消。")
+        return {"error": True}
 
 
 def _codex_preflight(project_dir: Path, profile: str) -> bool:
@@ -329,6 +385,92 @@ def _codex_preflight(project_dir: Path, profile: str) -> bool:
     except Exception:
         pass  # non-blocking
 
+    return True
+
+
+def _grok_preflight(project_dir: Path, permission_level: int) -> bool:
+    """Verify the official CLI and session flags without inspecting auth data."""
+    grok_bin = _find_executable("grok")
+    if not grok_bin:
+        print("\n错误: Grok Build CLI 未安装或不在 PATH 中。", file=sys.stderr)
+        print("请安装官方 Grok Build CLI 后重试。", file=sys.stderr)
+        return False
+    if not project_dir.is_dir():
+        print(f"\n错误: 项目目录不存在: {project_dir}", file=sys.stderr)
+        return False
+    if permission_level not in GROK_PERMISSION_LEVELS:
+        print(f"\n错误: 未知 Grok 权限级别: {permission_level}", file=sys.stderr)
+        return False
+
+    try:
+        version = subprocess.run(
+            [grok_bin, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        if version.returncode != 0:
+            raise RuntimeError("grok --version failed")
+        help_result = subprocess.run(
+            [grok_bin, "--help"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        if help_result.returncode != 0:
+            raise RuntimeError("grok --help failed")
+    except (OSError, RuntimeError, subprocess.SubprocessError):
+        print("\n错误: 无法检查本机 Grok Build CLI。", file=sys.stderr)
+        return False
+
+    help_text = f"{help_result.stdout}\n{help_result.stderr}"
+    required_flags = {
+        arg
+        for arg in GROK_PERMISSION_LEVELS[permission_level]["args"]
+        if isinstance(arg, str) and arg.startswith("--")
+    }
+    missing = sorted(flag for flag in required_flags if flag not in help_text)
+    if missing:
+        print(
+            "\n错误: 当前 Grok Build 不支持所选权限所需参数: "
+            + ", ".join(missing),
+            file=sys.stderr,
+        )
+        print("为避免权限降级，CC 已拒绝启动。", file=sys.stderr)
+        return False
+
+    # ``--help`` proves flag names, but not enum values, rule syntax, or whether
+    # the requested sandbox can actually initialize on this host.  ``inspect``
+    # is Grok's official non-inference configuration check, so exercise the
+    # exact per-launch profile before handing over the terminal.  Captured
+    # output is deliberately not printed because it can describe local config.
+    try:
+        profile_check = subprocess.run(
+            [grok_bin, *GROK_PERMISSION_LEVELS[permission_level]["args"], "inspect"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        profile_check = None
+    if profile_check is None or profile_check.returncode != 0:
+        print(
+            "\n错误: 当前 Grok Build 无法应用所选权限或 sandbox 配置。",
+            file=sys.stderr,
+        )
+        print("为避免权限降级，CC 已拒绝启动。", file=sys.stderr)
+        return False
+
+    if "XAI_API_KEY" in os.environ:
+        print(
+            "\n提示: 当前环境已设置 XAI_API_KEY；CC 不读取或修改其内容，"
+            "Grok 将按自身认证优先级处理。",
+            file=sys.stderr,
+        )
     return True
 
 
@@ -571,7 +713,7 @@ def determine_project() -> Path | None:
 
     # Priority 2: interactive menu
     while True:
-        _print_banner("Claude / DeepSeek / Codex 项目启动器")
+        _print_banner("Classic CC 项目启动器")
         print("║  当前目录不是 Git 仓库。请选择项目:      ║")
         print("║  1  当前目录")
         print("║  2  最近项目")
@@ -652,7 +794,7 @@ def _launch_claude(
 
 
 def _launch_codex(project_dir: Path, profile: str) -> int:
-    """Launch Codex directly."""
+    """Launch Codex directly with terminal-native scrollback and mouse handling."""
     codex_bin = _find_executable("codex")
     if not codex_bin:
         print("错误：找不到可执行的 OpenAI Codex CLI。", file=sys.stderr)
@@ -662,8 +804,41 @@ def _launch_codex(project_dir: Path, profile: str) -> int:
     os.environ["CC_PROJECT_MODE"] = "existing"
 
     os.chdir(project_dir)
-    os.execv(codex_bin, [codex_bin, "--profile", profile])
+    os.execv(codex_bin, [codex_bin, "--no-alt-screen", "--profile", profile])
     return 0  # unreachable after execv
+
+
+def _launch_grok(project_dir: Path, permission_level: int) -> int:
+    """Hand the restored terminal and exact selected project to Grok Build."""
+    grok_bin = _find_executable("grok")
+    if not grok_bin:
+        print("错误：找不到可执行的 Grok Build CLI。", file=sys.stderr)
+        return 1
+    config = GROK_PERMISSION_LEVELS.get(permission_level)
+    if config is None:
+        print(f"错误：未知 Grok 权限级别: {permission_level}", file=sys.stderr)
+        return 1
+
+    os.environ["CC_ACTIVE_PROJECT"] = str(project_dir)
+    os.environ["CC_PROJECT_MODE"] = "existing"
+    args = [grok_bin, *config["args"]]
+
+    try:
+        os.chdir(project_dir)
+        os.execv(grok_bin, args)
+    except OSError as exc:
+        print(f"错误：Grok Build 启动失败: {exc}", file=sys.stderr)
+        return 1
+    return 0  # unreachable after execv
+
+
+def _launch_flowfoundry(project_dir: Path, permission_level: int) -> int:
+    """Enter the existing FlowFoundry goal loop for the selected project."""
+    from ...daily import run
+
+    os.environ["CC_ACTIVE_PROJECT"] = str(project_dir)
+    os.environ["CC_PROJECT_MODE"] = "existing"
+    return run(root=project_dir, permission_level=permission_level)
 
 
 # ---------------------------------------------------------------------------
@@ -722,6 +897,21 @@ def main() -> int:
             print("已取消。")
             return 0
 
+        if provider == "a":
+            if not _find_executable("codex"):
+                print("错误：FlowFoundry Auto 需要可用的 Codex 执行器。", file=sys.stderr)
+                return 1
+            permission = _choose_flowfoundry_permission()
+            if permission is None:
+                continue
+            if permission.get("error"):
+                return 1
+            if permission["level"] == 4 and not _confirm_remote(
+                "FlowFoundry full-access ceiling"
+            ):
+                return 1
+            return _launch_flowfoundry(project_dir, int(permission["level"]))
+
         if provider == "o":
             # Codex path
             codex_cfg = _choose_codex_mode()
@@ -763,6 +953,37 @@ def main() -> int:
                 return 0
 
             return _launch_codex(project_dir, codex_cfg["profile"])
+
+        elif provider == "g":
+            grok_cfg = _choose_grok_mode()
+            if grok_cfg is None:
+                continue
+            if grok_cfg.get("error"):
+                return 1
+            if grok_cfg["is_full"] and not _confirm_remote(
+                "Grok Build full access"
+            ):
+                return 1
+
+            print()
+            print("╔══════════════════════════════════════════╗")
+            print("║  确认启动                                ║")
+            print("╠══════════════════════════════════════════╣")
+            print(f"║  项目: {project_dir}")
+            print("║  工具: Grok Build (官方 CLI)")
+            print(f"║  权限: {grok_cfg['name']} · {grok_cfg['detail']}")
+            print("╚══════════════════════════════════════════╝")
+            print()
+            answer = _prompt("请输入 'yes' 确认启动: ")
+            if _prompt_closed:
+                print("输入已关闭，已取消。")
+                return 1
+            if answer != "yes":
+                print("已取消。")
+                return 1
+            if not _grok_preflight(project_dir, int(grok_cfg["level"])):
+                return 1
+            return _launch_grok(project_dir, int(grok_cfg["level"]))
 
         else:
             # Claude / DeepSeek path

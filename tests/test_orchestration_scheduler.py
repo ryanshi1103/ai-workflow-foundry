@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -81,6 +82,19 @@ class SchedulerTests(unittest.TestCase):
         )
         self.assertEqual(memory["agents"]["codex-builder"]["executions"], 1)
         self.assertEqual(memory["agents"]["codex-builder"]["categories"]["coding"]["successes"], 1)
+
+    def test_report_rejects_provider_claimed_test_evidence(self) -> None:
+        workspace = self.run_plan(FakeProvider())
+        result = workspace.read_json("tasks/build/result.json")
+        result.setdefault("outputs", {})["validation"] = {
+            "source": "provider",
+            "commands": [
+                {"command": "python -m unittest", "executed": True, "success": True}
+            ],
+        }
+        workspace.write_task_result("build", result)
+
+        self.assertEqual(ResultAggregator().aggregate(workspace)["tests"], [])
 
     def test_retry_succeeds_within_limit(self) -> None:
         provider = FakeProvider(failures_before_success={"build": 1})
@@ -360,6 +374,90 @@ class SchedulerTests(unittest.TestCase):
             self.assertEqual(command[0], "claude")
             self.assertIn("--json-schema", command)
             self.assertIn(".claude-deepseek", run.call_args.kwargs["env"]["CLAUDE_CONFIG_DIR"])
+
+    def test_grok_adapter_uses_bounded_responses_runner_and_sanitized_environment(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_root = Path(temp_dir) / "project"
+            task_dir = Path(temp_dir) / "run" / "tasks" / "grok-review"
+            project_root.mkdir()
+            task_dir.mkdir(parents=True)
+            task = TaskSpec(
+                id="grok-review",
+                title="Independent review",
+                role="critic",
+                required_capabilities=("grok_perspective",),
+            )
+            agent = default_registry().synthetic().get("grok-critic")
+            wrapper = {
+                "structured_output": {
+                    "success": True,
+                    "summary": "independent review complete",
+                    "outputs": {"details": "bounded context only", "artifact_refs": []},
+                    "review": "APPROVED_WITH_NOTES",
+                    "findings": ["no direct workspace access"],
+                    "contribution": None,
+                },
+                "usage": {"input_tokens": 21, "output_tokens": 8},
+            }
+            completed = ManagedProcessResult(
+                0,
+                json.dumps(wrapper),
+                "",
+                "executions/test/execution.json",
+                "completed",
+                False,
+                False,
+                False,
+                {"status": "completed", "exit_code": 0},
+            )
+            environment = {
+                "XAI_API_KEY": "synthetic-xai-key",
+                "OPENAI_API_KEY": "must-not-cross-boundary",
+                "ANTHROPIC_API_KEY": "must-not-cross-boundary",
+                "DEEPSEEK_API_KEY": "must-not-cross-boundary",
+            }
+            with patch.dict(os.environ, environment, clear=True), patch.object(
+                LocalCommandProvider, "_execute_managed", return_value=completed
+            ) as run:
+                result = LocalCommandProvider(enabled=True).execute(
+                    task, agent, task_dir, project_root
+                )
+
+            self.assertTrue(result.success)
+            self.assertEqual(result.review, ReviewDecision.APPROVED_WITH_NOTES)
+            self.assertEqual(result.usage.input_tokens, 21)
+            command = run.call_args.args[0]
+            self.assertEqual(command, list(agent.command_template))
+            child_env = run.call_args.kwargs["env"]
+            self.assertEqual(child_env["XAI_API_KEY"], "synthetic-xai-key")
+            self.assertEqual(child_env["FLOWFOUNDRY_GROK_MODEL"], "grok-4.6")
+            self.assertNotIn("OPENAI_API_KEY", child_env)
+            self.assertNotIn("ANTHROPIC_API_KEY", child_env)
+            self.assertNotIn("DEEPSEEK_API_KEY", child_env)
+            self.assertIn("no direct workspace access", run.call_args.kwargs["input_text"])
+
+    def test_grok_adapter_fails_before_process_start_without_api_key(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_root = Path(temp_dir) / "project"
+            task_dir = Path(temp_dir) / "run" / "tasks" / "grok-review"
+            project_root.mkdir()
+            task_dir.mkdir(parents=True)
+            task = TaskSpec(
+                id="grok-review",
+                title="Independent review",
+                role="critic",
+                required_capabilities=("grok_perspective",),
+            )
+            agent = default_registry().synthetic().get("grok-critic")
+            with patch.dict(os.environ, {}, clear=True), patch.object(
+                LocalCommandProvider, "_execute_managed"
+            ) as run:
+                result = LocalCommandProvider(enabled=True).execute(
+                    task, agent, task_dir, project_root
+                )
+            self.assertFalse(result.success)
+            self.assertEqual(result.summary, "PROVIDER_AUTHENTICATION_REQUIRED")
+            run.assert_not_called()
 
     def test_claude_provider_cannot_execute_through_deepseek_profile(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

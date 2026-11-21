@@ -126,16 +126,6 @@ echo ""
 
 # ─── 1. Deploy cc launcher ───────────────────────────────────────────────────
 echo "1. Deploying cc launcher..."
-
-# Preserve the pre-unification legacy launcher as the wrapper's fallback.
-# Only copy when the installed cc is still the legacy script, so a re-run
-# of deploy never clobbers cc-legacy with the wrapper itself.
-if [[ -f "$HOME/.local/bin/cc" ]] && ! grep -q 'flowfoundry.cc' "$HOME/.local/bin/cc"; then
-    cp -v "$HOME/.local/bin/cc" "$HOME/.local/bin/cc-legacy"
-    chmod +x "$HOME/.local/bin/cc-legacy"
-    echo "   ✓ legacy cc preserved as cc-legacy fallback"
-fi
-
 cp -v "$PROJECT_ROOT/bin/cc" "$HOME/.local/bin/cc"
 chmod +x "$HOME/.local/bin/cc"
 echo "   ✓ cc deployed"

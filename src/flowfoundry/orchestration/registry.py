@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from dataclasses import replace
 from typing import Iterable
 
@@ -9,7 +10,7 @@ from ..workspace.providers.config import claude_profile_provider
 from .models import AgentSpec, IsolationMode, TaskSpec
 
 _COST_ORDER = {"free": 0, "low": 1, "medium": 2, "high": 3}
-_AUTH_REQUIRED_PROVIDERS = frozenset({"codex", "claude", "deepseek"})
+_AUTH_REQUIRED_PROVIDERS = frozenset({"codex", "claude", "deepseek", "grok"})
 
 
 def _execution_ready(agent: AgentSpec) -> bool:
@@ -22,6 +23,8 @@ def _execution_ready(agent: AgentSpec) -> bool:
             agent.runtime_profile is None
             or claude_profile_provider(agent.runtime_profile) != agent.provider
         ):
+            return False
+        if agent.provider == "grok" and agent.runtime_profile != "xai_responses":
             return False
         return (
             agent.authentication_state in {"verified", "not_required"}
@@ -49,6 +52,12 @@ class AgentRegistry:
 
     def list(self) -> tuple[AgentSpec, ...]:
         return tuple(self._agents[key] for key in sorted(self._agents))
+
+    def select(self, agent_ids: Iterable[str]) -> AgentRegistry:
+        """Return a registry containing only explicitly named agents."""
+
+        selected = tuple(dict.fromkeys(str(agent_id) for agent_id in agent_ids))
+        return AgentRegistry(self.get(agent_id) for agent_id in selected)
 
     def compatible(self, task: TaskSpec) -> tuple[AgentSpec, ...]:
         """Return structurally capable agents even when runtime setup is missing."""
@@ -138,7 +147,13 @@ def default_registry() -> AgentRegistry:
                 display_name="Codex Builder",
                 provider="codex",
                 role="builder",
-                capabilities=("implementation", "python", "shell", "documentation"),
+                capabilities=(
+                    "implementation",
+                    "python",
+                    "shell",
+                    "documentation",
+                    "codex_execution",
+                ),
                 command_template=("codex", "exec", "{task_file}"),
                 cost_class="medium",
                 concurrency_limit=2,
@@ -224,6 +239,38 @@ def default_registry() -> AgentRegistry:
                 runtime_profile="local",
                 provider_identity_state="not_required",
                 reliability=1.0,
+            ),
+            AgentSpec(
+                id="grok-critic",
+                display_name="Grok Independent Critic",
+                provider="grok",
+                role="critic",
+                capabilities=(
+                    "review",
+                    "architecture",
+                    "planning",
+                    "documentation",
+                    "grok_perspective",
+                ),
+                command_template=(
+                    sys.executable,
+                    "-m",
+                    "flowfoundry.orchestration.grok_runner",
+                ),
+                cost_class="low",
+                concurrency_limit=1,
+                permission_profile=common_read,
+                context_limit=500_000,
+                availability=False,
+                readiness="UNAVAILABLE",
+                workspace_mode=IsolationMode.READ_ONLY.value,
+                model="grok-4.6",
+                mode="xai_responses",
+                tools=(),
+                coding_ability=4,
+                reasoning_ability=5,
+                privacy_level="remote-provider",
+                runtime_profile="xai_responses",
             ),
         )
     )

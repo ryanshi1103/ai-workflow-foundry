@@ -12,10 +12,10 @@ Do not open a public issue for a vulnerability, credential exposure, private
 content exposure, unsafe path/command behavior, or a way to bypass permission,
 approval, workspace, provider, or cancellation controls.
 
-Use GitHub private vulnerability reporting once it is enabled on the approved
-public repository. Until then, contact the repository owner through a private,
-verified channel shown on the GitHub profile. Share only the minimum information
-needed to establish impact; do not transmit secrets or private datasets.
+Use GitHub private vulnerability reporting if the repository offers it. Otherwise,
+contact the repository owner through a private, verified channel shown on the
+GitHub profile. Share only the minimum information needed to establish impact;
+do not transmit secrets or private datasets.
 
 Include when safe:
 
@@ -34,20 +34,13 @@ Real-provider calls require explicit opt-in. Git writer isolation does not
 replace an OS/container sandbox, and tool exposure is not a universal network
 or filesystem boundary.
 
-See [Multi-Agent Security Model](MULTI_AGENT_SECURITY_MODEL.md) and
-[Current Status](docs/CURRENT_STATUS.md).
+See [current status](docs/CURRENT_STATUS.md) for maturity boundaries.
 
-## Preserved historical incident
+## Publication boundary
 
-An older migration history has a documented remote-exposure incident involving
-historical session paths. This candidate is a separate new-root allowlist
-snapshot and does not descend from that history. Do not republish or merge the
-preserved history into this candidate. Remote ref changes, visibility changes,
-credential response, and hosting-provider requests still require explicit owner
-authorization and the controlled private runbooks.
-
-Do not include forbidden content, exact retrieval identifiers, or credentials in
-a public report.
+Do not merge private session history, credentials, real customer data, or
+unreviewed historical branches into the public repository. Report a suspected
+exposure privately using the channel above.
 
 ## Disclosure process
 

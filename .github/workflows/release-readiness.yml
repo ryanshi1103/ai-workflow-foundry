@@ -5,9 +5,6 @@ on:
     paths:
       - "pyproject.toml"
       - "src/**"
-      - "catalog/**"
-      - "schemas/**"
-      - "workflows/contracts/**"
       - ".github/workflows/release-readiness.yml"
   workflow_dispatch:
 
@@ -77,9 +74,9 @@ jobs:
           .release-venv/bin/python -m pip install --no-index dist/*.whl
           .release-venv/bin/python -m pip check
 
-      - name: Validate installed resources outside source tree
+      - name: Check installed CLI and resources outside source tree
         run: |
           validation_dir="$(mktemp -d)"
           cd "$validation_dir"
-          "$GITHUB_WORKSPACE/.release-venv/bin/flowfoundry" validate
-          "$GITHUB_WORKSPACE/.release-venv/bin/flowfoundry" list
+          "$GITHUB_WORKSPACE/.release-venv/bin/flowfoundry" --help
+          "$GITHUB_WORKSPACE/.release-venv/bin/python" -c "from importlib.resources import files; assert files('flowfoundry.control_center').joinpath('static/index.html').is_file()"

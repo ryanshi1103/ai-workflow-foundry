@@ -33,7 +33,6 @@ def launch_new(
     model: str = "",
     provider: str = "",
     permission_mode: str = "",
-    workflow_contract_id: str | None = None,
 ) -> int:
     """Create a new project and launch the CLI tool interactively.
 
@@ -75,7 +74,6 @@ def launch_new(
         permission_mode=permission_mode,
         cli_path=resolved_cli,
         cli_version=cli_version,
-        workflow_contract_id=workflow_contract_id,
     )
     git_init(project_dir)
     ensure_git_identity(project_dir)

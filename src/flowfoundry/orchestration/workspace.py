@@ -106,6 +106,9 @@ class RunWorkspace:
         *,
         project_root: Path | str | None = None,
         workspace_origin: str = "project",
+        controller: str | None = None,
+        worker_agent_ids: tuple[str, ...] = (),
+        execution_kind: str | None = None,
     ) -> RunWorkspace:
         workspace = cls(root, run_id)
         if workspace_origin not in _WORKSPACE_ORIGINS:
@@ -142,6 +145,9 @@ class RunWorkspace:
             "workspace_origin": workspace_origin,
             "workspace_owned_by_flowfoundry": workspace_origin == "flowfoundry_disposable",
             "workspace_disposable": workspace_origin == "flowfoundry_disposable",
+            "controller": controller,
+            "worker_agent_ids": list(worker_agent_ids),
+            "execution_kind": execution_kind,
             "plan": plan.to_dict(),
             "input_hash": stable_hash(plan.to_dict()),
             "status": "running",

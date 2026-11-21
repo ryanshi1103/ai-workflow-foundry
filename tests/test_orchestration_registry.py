@@ -30,6 +30,7 @@ class RegistryTests(unittest.TestCase):
                 "claude-architect",
                 "codex-builder",
                 "deepseek-reviewer",
+                "grok-critic",
                 "local-tester",
             },
         )
@@ -634,7 +635,82 @@ class RegistryTests(unittest.TestCase):
             required_capabilities=("review",),
         )
         with self.assertRaises(LookupError):
-            self.registry.match(task, {"deepseek-reviewer": 2})
+            self.registry.match(task, {"deepseek-reviewer": 2, "grok-critic": 1})
+
+    def test_grok_requires_explicit_remote_verification(self) -> None:
+        secret = "synthetic-xai-secret"
+        probes: list[tuple[str, str, float]] = []
+
+        def verified(api_key: str, model: str, timeout_seconds: float) -> str:
+            probes.append((api_key, model, timeout_seconds))
+            return "verified"
+
+        lookup = lambda executable: executable
+        configured = ProviderDiscovery(
+            default_registry(),
+            executable_lookup=lookup,
+            environ={"XAI_API_KEY": secret},
+            xai_auth_probe=verified,
+        )
+        configured_status = {
+            item.provider: item for item in configured.inspect()
+        }["grok"]
+        self.assertEqual(configured_status.authentication_state, "configured")
+        self.assertEqual(configured_status.readiness, "AVAILABLE_UNVERIFIED")
+        self.assertEqual(probes, [])
+
+        discovery = ProviderDiscovery(
+            default_registry(),
+            executable_lookup=lookup,
+            environ={"XAI_API_KEY": secret},
+            verify_remote=True,
+            xai_auth_probe=verified,
+        )
+        status = {item.provider: item for item in discovery.inspect()}["grok"]
+        self.assertEqual(status.authentication_state, "verified")
+        self.assertEqual(status.readiness, "READY")
+        self.assertEqual(status.runtime_profile, "xai_responses")
+        self.assertEqual(status.provider_identity_state, "verified")
+        self.assertEqual(probes, [(secret, "grok-4.6", 3.0)])
+        serialized = json.dumps(status.to_dict())
+        self.assertNotIn(secret, serialized)
+
+        task = TaskSpec(
+            id="grok-review",
+            title="Independent Grok review",
+            role="critic",
+            required_capabilities=("grok_perspective",),
+        )
+        self.assertEqual(discovery.registry().match(task).id, "grok-critic")
+
+    def test_grok_without_api_key_is_not_ready(self) -> None:
+        status = {
+            item.provider: item
+            for item in ProviderDiscovery(
+                default_registry(),
+                executable_lookup=lambda executable: executable,
+                environ={},
+                verify_remote=True,
+                xai_auth_probe=lambda api_key, model, timeout: "verified",
+            ).inspect()
+        }["grok"]
+        self.assertEqual(status.authentication_state, "not_authenticated")
+        self.assertEqual(status.readiness, "AVAILABLE_UNVERIFIED")
+        self.assertEqual(status.setup_action, "set XAI_API_KEY in the operator environment")
+
+    def test_grok_model_access_is_part_of_readiness(self) -> None:
+        discovery = ProviderDiscovery(
+            default_registry(),
+            executable_lookup=lambda executable: executable,
+            environ={"XAI_API_KEY": "synthetic-key"},
+            verify_remote=True,
+            xai_auth_probe=lambda api_key, model, timeout: "model_unavailable",
+        )
+        status = {item.provider: item for item in discovery.inspect()}["grok"]
+
+        self.assertEqual(status.authentication_state, "model_unavailable")
+        self.assertEqual(status.readiness, "AVAILABLE_UNVERIFIED")
+        self.assertEqual(status.setup_action, "grant this xAI key access to grok-4.6")
 
     def test_permission_profile_is_enforced(self) -> None:
         task = TaskSpec(

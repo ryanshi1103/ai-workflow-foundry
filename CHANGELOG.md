@@ -2,22 +2,16 @@
 
 All notable changes intended for public releases will be documented here.
 
-The first public Alpha uses package version `0.2.0a1`, corresponding to the Git
-release name `v0.2.0-alpha.1`. Publication still requires every gate in
-[`docs/ALPHA_RELEASE_CHECKLIST.md`](docs/ALPHA_RELEASE_CHECKLIST.md) to pass.
+The project has not yet created an approved public FlowFoundry release from the
+current product line. Package metadata currently reports `0.2.0`, but the first
+public tag must be chosen only after the sanitized publication candidate,
+license boundary, release notes, and version policy are reconciled.
 
-## 0.2.0a1
+## Unreleased
 
 ### Productization
 
 - Reframed the project as an AI coordination layer with honest maturity labels.
-- Restored the binding FlowFoundry identity, smallest-sufficient positioning,
-  Chinese headline, and Human-approved Council Mark across the GitHub surface.
-- Added deterministic Decision Inheritance: validate the project ledger, select
-  applicable `BINDING`/`ADOPTED` decisions, inject exact wording before task or
-  Meeting reasoning, and warn on occupied semantic slots without write-back.
-- Made Minimum Sufficient Path selection and bounded AI Meetings first-class in
-  the public product explanation.
 - Added current-status, vision, architecture, personal AI manager, roadmap,
   demo, visual design, contribution, security, marketing, and launch documents.
 - Added GitHub homepage quick start, architecture diagram, product preview, and
@@ -37,19 +31,11 @@ release name `v0.2.0-alpha.1`. Publication still requires every gate in
   explicit clean-clone/version-alignment blockers.
 - Added GitHub bug, feature, security, and pull-request templates, a Code of
   Conduct, and a wheel-install readiness workflow.
-- Added a deterministic Personal AI Manager fixture, expected plan, normalized
-  evidence, and a locally verified 90-second walkthrough script. A final release
-  recording/GIF has not been produced.
-- Added a public launch announcement, channel-specific GitHub growth plan,
-  release-ready 90-second recording script, and release-day checklist.
-- Finalized public clone guidance and removed the excluded Customer Intelligence
-  example from the rendered launcher preview.
-- Excluded the unlicensed Feedback Intelligence implementation, executable
-  catalog surfaces, and Customer Intelligence demo from the public candidate.
-- Fixed duplicate launcher execution caused by the importability probe and
-  restored the complete EOF/permission compatibility suite.
+- Normalized the Personal AI Manager, AI Project Manager, and Customer
+  Intelligence official demo specifications with synthetic inputs and honest
+  limitations.
 - Added the four-phase public release plan for private review,
   `v0.2.0-alpha.1`, community feedback, and a later stable contract.
 
-Tagging, remote push, protected-branch mutation, and frozen-RC changes are not
-automated by this release entry.
+No release tag, remote push, protected-branch mutation, or frozen-RC change is
+part of this changelog entry.

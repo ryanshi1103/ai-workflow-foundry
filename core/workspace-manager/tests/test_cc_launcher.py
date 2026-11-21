@@ -301,7 +301,8 @@ class LaunchContractTests(unittest.TestCase):
         self.assertEqual(result, 0)
         chdir.assert_called_once_with(self.project)
         execv.assert_called_once_with(
-            "/usr/bin/codex", ["/usr/bin/codex", "--profile", "gpt56-sol-readonly"]
+            "/usr/bin/codex",
+            ["/usr/bin/codex", "--no-alt-screen", "--profile", "gpt56-sol-readonly"],
         )
 
 

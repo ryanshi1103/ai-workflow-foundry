@@ -62,7 +62,7 @@ DEFAULT_CONFIG = {
     "DRY_RUN": "false",
     "QUICK_CRON": "weekly",
     "DEEP_CRON": "monthly",
-    "PURGE_CRON": "weekly",
+    "PURGE_CRON": "daily",
 }
 
 
@@ -690,9 +690,21 @@ def quarantine_project(project_dir: Path, reason: str, dry_run: bool = False) ->
         "dry_run": dry_run,
     }
 
+    if (
+        project_dir.parent != PROJECTS_ROOT.resolve()
+        or not project_dir.is_dir()
+        or project_dir.is_mount()
+    ):
+        return {**result, "error": "Only direct project directories may be quarantined"}
+    if target_dir.exists():
+        return {**result, "error": "Quarantine destination already exists"}
+    manifest = _project_manifest(project_dir)
+    if manifest is None:
+        return {**result, "error": "Symlink, mount point, or unreadable file in project"}
+
     # Gather metadata
-    file_count = sum(1 for _ in project_dir.rglob("*") if _.is_file())
-    total_size = sum(_.stat().st_size for _ in project_dir.rglob("*") if _.is_file())
+    file_count = len(manifest)
+    total_size = sum((project_dir / name).stat().st_size for name in manifest)
 
     result["file_count"] = file_count
     result["total_size"] = total_size
@@ -714,13 +726,6 @@ def quarantine_project(project_dir: Path, reason: str, dry_run: bool = False) ->
 
     # SHA256 manifest
     if not dry_run:
-        manifest = {}
-        for f in sorted(project_dir.rglob("*")):
-            if f.is_file() and ".git/" not in str(f):
-                try:
-                    manifest[str(f.relative_to(project_dir))] = compute_sha256(f)
-                except Exception:
-                    pass
         result["sha256_manifest"] = manifest
 
     if dry_run:
@@ -742,6 +747,44 @@ def quarantine_project(project_dir: Path, reason: str, dry_run: bool = False) ->
         log_maintenance(f"Quarantine FAILED: {project_dir} — {e}", "ERROR")
 
     return result
+
+
+def quarantine_named_project(name: str, dry_run: bool = False) -> dict:
+    """Explicitly retire one direct child of Projects into the 14-day bin."""
+    if not name or name in {".", ".."} or Path(name).name != name or "/" in name or "\\" in name:
+        return {"success": False, "error": "Expected a direct project name"}
+    project_dir = PROJECTS_ROOT.resolve() / name
+    if is_protected(project_dir, load_protected()):
+        return {"success": False, "error": "Project is protected"}
+    if (project_dir / ".git").exists():
+        dirty = _run_git(project_dir, ["status", "--porcelain", "--untracked-files=all"])
+        if dirty.returncode != 0 or dirty.stdout.strip():
+            return {"success": False, "error": "Git project has uncommitted files"}
+    return quarantine_project(project_dir, "explicit project retirement", dry_run=dry_run)
+
+
+def _project_manifest(project_dir: Path) -> Optional[dict[str, str]]:
+    """Hash every file, including ignored files and Git history; fail closed."""
+    manifest = {}
+    try:
+        for path in sorted(project_dir.rglob("*")):
+            if path.is_symlink() or path.is_mount():
+                return None
+            if path.is_file():
+                manifest[str(path.relative_to(project_dir))] = compute_sha256(path)
+            elif not path.is_dir():
+                return None
+    except (OSError, ValueError):
+        return None
+    return manifest
+
+
+def _quarantine_record_is_old_enough(entry: dict, cutoff: datetime) -> bool:
+    try:
+        created = datetime.fromisoformat(entry["timestamp"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    return created.tzinfo is not None and created <= cutoff
 
 
 def _record_quarantine(result: dict) -> None:
@@ -768,12 +811,23 @@ def _record_quarantine(result: dict) -> None:
 def purge_quarantine(dry_run: bool = False) -> list[dict]:
     """Purge items past retention period from quarantine."""
     config = load_config()
-    retention_days = int(config.get("QUARANTINE_DAYS", 14))
+    retention_days = max(14, int(config.get("QUARANTINE_DAYS", 14)))
     cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
 
     purged = []
     if not QUARANTINE_DIR.exists():
         return purged
+
+    records = {}
+    if QUARANTINE_INDEX.exists():
+        try:
+            for line in QUARANTINE_INDEX.read_text(encoding="utf-8").splitlines():
+                entry = json.loads(line)
+                path = entry.get("quarantine_path")
+                if path:
+                    records.setdefault(path, []).append(entry)
+        except (OSError, ValueError, TypeError):
+            return [{"path": str(QUARANTINE_INDEX), "action": "invalid_index"}]
 
     for date_dir in sorted(QUARANTINE_DIR.iterdir()):
         if not date_dir.is_dir():
@@ -788,24 +842,34 @@ def purge_quarantine(dry_run: bool = False) -> list[dict]:
         if dir_date < cutoff:
             for project_dir in date_dir.iterdir():
                 if project_dir.is_dir():
+                    entries = records.get(str(project_dir), [])
                     item = {
                         "path": str(project_dir),
                         "date": date_dir.name,
-                        "action": "would_delete" if dry_run else "deleted",
+                        "action": "skipped_unverified",
                     }
+                    if (
+                        len(entries) != 1
+                        or not _quarantine_record_is_old_enough(entries[0], cutoff)
+                        or is_protected(Path(entries[0].get("original_path", "")), load_protected())
+                        or project_dir.is_symlink()
+                        or date_dir.is_symlink()
+                        or project_dir.is_mount()
+                        or project_dir.resolve().parent != date_dir.resolve()
+                        or date_dir.resolve().parent != QUARANTINE_DIR.resolve()
+                        or not isinstance(entries[0].get("sha256_manifest"), dict)
+                        or _project_manifest(project_dir) != entries[0]["sha256_manifest"]
+                    ):
+                        purged.append(item)
+                        continue
+                    item["action"] = "would_delete" if dry_run else "deleted"
                     if not dry_run:
                         try:
-                            # Safety: only delete within _trash-review
-                            resolved = project_dir.resolve()
-                            if str(resolved).startswith(str(QUARANTINE_DIR.resolve())):
-                                shutil.rmtree(str(resolved))
-                                item["action"] = "deleted"
-                            else:
-                                item["action"] = "skipped_outside_quarantine"
+                            shutil.rmtree(project_dir)
                         except OSError as e:
                             item["action"] = f"error: {e}"
                     purged.append(item)
-                    log_maintenance(f"Purged: {project_dir}")
+                    log_maintenance(f"Purge result: {project_dir}: {item['action']}")
 
             # Remove empty date dir
             if not dry_run:
@@ -1063,10 +1127,8 @@ def deep_maintenance(dry_run: bool = False) -> dict:
                             "name": entry.name,
                         }
                     )
-                    if not dry_run:
-                        quarantine_project(
-                            entry, "纯 AI 会话记录，无独立交付成果", dry_run=dry_run
-                        )
+                    # Classification is advisory. Moving a whole project now
+                    # requires the explicit quarantine_named_project action.
 
     # 6. Update all project.json files
     if not dry_run:

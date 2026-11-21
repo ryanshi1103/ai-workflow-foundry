@@ -625,12 +625,15 @@ class SchedulerIsolationIntegrationTests(unittest.TestCase):
         candidate_path = Path(WorktreeManager(workspace).records()[0]["path"])
         self.assertEqual(state["status"], TaskStatus.COMPLETED.value)
         self.assertTrue(state["validation"]["success"])
+        self.assertEqual(state["validation"]["source"], "flowfoundry")
+        self.assertTrue(state["validation"]["commands"][0]["executed"])
         self.assertEqual(
             Path(state["validation"]["commands"][0]["stdout"].strip()),
             candidate_path,
         )
         candidate = workspace.read_json(state["candidate_result_ref"])
         self.assertTrue(candidate["validation"]["success"])
+        self.assertEqual(ResultAggregator().aggregate(workspace)["tests"], [validation_command])
         self.assertEqual(candidate["experience"]["execution_kind"], "mock")
         self.assertEqual((self.fixture.project / "base.txt").read_text(), "original\n")
 

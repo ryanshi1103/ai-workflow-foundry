@@ -29,14 +29,26 @@ class ResultAggregator:
                 unfinished.append(task.id)
                 if state.get("error"):
                     risks.append(f"{task.id}: {state['error']}")
-            tests.extend(task.validation_commands)
             result_path = workspace.task_dir(task.id) / "result.json"
             if result_path.exists():
                 generated_files.append(str(result_path.relative_to(workspace.path)))
                 result = workspace.read_json(str(result_path.relative_to(workspace.path)))
-                commit = result.get("outputs", {}).get("commit")
+                outputs = result.get("outputs", {})
+                commit = outputs.get("commit")
                 if commit:
                     commits.append(str(commit))
+                validation = outputs.get("validation")
+                if (
+                    isinstance(validation, dict)
+                    and validation.get("source") == "flowfoundry"
+                ):
+                    for item in validation.get("commands", ()):
+                        if (
+                            isinstance(item, dict)
+                            and item.get("executed") is True
+                            and item.get("success")
+                        ):
+                            tests.append(str(item.get("command", "")))
         human_path = workspace.contained("HUMAN_ACTIONS_REQUIRED.md")
         meeting = manifest.get("meeting")
         meeting_usage = meeting.get("usage") if isinstance(meeting, dict) else None

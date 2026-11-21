@@ -4,16 +4,12 @@
 .ruff_cache/
 .test-tmp/
 .flowfoundry-runs
-.flowfoundry/
 .flowfoundry/runs/
-.flowfoundry/agent-performance.json
-.flowfoundry/meeting-experience.json
 .venv/
 dist/
 build/
 *.egg-info/
 .ai-session/
-.ai/preserve/
 docs/sessions/
 .env
 

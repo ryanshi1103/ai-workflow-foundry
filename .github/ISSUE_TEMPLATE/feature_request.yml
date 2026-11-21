@@ -37,7 +37,7 @@ body:
         - Workspace and permissions
         - Review, approval, or recovery
         - Workflow or component contract
-        - Personal context (roadmap)
+        - File Bridge
         - Documentation or developer experience
         - Reference application
     validations:
@@ -74,5 +74,5 @@ body:
       options:
         - label: This proposal does not depend on AGI, autonomous human replacement, or an unbounded agent loop.
           required: true
-        - label: I checked the current status and roadmap for an existing decision or duplicate proposal.
+        - label: I checked the current status and existing issues for a duplicate proposal.
           required: true

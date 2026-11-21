@@ -295,7 +295,6 @@ def create_project_meta(
     transcript_path: str = "",
     cli_path: str = "",
     cli_version: str = "",
-    workflow_contract: dict | None = None,
 ) -> dict:
     """Create project.json metadata."""
     meta = {
@@ -328,13 +327,6 @@ def create_project_meta(
         "finalize_attempts": 0,
         "last_error": None,
     }
-    if workflow_contract:
-        meta["workflow_contract"] = {
-            "id": workflow_contract["id"],
-            "version": workflow_contract["version"],
-            "source": "repo",
-            "file": ".ai-session/workflow.contract.json",
-        }
     atomic_write_json(project_dir / ".ai-session" / "project.json", meta)
     return meta
 
@@ -396,36 +388,9 @@ def create_new_project(
     permission_mode: str = "",
     cli_path: str = "",
     cli_version: str = "",
-    workflow_contract_id: str | None = None,
 ) -> Path:
-    """Create a new project directory in ~/Projects and return its path.
-
-    If *workflow_contract_id* is given, the referenced contract is validated
-    and copied into the project's ``.ai-session/`` directory so the project
-    carries its own workflow definition.
-    """
+    """Create a new project directory in ~/Projects and return its path."""
     ensure_dir(PROJECTS_ROOT)
-
-    # Validate workflow contract early if specified
-    workflow_contract = None
-    if workflow_contract_id:
-        try:
-            from flowfoundry.workflow_contract import load_workflow_contracts
-
-            contracts = load_workflow_contracts()
-            matching = [c for c in contracts if c["id"] == workflow_contract_id]
-            if not matching:
-                print(
-                    f"Error: unknown workflow contract: {workflow_contract_id}",
-                    file=sys.stderr,
-                )
-                raise SystemExit(1)
-            workflow_contract = matching[0]
-        except SystemExit:
-            raise
-        except Exception as exc:
-            print(f"Error: cannot load workflow contract: {exc}", file=sys.stderr)
-            raise SystemExit(1)
 
     temp_name = generate_project_temp_name(tool)
     project_dir = PROJECTS_ROOT / temp_name
@@ -434,16 +399,6 @@ def create_new_project(
     session_id = temp_name  # same as project temp name initially
 
     create_project_structure(project_dir, title="New Project")
-
-    # Save workflow contract reference if specified
-    if workflow_contract:
-        import json
-
-        wf_file = project_dir / ".ai-session" / "workflow.contract.json"
-        wf_file.write_text(
-            json.dumps(workflow_contract, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
 
     create_project_meta(
         project_dir=project_dir,
@@ -454,7 +409,6 @@ def create_new_project(
         permission_mode=permission_mode,
         cli_path=cli_path,
         cli_version=cli_version,
-        workflow_contract=workflow_contract,
     )
     create_session_meta(
         project_dir=project_dir,

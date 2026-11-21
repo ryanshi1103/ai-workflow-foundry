@@ -46,10 +46,65 @@ CODEX_PROFILES = {
     },
 }
 
+# Official Grok Build per-launch permission/sandbox profiles, verified against
+# Grok Build 1.0.34.  These arguments are deliberately session-local: CC never
+# edits ~/.grok/config.toml and Grok remains responsible for authentication,
+# sessions, and its native TUI.  Level 1 uses explicit deny rules because the
+# CLI's read-only/strict sandboxes cannot initialize on this host; ``dontAsk``
+# also denies any tool that is not explicitly allowed.
+GROK_PERMISSION_LEVELS = {
+    1: {
+        "name": "只读规划",
+        "detail": "workspace · dontAsk · Read/Grep only",
+        "args": (
+            "--permission-mode",
+            "dontAsk",
+            "--allow",
+            "Read",
+            "--allow",
+            "Grep",
+            "--deny",
+            "Edit",
+            "--deny",
+            "Bash",
+            "--deny",
+            "MCPTool",
+            "--deny",
+            "WebFetch",
+            "--deny",
+            "WebSearch",
+            "--sandbox",
+            "workspace",
+            "--no-subagents",
+            "--disable-web-search",
+        ),
+        "is_full": False,
+    },
+    2: {
+        "name": "项目内自动修改",
+        "detail": "workspace · acceptEdits",
+        "args": ("--permission-mode", "acceptEdits", "--sandbox", "workspace"),
+        "is_full": False,
+    },
+    3: {
+        "name": "手动确认",
+        "detail": "workspace · default (Ask)",
+        "args": ("--permission-mode", "default", "--sandbox", "workspace"),
+        "is_full": False,
+    },
+    4: {
+        "name": "完全访问",
+        "detail": "sandbox off · always-approve",
+        "args": ("--always-approve", "--sandbox", "off"),
+        "is_full": True,
+    },
+}
+
 PROVIDER_NAMES = {
     "c": "Claude (Anthropic 原生)",
     "d": "DeepSeek V4 Pro",
     "o": "OpenAI Codex (GPT-5.6 Sol)",
+    "g": "Grok Build (官方 CLI)",
 }
 
 CLAUDE_NATIVE_PROFILE = "claude_native"

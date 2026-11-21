@@ -31,7 +31,14 @@ def add_team_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentPars
     plan = commands.add_parser("plan", help="profile a goal and preview its minimum path")
     plan.add_argument("task_file", type=Path)
 
-    commands.add_parser("providers", help="inspect runtime and authentication setup state")
+    providers = commands.add_parser(
+        "providers", help="inspect runtime and authentication setup state"
+    )
+    providers.add_argument(
+        "--verify-remote",
+        action="store_true",
+        help="explicitly make a non-inference xAI models request to verify Grok authentication",
+    )
 
     run = commands.add_parser("run", help="start an offline-safe task plan")
     run.add_argument("task_file", type=Path)
@@ -98,7 +105,11 @@ def _new_run_id() -> str:
 
 def _scheduler(real_provider: bool) -> RunScheduler:
     base_registry = default_registry()
-    registry = ProviderDiscovery(base_registry).registry() if real_provider else base_registry.synthetic()
+    registry = (
+        ProviderDiscovery(base_registry, verify_remote=True).registry()
+        if real_provider
+        else base_registry.synthetic()
+    )
     provider = LocalCommandProvider(enabled=True) if real_provider else FakeProvider()
     return RunScheduler(
         TaskRouter(registry),
@@ -115,7 +126,10 @@ def dispatch_team(args: argparse.Namespace) -> int:
             print(json.dumps(plan.to_dict(), indent=2, ensure_ascii=False))
             return 0
         if command == "providers":
-            statuses = ProviderDiscovery(default_registry()).inspect()
+            statuses = ProviderDiscovery(
+                default_registry(),
+                verify_remote=args.verify_remote,
+            ).inspect()
             print(json.dumps([status.to_dict() for status in statuses], indent=2, ensure_ascii=False))
             return 0
         if command == "run":

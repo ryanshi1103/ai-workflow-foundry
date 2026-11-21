@@ -16,7 +16,7 @@ body:
     attributes:
       label: Version or commit
       description: Release tag or full commit SHA from an approved public checkout.
-      placeholder: v0.2.0-alpha.1 or 0123456…
+      placeholder: Commit SHA or release tag
     validations:
       required: true
 
@@ -38,6 +38,7 @@ body:
         - Deterministic local command
         - Real provider (sanitized metadata only)
         - Workspace launcher
+        - Desktop File Bridge scaffold
         - Catalog or package validation
         - Reference application or workflow
     validations:

@@ -29,8 +29,9 @@ from .tool_policy import (
 )
 from .workspace import atomic_write_json
 
-_NATIVE_PROVIDERS = frozenset({"codex", "claude", "deepseek"})
+_NATIVE_PROVIDERS = frozenset({"codex", "claude", "deepseek", "grok"})
 _DEPENDENCY_CONTEXT_LIMIT = 12_000
+_CANDIDATE_CONTEXT_LIMIT = 24_000
 _RESULT_SCHEMA = {
     "type": "object",
     "properties": {
@@ -351,6 +352,12 @@ class LocalCommandProvider:
         atomic_write_json(schema_path, _RESULT_SCHEMA)
         result_path.unlink(missing_ok=True)
         prompt, task_context, dependency_context = self._task_prompt_components(task, task_dir)
+        if agent.provider == "grok":
+            prompt = (
+                "You have no tools and no direct workspace access. Reason only from the "
+                "bounded Context below; do not claim to have inspected unprovided files.\n"
+                + prompt
+            )
         command = self._native_command(
             agent, task, schema_path, result_path, tool_exposure=tool_exposure
         )
@@ -388,6 +395,35 @@ class LocalCommandProvider:
                     },
                     usage=UsageMetrics(latency_ms=0),
                 )
+        elif agent.provider == "grok":
+            if agent.runtime_profile != "xai_responses":
+                return ProviderResult(
+                    False,
+                    "PROVIDER_PROFILE_MISMATCH",
+                    outputs={
+                        **policy_outputs,
+                        "error_code": "PROVIDER_PROFILE_MISMATCH",
+                    },
+                    usage=UsageMetrics(latency_ms=0),
+                )
+            if not child_env.get("XAI_API_KEY"):
+                return ProviderResult(
+                    False,
+                    "PROVIDER_AUTHENTICATION_REQUIRED",
+                    outputs={
+                        **policy_outputs,
+                        "error_code": "PROVIDER_AUTHENTICATION_REQUIRED",
+                    },
+                    usage=UsageMetrics(latency_ms=0),
+                )
+            for key in (
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "ANTHROPIC_AUTH_TOKEN",
+                "DEEPSEEK_API_KEY",
+            ):
+                child_env.pop(key, None)
+            child_env["FLOWFOUNDRY_GROK_MODEL"] = agent.model
 
         request_metrics_ref = "provider-request-metrics.json"
         atomic_write_json(
@@ -522,6 +558,8 @@ class LocalCommandProvider:
         *,
         tool_exposure: ProviderToolExposure | None = None,
     ) -> list[str]:
+        if agent.provider == "grok":
+            return list(agent.command_template)
         if agent.provider == "codex":
             sandbox = (
                 "read-only"
@@ -589,6 +627,13 @@ class LocalCommandProvider:
                         dependency_artifacts[dependency] = json.loads(content)
                 except (OSError, json.JSONDecodeError):
                     dependency_artifacts[dependency] = {"status": "artifact_unreadable"}
+        source_task = task.inputs.get("source_task")
+        if task.inputs.get("include_candidate_patch") is True and isinstance(source_task, str):
+            LocalCommandProvider._attach_candidate_context(
+                dependency_artifacts,
+                source_task,
+                run_root,
+            )
         context = {
             "task": task.to_dict(),
             "dependency_artifacts": dependency_artifacts,
@@ -618,6 +663,50 @@ class LocalCommandProvider:
             + json.dumps(context, indent=2, ensure_ascii=False)
         )
         return prompt, task_context, dependency_context
+
+    @staticmethod
+    def _attach_candidate_context(
+        dependency_artifacts: dict[str, object],
+        source_task: str,
+        run_root: Path,
+    ) -> None:
+        """Attach an explicitly requested, bounded candidate patch for tool-free review."""
+
+        try:
+            manifest = json.loads((run_root / "manifest.json").read_text(encoding="utf-8"))
+            task_state = manifest["tasks"][source_task]
+            candidate_ref = task_state.get("candidate_result_ref")
+            if not isinstance(candidate_ref, str):
+                return
+            candidate_path = (run_root / candidate_ref).resolve()
+            if run_root.resolve() not in candidate_path.parents:
+                return
+            candidate = json.loads(candidate_path.read_text(encoding="utf-8"))
+            diff_ref = candidate.get("diff_artifact_ref")
+            if not isinstance(diff_ref, str):
+                return
+            diff_path = (run_root / diff_ref).resolve()
+            if run_root.resolve() not in diff_path.parents:
+                return
+            with diff_path.open(encoding="utf-8") as handle:
+                patch = handle.read(_CANDIDATE_CONTEXT_LIMIT + 1)
+            source_context = dependency_artifacts.get(source_task)
+            if not isinstance(source_context, dict):
+                source_context = {"provider_result": source_context}
+                dependency_artifacts[source_task] = source_context
+            source_context["candidate"] = {
+                "candidate_result_ref": candidate_ref,
+                "base_commit": candidate.get("base_commit"),
+                "changed_files": candidate.get("changed_files", []),
+                "diff_summary": candidate.get("diff_summary", ""),
+                "diff_artifact_ref": diff_ref,
+                "patch": patch[:_CANDIDATE_CONTEXT_LIMIT],
+                "patch_truncated": len(patch) > _CANDIDATE_CONTEXT_LIMIT,
+            }
+        except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError):
+            source_context = dependency_artifacts.get(source_task)
+            if isinstance(source_context, dict):
+                source_context["candidate"] = {"status": "artifact_unreadable"}
 
     @staticmethod
     def _request_metrics(

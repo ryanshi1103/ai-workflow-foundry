@@ -1,4 +1,4 @@
-"""Provider/runtime discovery without credential value access or network probes."""
+"""Provider discovery without credential disclosure; remote probes are opt-in."""
 
 from __future__ import annotations
 
@@ -6,6 +6,8 @@ import json
 import os
 import shutil
 import subprocess
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, replace
 from typing import Callable, Mapping
 
@@ -20,15 +22,19 @@ _AUTH_ENV = {
     "codex": ("OPENAI_API_KEY",),
     "claude": ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"),
     "deepseek": ("DEEPSEEK_API_KEY",),
+    "grok": ("XAI_API_KEY",),
 }
 
 _CODEX_AUTH_TIMEOUT_SECONDS = 3.0
 _AUTH_OUTPUT_LIMIT = 4_096
+_XAI_DISCOVERY_OUTPUT_LIMIT = 65_536
+_XAI_MODELS_ENDPOINT = "https://api.x.ai/v1/models"
 
 CommandRunner = Callable[
     [tuple[str, ...], float, Mapping[str, str] | None],
     subprocess.CompletedProcess[str],
 ]
+XaiAuthProbe = Callable[[str, str, float], str]
 
 
 def _run_command(
@@ -47,6 +53,42 @@ def _run_command(
         check=False,
         env=dict(environment) if environment is not None else None,
     )
+
+
+def _probe_xai_authentication(
+    api_key: str,
+    model: str,
+    timeout_seconds: float,
+) -> str:
+    """Verify an xAI key and model grant without making an inference request."""
+
+    request = urllib.request.Request(
+        _XAI_MODELS_ENDPOINT,
+        headers={
+            "Accept": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
+            raw = response.read(_XAI_DISCOVERY_OUTPUT_LIMIT + 1)
+            if response.status != 200 or len(raw) > _XAI_DISCOVERY_OUTPUT_LIMIT:
+                return "unverified"
+        payload = json.loads(raw)
+        entries = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(entries, list):
+            return "unverified"
+        available = {
+            str(item["id"])
+            for item in entries
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        }
+        return "verified" if model in available else "model_unavailable"
+    except urllib.error.HTTPError as exc:
+        return "not_authenticated" if exc.code in {401, 403} else "unverified"
+    except (OSError, TimeoutError, urllib.error.URLError, json.JSONDecodeError):
+        return "unverified"
 
 
 def credential_sources(provider: str) -> tuple[str, ...]:
@@ -96,12 +138,16 @@ class ProviderDiscovery:
         environ: Mapping[str, str] | None = None,
         command_runner: CommandRunner | None = None,
         auth_timeout_seconds: float = _CODEX_AUTH_TIMEOUT_SECONDS,
+        verify_remote: bool = False,
+        xai_auth_probe: XaiAuthProbe | None = None,
     ) -> None:
         self.source = registry
         self.executable_lookup = executable_lookup
         self.environ = os.environ if environ is None else environ
         self.command_runner = command_runner or _run_command
         self.auth_timeout_seconds = max(0.1, auth_timeout_seconds)
+        self.verify_remote = verify_remote
+        self.xai_auth_probe = xai_auth_probe or _probe_xai_authentication
 
     def inspect(self) -> tuple[ProviderStatus, ...]:
         return tuple(self._status(agent) for agent in self.source.list())
@@ -143,6 +189,12 @@ class ProviderDiscovery:
             authentication_state = self._claude_profile_authentication_state(
                 str(resolved_executable), agent.runtime_profile
             )
+        elif (
+            agent.provider == "grok"
+            and installed
+            and provider_identity_state == "verified"
+        ):
+            authentication_state = self._grok_authentication_state(agent.model)
         elif any(name in self.environ and bool(self.environ[name]) for name in sources):
             authentication_state = "configured"
         elif installed:
@@ -174,7 +226,23 @@ class ProviderDiscovery:
                         "authenticate the DeepSeek-compatible profile"
                         if agent.provider == "deepseek"
                         and authentication_state == "not_authenticated"
-                        else f"verify {agent.provider} CLI authentication when first needed"
+                        else (
+                            "set XAI_API_KEY in the operator environment"
+                            if agent.provider == "grok"
+                            and authentication_state == "not_authenticated"
+                            else (
+                                f"grant this xAI key access to {agent.model}"
+                                if agent.provider == "grok"
+                                and authentication_state == "model_unavailable"
+                                else (
+                                "run `flowfoundry team providers --verify-remote` "
+                                "to verify xAI authentication"
+                                if agent.provider == "grok"
+                                and authentication_state == "configured"
+                                else f"verify {agent.provider} CLI authentication when first needed"
+                                )
+                            )
+                        )
                     )
                 )
             )
@@ -207,6 +275,8 @@ class ProviderDiscovery:
                 if agent.runtime_profile == "codex_native"
                 else "unverified"
             )
+        if agent.provider == "grok":
+            return "verified" if agent.runtime_profile == "xai_responses" else "unverified"
         if agent.provider in {"claude", "deepseek"}:
             return (
                 "verified"
@@ -215,6 +285,16 @@ class ProviderDiscovery:
                 else "unverified"
             )
         return "unverified"
+
+    def _grok_authentication_state(self, model: str) -> str:
+        """Classify xAI API-key readiness; network verification is explicit."""
+
+        api_key = self.environ.get("XAI_API_KEY")
+        if not api_key:
+            return "not_authenticated"
+        if not self.verify_remote:
+            return "configured"
+        return self.xai_auth_probe(api_key, model, self.auth_timeout_seconds)
 
     def _codex_authentication_state(self, executable: str) -> str:
         """Classify only the documented, non-inference Codex login status."""

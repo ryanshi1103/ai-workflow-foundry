@@ -13,7 +13,6 @@ from threading import Semaphore
 from typing import Any
 
 from .approvals import ApprovalGate
-from .decisions import DecisionContextService
 from .evaluator import evaluate_review
 from .isolation import WorktreeError, WorktreeManager
 from .mailbox import Mailbox
@@ -65,13 +64,6 @@ class RunScheduler:
 
     def run(self, workspace: RunWorkspace) -> dict[str, Any]:
         plan = workspace.plan()
-        context_limit = 10_000
-        if plan.meeting_plan is not None:
-            context_limit = max(
-                2_000,
-                min(9_000, plan.meeting_plan.context_char_limit * 3 // 4),
-            )
-        DecisionContextService().prepare(workspace, max_chars=context_limit)
         if plan.meeting_plan is not None:
             return MeetingRuntime(
                 self.router,
@@ -166,7 +158,6 @@ class RunScheduler:
         return changed
 
     def _execute_task(self, workspace: RunWorkspace, task: TaskSpec) -> None:
-        task = DecisionContextService.inject_task(workspace, task)
         if workspace.manifest().get("cancel_requested"):
             workspace.update_task(
                 task.id,
@@ -416,10 +407,15 @@ class RunScheduler:
                 manager.finish_validation(str(worktree["worktree_id"]), validation)
             except WorktreeError as exc:
                 validation = {
+                    "source": "flowfoundry",
                     "success": False,
                     "error": f"{exc.code}: {exc}",
                     "commands": [],
                 }
+            final_result = replace(
+                final_result,
+                outputs={**final_result.outputs, "validation": validation},
+            )
             if not validation.get("success"):
                 failed_command = next(
                     (
@@ -433,7 +429,6 @@ class RunScheduler:
                     final_result,
                     success=False,
                     summary=f"validation failed: {failed_command}",
-                    outputs={**final_result.outputs, "validation": validation},
                 )
         workspace.write_task_result(task.id, final_result.to_dict())
         usage = self._aggregate_usage(attempt_usage)
@@ -662,6 +657,7 @@ class RunScheduler:
                 )
                 result = {
                     "command": command,
+                    "executed": True,
                     "success": completed.returncode == 0,
                     "exit_code": completed.returncode,
                     "stdout": completed.stdout[-40_000:],
@@ -672,6 +668,7 @@ class RunScheduler:
             except subprocess.TimeoutExpired as exc:
                 result = {
                     "command": command,
+                    "executed": True,
                     "success": False,
                     "exit_code": None,
                     "stdout": (exc.stdout or "")[-40_000:],
@@ -682,6 +679,7 @@ class RunScheduler:
             except (OSError, ValueError) as exc:
                 result = {
                     "command": command,
+                    "executed": True,
                     "success": False,
                     "exit_code": None,
                     "stdout": "",
@@ -693,6 +691,7 @@ class RunScheduler:
             if not result["success"]:
                 break
         return {
+            "source": "flowfoundry",
             "success": len(results) == len(commands) and all(item["success"] for item in results),
             "commands": results,
         }

@@ -135,9 +135,7 @@ Usage:
 def _cmd_new(args):
     """Create a new project and launch the CLI."""
     if not args:
-        print(
-            "Usage: aiproj new <claude|codex> [--workflow CONTRACT_ID]", file=sys.stderr
-        )
+        print("Usage: aiproj new <claude|codex>", file=sys.stderr)
         sys.exit(1)
 
     tool = args[0].lower()
@@ -152,7 +150,6 @@ def _cmd_new(args):
     model = ""
     provider = ""
     permission_mode = ""
-    workflow_contract = ""
 
     remaining = args[1:]
     i = 0
@@ -165,10 +162,6 @@ def _cmd_new(args):
             i += 2
         elif remaining[i] == "--permission-mode" and i + 1 < len(remaining):
             permission_mode = remaining[i + 1]
-            i += 2
-        elif remaining[i] == "--workflow" and i + 1 < len(remaining):
-            workflow_contract = remaining[i + 1]
-            i += 2
             i += 2
         elif remaining[i] == "--":
             extra_args.extend(remaining[i + 1 :])
@@ -183,7 +176,6 @@ def _cmd_new(args):
         model=model,
         provider=provider,
         permission_mode=permission_mode,
-        workflow_contract_id=workflow_contract or None,
     )
     sys.exit(exit_code)
 

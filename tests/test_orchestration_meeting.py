@@ -199,7 +199,7 @@ class BoundedMeetingTests(unittest.TestCase):
     def test_agent_unavailable_blocks_when_remaining_team_is_insufficient(self) -> None:
         agents = tuple(
             replace(agent, availability=False)
-            if agent.id == "deepseek-reviewer"
+            if agent.id in {"deepseek-reviewer", "grok-critic"}
             else agent
             for agent in default_registry().synthetic().list()
         )

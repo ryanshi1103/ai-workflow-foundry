@@ -15,7 +15,8 @@ The AI Project Workspace Manager is a unified project management, launch, and ma
 ### cc-projects-maintain
 - **Path**: `bin/cc-projects-maintain` → `~/.local/bin/cc-projects-maintain`
 - **Purpose**: Periodic maintenance of `~/Projects/` (hygiene, dedup, quarantine, indexing)
-- **Schedule**: systemd user timers (weekly quick, monthly deep, quarantine cleanup)
+- **Schedule**: systemd user timers (weekly quick, monthly deep, daily quarantine
+  review; verified items become eligible for purge after 14 days)
 
 ### FlowFoundry workspace runtime (Python)
 
@@ -42,29 +43,24 @@ workspace/
 ```
 ┌─────────────────────────────────────────────────┐
 │                    cc Launcher                    │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │
-│  │  Claude  │  │ DeepSeek │  │  Codex (new) │  │
-│  │  native  │  │  V4 Pro  │  │ GPT-5.6 Sol  │  │
-│  └────┬─────┘  └────┬─────┘  └──────┬───────┘  │
-│       │             │               │           │
-│  permission_mode  permission_mode  approval    │
-│  bypassPerm...    acceptEdits...   _policy +    │
-│                                    sandbox_mode │
-└───────┼─────────────┼───────────────┼───────────┘
-        │             │               │
-   ~/.claude-    ~/.claude-      ~/.codex/
-   native/       deepseek/       (profiles)
+│   Auto          Claude       DeepSeek       Codex │
+│     │           native         V4 Pro    GPT-5.6  │
+└─────┼─────────────┼─────────────┼────────────┼─────┘
+      │             │             │            │
+ FlowFoundry   permission_mode  permission_mode  profile
+ goal path     ~/.claude-native ~/.claude-deepseek ~/.codex
 ```
 
 ## Data Flow
 
 1. User runs `cc`
 2. Project is selected (auto-detect, recent, browse, create, or manual)
-3. Tool is selected (Claude/DeepSeek/Codex)
-4. Permission mode is selected (tool-specific menus)
+3. Auto or a direct tool is selected (Auto/Claude/DeepSeek/Codex)
+4. Auto selects one four-level session ceiling and enters the existing
+   FlowFoundry goal path; direct tools retain their native permission menus
 5. `CC_ACTIVE_PROJECT` is exported
-6. Working directory is changed to the project
-7. Native AI tool is launched via `exec`
+6. Auto routes and evaluates each goal; direct choices launch the native tool
+7. Project/session/recovery behavior remains owned by the existing workspace runtime
 
 ## Key Design Decisions
 
@@ -80,3 +76,6 @@ workspace/
    permission identifiers; generated profiles and authentication remain local
 8. **Runtime APIs are explicit**: `lifecycle` and `sessions` export curated
    canonical callables while implementation modules remain independently testable
+9. **Auto is the backend seam**: it reuses FlowFoundry context, capability
+   selection, Worker permission bounding, execution, and evidence; it does not
+   add a second coordinator or provider framework

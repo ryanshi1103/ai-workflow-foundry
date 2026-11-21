@@ -16,15 +16,32 @@ def main(argv: list[str] | None = None) -> int:
     modes.add_argument("--report", action="store_true")
     modes.add_argument("--sync-managed", action="store_true")
     modes.add_argument("--purge-quarantine", action="store_true")
+    modes.add_argument("--quarantine-project", metavar="NAME")
+    modes.add_argument("--restore-quarantine", metavar="PATH")
     parser.add_argument("--dry-run", action="store_true")
     return run_maintenance_cli(parser.parse_args(argv))
 
 
 def run_maintenance_cli(args: argparse.Namespace) -> int:
     """Run project maintenance and return exit code."""
-    from ..maintenance.projects import run_maintenance
+    from ..maintenance.projects import (
+        quarantine_named_project,
+        restore_from_quarantine,
+        run_maintenance,
+    )
 
     dry_run = args.dry_run
+    if args.quarantine_project:
+        result = quarantine_named_project(args.quarantine_project, dry_run=dry_run)
+        print({key: value for key, value in result.items() if key != "sha256_manifest"})
+        return 0 if result.get("success") else 1
+    if args.restore_quarantine:
+        if dry_run:
+            print("--dry-run is not supported with --restore-quarantine", file=sys.stderr)
+            return 1
+        result = restore_from_quarantine(args.restore_quarantine)
+        print(result)
+        return 0 if result.get("success") else 1
     if args.quick:
         mode = "quick"
     elif args.deep:

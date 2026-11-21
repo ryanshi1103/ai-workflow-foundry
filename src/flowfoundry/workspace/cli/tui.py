@@ -10,9 +10,9 @@ The module splits into three layers:
 * pure frame builders — strings in, strings out (used by tests and mockups)
 * screen loops — interactive flows returning launch decisions
 
-Auto mode resolves the last-used provider and permission profile per
-project, falls back to a safe default, and only asks when the choice is
-ambiguous.  Availability (binary present, profile configured) is part of
+Auto mode hands the selected project and one session authority ceiling to
+FlowFoundry. Direct provider rows retain their native permission/profile
+screens. Availability (binary present, profile configured) remains part of
 the decision.
 """
 
@@ -33,7 +33,13 @@ try:  # non-POSIX platforms (tests, docs) fall back to line input
 except ImportError:  # pragma: no cover
     termios = None  # type: ignore[assignment]
 
-from ..providers import CLAUDE_PERMISSION_MODES, CODEX_PROFILES, claude_config_dir
+from ...permissions import SESSION_PERMISSION_CEILINGS
+from ..providers import (
+    CLAUDE_PERMISSION_MODES,
+    CODEX_PROFILES,
+    GROK_PERMISSION_LEVELS,
+    claude_config_dir,
+)
 from . import launcher
 from .layout import (
     GAP,
@@ -55,14 +61,23 @@ AUTO_CONFIG_FILE = launcher.RECENT_STATE_DIR / "auto-config.json"
 PROVIDER_CLAUDE = "c"
 PROVIDER_DEEPSEEK = "d"
 PROVIDER_CODEX = "o"
+PROVIDER_GROK = "g"
+PROVIDER_FLOWFOUNDRY = "flowfoundry"
 
-_PROVIDER_ORDER = [PROVIDER_CLAUDE, PROVIDER_DEEPSEEK, PROVIDER_CODEX]
+_PROVIDER_ORDER = [
+    PROVIDER_CLAUDE,
+    PROVIDER_DEEPSEEK,
+    PROVIDER_CODEX,
+    PROVIDER_GROK,
+]
+_AUTO_PROVIDER_ORDER = [PROVIDER_CLAUDE, PROVIDER_DEEPSEEK, PROVIDER_CODEX]
 
 # Short, display-safe labels for the TUI (the prompt flow keeps full names).
 PROVIDER_LABELS = {
     PROVIDER_CLAUDE: "Claude",
     PROVIDER_DEEPSEEK: "DeepSeek",
     PROVIDER_CODEX: "Codex",
+    PROVIDER_GROK: "Grok Build",
 }
 
 _CLAUDE_MODE_LABELS = {
@@ -298,6 +313,7 @@ def provider_availability() -> dict[str, bool]:
         PROVIDER_CLAUDE: claude_ok,
         PROVIDER_DEEPSEEK: claude_ok and claude_config_dir("deepseek").is_dir(),
         PROVIDER_CODEX: launcher._find_executable("codex") is not None,
+        PROVIDER_GROK: launcher._find_executable("grok") is not None,
     }
 
 
@@ -313,12 +329,12 @@ def resolve_auto(project: Path) -> tuple[str, str]:
     remembered = cfg.get("projects", {}).get(str(project), {}) or {}
     provider = ""
     for candidate in (remembered.get("provider"), cfg.get("last_provider")):
-        if candidate in _PROVIDER_ORDER and avail.get(candidate):
+        if candidate in _AUTO_PROVIDER_ORDER and avail.get(candidate):
             provider = candidate
             break
     if not provider:
         provider = next(
-            (key for key in _PROVIDER_ORDER if avail.get(key)),
+            (key for key in _AUTO_PROVIDER_ORDER if avail.get(key)),
             PROVIDER_CLAUDE,
         )
     valid_modes = (
@@ -947,6 +963,32 @@ def _provider_items(avail: dict[str, bool]) -> list[tuple[str, str]]:
 def permission_screen(term: RawTerm, project: Path, provider: str) -> dict | None:
     """Permission/profile selection for one provider.  Returns a launch
     config dict, or None to go back."""
+    if provider == PROVIDER_GROK:
+        levels = list(GROK_PERMISSION_LEVELS)
+        items = [
+            (
+                str(GROK_PERMISSION_LEVELS[level]["name"]),
+                str(GROK_PERMISSION_LEVELS[level]["detail"]),
+            )
+            for level in levels
+        ]
+        title = f"{project.name} · {PROVIDER_LABELS[provider]}"
+        index = _list_loop(
+            term,
+            title=title,
+            items=items,
+            footer="↑↓ 选择  Enter 启动  Tab 返回  q 返回",
+            warn_indexes=frozenset({len(levels) - 1}),
+        )
+        if index is None:
+            return None
+        level = levels[index]
+        return {
+            "provider": provider,
+            "permission_level": level,
+            "is_full": bool(GROK_PERMISSION_LEVELS[level]["is_full"]),
+        }
+
     if provider in (PROVIDER_CLAUDE, PROVIDER_DEEPSEEK):
         labels = _CLAUDE_MODE_LABELS
         order = ["m", "e", "p", "a", "b"]
@@ -982,23 +1024,43 @@ def permission_screen(term: RawTerm, project: Path, provider: str) -> dict | Non
     }
 
 
+def flowfoundry_permission_screen(term: RawTerm, project: Path) -> dict | None:
+    """Select the maximum authority once for the automatic goal session."""
+    levels = list(SESSION_PERMISSION_CEILINGS)
+    items = [
+        (
+            SESSION_PERMISSION_CEILINGS[level]["name"],
+            SESSION_PERMISSION_CEILINGS[level]["detail"],
+        )
+        for level in levels
+    ]
+    index = _list_loop(
+        term,
+        title=f"{project.name} · Auto 权限上限",
+        items=items,
+        footer="↑↓ 选择  Enter 继续  Tab 返回  q 返回",
+        warn_indexes=frozenset({len(levels) - 1}),
+    )
+    if index is None:
+        return None
+    config = SESSION_PERMISSION_CEILINGS[levels[index]]
+    return {
+        "provider": PROVIDER_FLOWFOUNDRY,
+        "permission_level": config["level"],
+        "read_only": config["read_only"],
+        "is_full": config["level"] == 4,
+    }
+
+
 def detail_screen(term: RawTerm, project: Path) -> dict | str | None:
     """Provider selection after a project is chosen.  Returns a launch
     config dict, MENU_BACK to re-pick a project, or None to quit."""
     avail = provider_availability()
-    auto_provider, auto_mode = resolve_auto(project)
+    auto_available = avail.get(PROVIDER_CODEX, False)
     branch, dot, kind = git_info(project)
     selected = 0
     while True:
-        auto_labels = (
-            _CODEX_MODE_LABELS
-            if auto_provider == PROVIDER_CODEX
-            else _CLAUDE_MODE_LABELS
-        )
-        if avail.get(auto_provider):
-            auto_meta = f"{PROVIDER_LABELS[auto_provider]} · {auto_labels[auto_mode][0]}"
-        else:
-            auto_meta = "未检测到可用工具"
+        auto_meta = "FlowFoundry · 自动路由" if auto_available else "Codex 执行器不可用"
         items = [("Auto", auto_meta)] + _provider_items(avail)
         frame = build_detail_frame(
             project=project,
@@ -1020,18 +1082,12 @@ def detail_screen(term: RawTerm, project: Path) -> dict | str | None:
             selected = min(selected + 1, len(items) - 1)
         elif key == "enter":
             if selected == 0:
-                if not avail.get(auto_provider):
+                if not auto_available:
                     continue
-                # Bypass/full-access never auto-launches: ask explicitly.
-                if auto_mode == "b" or (
-                    auto_provider == PROVIDER_CODEX
-                    and CODEX_PROFILES[auto_mode]["is_full"]
-                ):
-                    cfg = permission_screen(term, project, auto_provider)
-                    if cfg is not None:
-                        return cfg
-                    continue
-                return _launch_cfg(auto_provider, auto_mode)
+                cfg = flowfoundry_permission_screen(term, project)
+                if cfg is not None:
+                    return cfg
+                continue
             provider = _PROVIDER_ORDER[selected - 1]
             if not avail.get(provider):
                 continue
@@ -1045,17 +1101,25 @@ def detail_screen(term: RawTerm, project: Path) -> dict | str | None:
             return None
 
 
-def _launch_cfg(provider: str, mode: str) -> dict:
+def _launch_cfg(provider: str, mode: str | int) -> dict:
     """Build the launch config for a resolved (provider, mode) pair."""
+    if provider == PROVIDER_GROK:
+        level = int(mode)
+        profile = GROK_PERMISSION_LEVELS[level]
+        return {
+            "provider": provider,
+            "permission_level": level,
+            "is_full": profile["is_full"],
+        }
     if provider == PROVIDER_CODEX:
-        profile = CODEX_PROFILES[mode]
+        profile = CODEX_PROFILES[str(mode)]
         return {
             "provider": provider,
             "mode": mode,
             "profile": profile["profile"],
             "is_full": profile["is_full"],
         }
-    profile = CLAUDE_PERMISSION_MODES[mode]
+    profile = CLAUDE_PERMISSION_MODES[str(mode)]
     return {
         "provider": provider,
         "mode": mode,
@@ -1105,8 +1169,25 @@ def tui_main() -> int:
                 project = None
                 continue
 
+            if cfg["provider"] == PROVIDER_FLOWFOUNDRY:
+                if cfg["is_full"] and launcher._is_remote:
+                    term.exit()
+                    if not launcher._confirm_remote(
+                        "FlowFoundry full-access ceiling"
+                    ):
+                        return 1
+                    term.enter()
+                from .auto_ui import AUTO_BACK, run_auto_session
+
+                outcome = run_auto_session(
+                    term, project, int(cfg["permission_level"])
+                )
+                if outcome == AUTO_BACK:
+                    continue
+                return 0
+
             term.exit()
-            # Everything below runs with the terminal restored.
+            # Direct providers take over with the terminal restored.
             if cfg["provider"] == PROVIDER_CODEX:
                 if not launcher._codex_preflight(project, cfg["profile"]):
                     term.enter()
@@ -1128,6 +1209,29 @@ def tui_main() -> int:
                     return 1
                 _record_launch(project, PROVIDER_CODEX, cfg["mode"])
                 return launcher._launch_codex(project, cfg["profile"])
+
+            if cfg["provider"] == PROVIDER_GROK:
+                level = int(cfg["permission_level"])
+                if not launcher._grok_preflight(project, level):
+                    term.enter()
+                    retry = _list_loop(
+                        term,
+                        title="Grok Build 启动前检查失败",
+                        items=[
+                            ("返回项目", str(project)),
+                            ("退出", ""),
+                        ],
+                        footer="↑↓  Enter 确认  q 退出",
+                    )
+                    if retry == 0:
+                        continue
+                    return 0
+                if cfg["is_full"] and not launcher._confirm_remote(
+                    "Grok Build full access"
+                ):
+                    return 1
+                _record_launch(project, PROVIDER_GROK, str(level))
+                return launcher._launch_grok(project, level)
 
             provider_name = (
                 "deepseek" if cfg["provider"] == PROVIDER_DEEPSEEK else "claude"

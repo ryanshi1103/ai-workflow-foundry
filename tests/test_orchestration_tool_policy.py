@@ -121,6 +121,28 @@ class ToolPolicyUnitTests(unittest.TestCase):
         self.assertFalse(policy.runnable)
         self.assertEqual(policy.reason, "TOOL_POLICY_UNSUPPORTED_PROVIDER")
 
+    def test_grok_no_external_action_exposes_only_structured_output(self) -> None:
+        policy = build_tool_policy(
+            minimum_task(TaskToolRequirement.NO_EXTERNAL_ACTION.value), "grok"
+        )
+        exposure = provider_tool_exposure(policy)
+
+        self.assertTrue(policy.runnable)
+        self.assertEqual(policy.task_tools, ())
+        self.assertEqual(
+            policy.effective_tool_names,
+            (ProtocolTool.STRUCTURED_OUTPUT.value,),
+        )
+        self.assertEqual(exposure.cli_args, ())
+
+    def test_grok_exact_file_requirement_fails_closed(self) -> None:
+        policy = build_tool_policy(
+            minimum_task(TaskToolRequirement.READ_EXACT_FILE.value), "grok"
+        )
+
+        self.assertFalse(policy.runnable)
+        self.assertEqual(policy.reason, "TOOL_POLICY_UNSUPPORTED_CAPABILITY")
+
     def test_requested_exposed_and_executed_are_separate(self) -> None:
         observation = ToolObservation.from_events(
             exposed=("Read", "StructuredOutput"),

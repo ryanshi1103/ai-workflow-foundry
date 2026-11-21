@@ -1,37 +1,23 @@
 # Contributing
 
-Thank you for helping build FlowFoundry as an open, local-first AI coordination
-layer.
+Thank you for helping build FlowFoundry as an open, local-first AI coordination layer.
 
-FlowFoundry is early enough that a clear example, a reproducible install report,
-or a focused test can materially improve the product. You do not need provider
-credentials or agent-framework experience to make a useful first contribution.
+## Start small
 
-## Choose a contribution path
+Open an issue for a reproducible bug, a confusing setup step, or one concrete
+feature. State the platform, expected result, actual result, minimal reproduction,
+and a way to verify a fix. Avoid posting logs that contain names, local paths,
+tokens, network addresses, or private project text.
 
-| If you enjoy… | A useful first contribution |
-|---|---|
-| Explaining technical ideas | Tighten a tutorial, example, expected output, or limitation |
-| Testing systems | Add a deterministic fixture or reproduce a clean installation |
-| Developer experience | Improve one CLI message without changing durable state |
-| Provider integrations | Strengthen readiness/diagnostic tests without adding a provider |
-| Research and evaluation | Improve provenance, evidence, or human-control criteria |
+For a pull request, explain the user problem, the changed behavior, the test
+evidence, and any remaining limitation. Keep unrelated refactors separate.
+Issues labeled `good first issue` are intended for first-time contributors.
 
-Review the [five scoped starter issues](docs/GOOD_FIRST_ISSUES.md). Each has a
-problem, importance, difficulty, skills, acceptance criteria, and test command.
+## Development setup
 
-The complete contributor guide covers development setup, issue reports,
-provider and workflow proposals, architecture discussions, testing, privacy,
-and pull request expectations:
-
-**[Read the contributor guide](docs/CONTRIBUTING.md)**
-
-New to the project? Follow the evidence-based
-**[Day 1 → Day 7 contributor journey](docs/CONTRIBUTOR_JOURNEY.md)**.
-
-For a first pull request, keep the change small, explain why it matters, record
-the risk, and show the relevant test evidence. Maintainers value honest
-boundaries and reviewable progress more than feature count.
+Use Python 3.11+, Git, and a virtual environment. The core path is local and
+does not require a paid model account for unit tests. Real-provider testing
+requires the contributor's own account and must be explicitly enabled.
 
 Before opening a pull request, run at minimum:
 
@@ -40,6 +26,22 @@ PYTHONPATH=src python3 -m flowfoundry validate
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 git diff --check
 ```
+
+The desktop scaffold has separate Node, Rust, and native system requirements;
+see [its README](applications/flowfoundry-desktop/README.md). Component tests
+live under their own directories. State which checks you ran and which you
+could not run.
+
+## Architecture and scope
+
+The coordinator owns the goal, route selection, evidence, and approval boundary.
+Providers own model execution. A proposed new provider needs a clear capability
+contract, an eligibility check, a failure mode, and a test with fake credentials.
+Avoid adding a worker or meeting to a path that can be handled by one worker.
+
+The current development branch and release snapshot may differ. Base changes on
+the public default branch unless a maintainer directs otherwise. Never merge a
+historical or private branch into a public branch without a privacy review.
 
 Never include credentials, private session content, customer data, or real
 personal media in issues, tests, examples, or commits.

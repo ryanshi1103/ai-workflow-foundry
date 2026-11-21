@@ -202,7 +202,6 @@ class LauncherCompatibilityTests(unittest.TestCase):
                 "model",
                 "provider",
                 "permission_mode",
-                "workflow_contract_id",
             ],
         )
         self.assertEqual(
@@ -288,10 +287,7 @@ class LauncherCompatibilityTests(unittest.TestCase):
                 patch.object(launcher, "ensure_git_identity"),
                 patch.object(launcher, "_launch_session", return_value=17) as shared,
             ):
-                result = launcher.launch_new(
-                    "claude",
-                    workflow_contract_id="workspace-contract",
-                )
+                result = launcher.launch_new("claude")
 
             self.assertEqual(result, 17)
             recover.assert_called_once_with()

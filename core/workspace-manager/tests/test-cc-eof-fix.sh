@@ -131,7 +131,7 @@ test_codex_mode() {
 $mode
 yes
 "; then
-        assert_contains "$EXEC_LOG" "args=--profile $profile" "Codex $mode uses $profile"
+        assert_contains "$EXEC_LOG" "args=--no-alt-screen --profile $profile" "Codex $mode uses $profile"
         assert_contains "$EXEC_LOG" "project=$TEST_PROJECT" "Codex $mode exports CC_ACTIVE_PROJECT"
     else
         fail "Codex $mode reaches intercepted exec"
@@ -151,7 +151,7 @@ a
 yes
 " true; then
     assert_contains "$OUTPUT" "SSH 远程会话" "remote session banner is visible"
-    assert_contains "$EXEC_LOG" "args=--profile gpt56-sol-auto" "remote safe Codex mode launches normally"
+    assert_contains "$EXEC_LOG" "args=--no-alt-screen --profile gpt56-sol-auto" "remote safe Codex mode launches normally"
 else
     fail "remote safe Codex mode reaches intercepted exec"
 fi
@@ -173,7 +173,7 @@ b
 remote-yes
 yes
 " true; then
-    assert_contains "$EXEC_LOG" "args=--profile gpt56-sol-full" "remote Codex full access accepts two confirmations"
+    assert_contains "$EXEC_LOG" "args=--no-alt-screen --profile gpt56-sol-full" "remote Codex full access accepts two confirmations"
 else
     fail "remote Codex full access reaches intercepted exec after two confirmations"
 fi
@@ -194,7 +194,7 @@ if run_launcher "o
 b
 yes
 "; then
-    assert_contains "$EXEC_LOG" "args=--profile gpt56-sol-full" "Codex b yes continues to intercepted exec"
+    assert_contains "$EXEC_LOG" "args=--no-alt-screen --profile gpt56-sol-full" "Codex b yes continues to intercepted exec"
 else
     fail "Codex b yes reaches intercepted exec"
 fi

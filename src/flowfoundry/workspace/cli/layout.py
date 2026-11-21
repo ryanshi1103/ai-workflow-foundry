@@ -164,6 +164,62 @@ def pad(text: str, width: int, align: str = "left", fill: str = " ") -> str:
     return text + fill * gap
 
 
+def wrap_text(text: str, width: int) -> list[str]:
+    """Wrap plain text to terminal-cell ``width`` while preserving paragraphs.
+
+    English prefers whitespace boundaries; CJK and long unbroken words fall
+    back to cell-accurate hard wrapping.  The function deliberately operates
+    on display cells rather than code-point counts so its output can be fed
+    straight into :func:`render_box` without alignment drift.
+    """
+    if width <= 0:
+        raise ValueError("wrap width must be > 0")
+
+    def wrap_line(line: str) -> list[str]:
+        if not line:
+            return [""]
+        remaining = line
+        wrapped: list[str] = []
+        while display_width(remaining) > width:
+            used = 0
+            hard_break = 0
+            whitespace_break = 0
+            for index, ch in enumerate(remaining):
+                cell_width = char_width(ch)
+                if used + cell_width > width:
+                    break
+                used += cell_width
+                hard_break = index + 1
+                if ch.isspace():
+                    whitespace_break = index + 1
+            if hard_break == 0:
+                # A cell can only exceed the width when a wide character is
+                # asked to fit in a one-cell viewport. Keep making progress.
+                hard_break = 1
+            # Prefer a word boundary only when it uses a reasonable share of
+            # the row. This keeps English words intact without producing a
+            # tiny prefix before a long CJK continuation ("Auto 输入界面…").
+            use_whitespace = bool(
+                whitespace_break
+                and display_width(remaining[:whitespace_break].rstrip())
+                >= max(1, width // 2)
+            )
+            split_at = whitespace_break if use_whitespace else hard_break
+            segment = remaining[:split_at].rstrip()
+            if not segment:
+                segment = remaining[:hard_break]
+                split_at = hard_break
+            wrapped.append(segment)
+            remaining = remaining[split_at:].lstrip()
+        wrapped.append(remaining)
+        return wrapped
+
+    lines: list[str] = []
+    for logical_line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        lines.extend(wrap_line(logical_line))
+    return lines or [""]
+
+
 # ---------------------------------------------------------------------------
 # Column planning (choose columns and visible metadata from content + space)
 # ---------------------------------------------------------------------------

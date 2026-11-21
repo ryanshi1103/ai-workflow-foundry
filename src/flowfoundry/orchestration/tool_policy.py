@@ -322,6 +322,23 @@ def translate_tool_exposure(policy: ToolExposurePolicy) -> ToolExposurePolicy:
 
     if policy.mode != ToolPolicyMode.MINIMUM_SUFFICIENT:
         return policy
+    if policy.provider == "grok":
+        if policy.task_tools:
+            return replace(
+                policy,
+                translation_status=TranslationStatus.UNSUPPORTED,
+                reason="TOOL_POLICY_UNSUPPORTED_CAPABILITY",
+            )
+        protocol = (ProtocolTool.STRUCTURED_OUTPUT.value,)
+        return replace(
+            policy,
+            protocol_tools=protocol,
+            effective_tool_names=protocol,
+            translation_status=TranslationStatus.TRANSLATED,
+            effective_tools_status="exact",
+            reason="xAI Responses request exposes structured output and no task tools",
+            tool_exposure_fingerprint=_fingerprint(policy.provider, protocol),
+        )
     if policy.provider not in {"claude", "deepseek"}:
         return replace(
             policy,
@@ -353,6 +370,8 @@ def translate_tool_exposure(policy: ToolExposurePolicy) -> ToolExposurePolicy:
 
 def provider_tool_exposure(policy: ToolExposurePolicy) -> ProviderToolExposure:
     if not policy.runnable or not policy.policy_applied:
+        return ProviderToolExposure(policy, ())
+    if policy.provider == "grok":
         return ProviderToolExposure(policy, ())
     task_names = policy.cli_tool_names
     assert task_names is not None
