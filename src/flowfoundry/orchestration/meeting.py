@@ -737,18 +737,31 @@ class MeetingRuntime:
                 },
             )
             termination = result.termination
-            cancellation["partial_result"] = bool(result.partial_result)
-            cancellation["graceful_termination"] = bool(termination.get("graceful", False))
-            cancellation["forced_termination"] = bool(termination.get("forced", False))
+            cancellation["partial_result"] = bool(
+                cancellation.get("partial_result") or result.partial_result
+            )
+            forced = bool(
+                cancellation.get("forced_termination") or termination.get("forced")
+            )
+            cancellation["forced_termination"] = forced
+            cancellation["graceful_termination"] = (
+                not forced
+                and bool(
+                    cancellation.get("graceful_termination")
+                    or termination.get("graceful")
+                )
+            )
             if target == MeetingState.CANCEL_UNVERIFIED:
                 cancellation["termination_status"] = "cancel_unverified"
-            elif termination.get("forced"):
+            elif forced:
                 cancellation["termination_status"] = "forced"
-            elif termination.get("graceful"):
+            elif cancellation["graceful_termination"]:
                 cancellation["termination_status"] = "graceful"
             else:
                 cancellation["termination_status"] = str(
-                    termination.get("status", target.value)
+                    termination.get(
+                        "status", cancellation.get("termination_status", target.value)
+                    )
                 )
             return manifest
 
