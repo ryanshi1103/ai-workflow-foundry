@@ -4,6 +4,10 @@
 
 **One goal. The smallest sufficient AI execution path.**
 
+[![Tests](https://github.com/ryanshi1103/ai-workflow-foundry/actions/workflows/tests.yml/badge.svg)](https://github.com/ryanshi1103/ai-workflow-foundry/actions/workflows/tests.yml)
+[Alpha release](https://github.com/ryanshi1103/ai-workflow-foundry/releases/tag/v0.2.0-alpha.1) ·
+[Join the discussion / 加入共建](https://github.com/ryanshi1103/ai-workflow-foundry/discussions/8)
+
 FlowFoundry is a local, open-source coordination layer for human–AI work. It reads relevant project context, chooses an eligible executor, runs the task within a permission ceiling, checks the result, and keeps evidence for the next session. You remain responsible for consequential actions.
 
 **中文：**给它一个目标，FlowFoundry 会读取相关项目决定、选择足够用的 AI 执行路径、检查结果并保存证据。发布、部署、付款和权限变更仍由人决定。
