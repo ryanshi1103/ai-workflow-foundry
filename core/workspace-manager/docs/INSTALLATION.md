@@ -21,7 +21,8 @@ bash scripts/deploy.sh
 | `bin/cc` | `~/.local/bin/cc` |
 | `bin/cc-projects-maintain` | `~/.local/bin/cc-projects-maintain` |
 | `bin/aiproj` | `~/.local/bin/aiproj` |
-| `src/ai_project_manager/*` | `~/.local/share/ai-project-manager/ai_project_manager/` |
+| FlowFoundry editable package | user Python package directory |
+| `src/ai_project_manager/__init__.py` | legacy import compatibility directory |
 | `config/codex/*.config.toml` | `~/.codex/` |
 | `config/codex/AGENTS.md` | `~/.codex/AGENTS.md` (merged) |
 | `config/systemd/*` | `~/.config/systemd/user/` |

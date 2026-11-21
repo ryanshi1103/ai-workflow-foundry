@@ -3,4 +3,10 @@
 # Thin wrapper — delegates to the unified flowfoundry CLI.
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+MONOREPO_ROOT="$(cd "$SCRIPT_DIR/../../.." 2>/dev/null && pwd || true)"
+if [[ -d "$MONOREPO_ROOT/src/flowfoundry" ]]; then
+    export PYTHONPATH="$MONOREPO_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+fi
+
 exec python3 -m flowfoundry.aiproj "$@"

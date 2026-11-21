@@ -4,13 +4,120 @@
 import subprocess
 import tempfile
 import unittest
+import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
-from ai_project_manager import auto_name, maintain
+from flowfoundry.workspace.lifecycle import auto_name
+from flowfoundry.workspace.maintenance import projects as maintain
 
 
 class ProjectMaintenanceTests(unittest.TestCase):
+    def test_deep_scan_only_suggests_quarantine(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "Projects"
+            project = root / "low-value"
+            project.mkdir(parents=True)
+            (project / "note.txt").write_text("original", encoding="utf-8")
+            with (
+                patch.object(maintain, "PROJECTS_ROOT", root),
+                patch.object(maintain, "classify_project", return_value="D"),
+                patch.object(maintain, "analyze_project", return_value={}),
+                patch.object(maintain, "load_protected", return_value=set()),
+                patch.object(maintain, "find_duplicates", return_value=[]),
+                patch.object(maintain, "load_config", return_value={"AUTO_QUARANTINE_LOW_VALUE": "true"}),
+                patch.object(maintain, "update_project_json"),
+                patch.object(maintain, "generate_projects_index"),
+                patch.object(maintain, "log_maintenance"),
+            ):
+                report = maintain.deep_maintenance()
+            self.assertEqual(len(report["quarantine_candidates"]), 1)
+            self.assertTrue(project.exists())
+
+    def test_explicit_quarantine_and_restore_round_trip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "Projects"
+            project = root / "retired"
+            project.mkdir(parents=True)
+            (project / "data.txt").write_text("keep until purge", encoding="utf-8")
+            protected = Path(tmp) / "protected-projects"
+            protected.write_text("retired\n", encoding="utf-8")
+            with (
+                patch.object(maintain, "PROJECTS_ROOT", root),
+                patch.object(maintain, "QUARANTINE_DIR", root / "_trash-review"),
+                patch.object(maintain, "QUARANTINE_INDEX", Path(tmp) / "index.jsonl"),
+                patch.object(maintain, "PROTECTED_LIST", protected),
+                patch.object(maintain, "STATE_DIR", Path(tmp)),
+            ):
+                self.assertFalse(maintain.quarantine_named_project("retired")["success"])
+                protected.write_text("", encoding="utf-8")
+                self.assertTrue(maintain.quarantine_named_project("retired", dry_run=True)["success"])
+                self.assertTrue(project.exists())
+                result = maintain.quarantine_named_project("retired")
+                self.assertTrue(result["success"])
+                self.assertFalse(project.exists())
+                self.assertTrue(maintain.restore_from_quarantine(result["quarantine_path"])["success"])
+                self.assertEqual((project / "data.txt").read_text(), "keep until purge")
+
+    def test_quarantine_purge_requires_aged_matching_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "Projects"
+            trash = root / "_trash-review"
+            old = datetime.now(timezone.utc) - timedelta(days=16)
+            date_dir = trash / old.strftime("%Y%m%d")
+            project = date_dir / "retired"
+            project.mkdir(parents=True)
+            (project / "data.txt").write_text("original", encoding="utf-8")
+            index = Path(tmp) / "quarantine-index.jsonl"
+            entry = {
+                "timestamp": old.isoformat(),
+                "original_path": str(root / "retired"),
+                "quarantine_path": str(project),
+                "sha256_manifest": maintain._project_manifest(project),
+            }
+            index.write_text(json.dumps(entry) + "\n", encoding="utf-8")
+            protected = Path(tmp) / "protected-projects"
+            protected.write_text("", encoding="utf-8")
+            with (
+                patch.object(maintain, "PROJECTS_ROOT", root),
+                patch.object(maintain, "QUARANTINE_DIR", trash),
+                patch.object(maintain, "QUARANTINE_INDEX", index),
+                patch.object(maintain, "PROTECTED_LIST", protected),
+                patch.object(maintain, "STATE_DIR", Path(tmp)),
+                patch.object(maintain, "load_config", return_value={"QUARANTINE_DAYS": "14"}),
+            ):
+                self.assertEqual(maintain.purge_quarantine(dry_run=True)[0]["action"], "would_delete")
+                (project / "data.txt").write_text("changed", encoding="utf-8")
+                self.assertEqual(maintain.purge_quarantine()[0]["action"], "skipped_unverified")
+                self.assertTrue(project.exists())
+                (project / "data.txt").write_text("original", encoding="utf-8")
+                entry["timestamp"] = datetime.now(timezone.utc).isoformat()
+                index.write_text(json.dumps(entry) + "\n", encoding="utf-8")
+                self.assertEqual(maintain.purge_quarantine()[0]["action"], "skipped_unverified")
+                entry["timestamp"] = (datetime.now(timezone.utc) - timedelta(days=13)).isoformat()
+                index.write_text(json.dumps(entry) + "\n", encoding="utf-8")
+                with patch.object(maintain, "load_config", return_value={"QUARANTINE_DAYS": "1"}):
+                    self.assertEqual(maintain.purge_quarantine()[0]["action"], "skipped_unverified")
+                entry["timestamp"] = old.isoformat()
+                index.write_text(json.dumps(entry) + "\n", encoding="utf-8")
+                self.assertEqual(maintain.purge_quarantine()[0]["action"], "deleted")
+                self.assertFalse(project.exists())
+
+    def test_quarantine_rejects_symlinked_content(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "Projects"
+            project = root / "retired"
+            project.mkdir(parents=True)
+            (project / "shortcut").symlink_to(Path(tmp))
+            with (
+                patch.object(maintain, "PROJECTS_ROOT", root),
+                patch.object(maintain, "QUARANTINE_DIR", root / "_trash-review"),
+            ):
+                result = maintain.quarantine_project(project, "test")
+            self.assertFalse(result["success"])
+            self.assertTrue(project.exists())
+
     def test_managed_project_policy_parses_safe_direct_children(self):
         with tempfile.TemporaryDirectory() as tmp:
             policy = Path(tmp) / "managed-projects"

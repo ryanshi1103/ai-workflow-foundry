@@ -1,10 +1,10 @@
 [Unit]
-Description=Weekly cc-projects quarantine purge timer
+Description=Daily cc-projects quarantine purge timer
 Documentation=man:cc-projects-maintain(1)
 
 [Timer]
-# Run weekly on Wednesday at 03:23 (off-peak, avoids :00/:30)
-OnCalendar=Wed *-*-* 03:23:00
+# Run daily at 03:23; only items older than 14 days can be purged.
+OnCalendar=*-*-* 03:23:00
 Persistent=true
 RandomizedDelaySec=600
 

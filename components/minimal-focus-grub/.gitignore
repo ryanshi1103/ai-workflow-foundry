@@ -1,0 +1,19 @@
+# Local project metadata and research downloads
+.ai/
+.grub-research-path
+.grub-research.*/
+
+# Former nested project directory (left empty after normalization)
+grub-x-minimal-theme/
+
+# Reproducible build and test output
+build/
+dist/
+*.tar.gz
+*.img
+*.efi
+
+# Editor and OS files
+*.swp
+*~
+.DS_Store

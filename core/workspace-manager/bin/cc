@@ -1,13 +1,16 @@
 #!/bin/bash
 # cc — unified launcher (Claude / DeepSeek / Codex)
-# Thin wrapper — delegates to flowfoundry.cc Python module.
-# Fall back to legacy deployed copy if the repo package isn't importable.
+# Thin wrapper — delegates to the flowfoundry.cc Python module.
 set -euo pipefail
 
-# Try the repo package first (monorepo dev mode)
-if python3 -c "import flowfoundry.workspace.cc_launcher" 2>/dev/null; then
-    exec python3 -m flowfoundry.cc "$@"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+MONOREPO_ROOT="$(cd "$SCRIPT_DIR/../../.." 2>/dev/null && pwd || true)"
+
+# Source-checkout mode: make the monorepo package importable without requiring
+# an editable install.  A deployed wrapper has no matching src/flowfoundry
+# directory and therefore uses the installed package normally.
+if [[ -d "$MONOREPO_ROOT/src/flowfoundry" ]]; then
+    export PYTHONPATH="$MONOREPO_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 fi
 
-# Fall back to legacy deployed copy
 exec python3 -m flowfoundry.cc "$@"

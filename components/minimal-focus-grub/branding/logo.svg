@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Minimal Focus logo</title>
+  <desc id="desc">A focused boot menu panel with orbital lines.</desc>
+  <defs>
+    <linearGradient id="bg" x1="24" y1="18" x2="224" y2="238" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10182d"/>
+      <stop offset="1" stop-color="#060810"/>
+    </linearGradient>
+    <linearGradient id="focus" x1="42" y1="80" x2="148" y2="174" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="58" fill="url(#bg)"/>
+  <circle cx="184" cy="91" r="59" fill="none" stroke="#60a5fa" stroke-opacity=".16" stroke-width="3"/>
+  <circle cx="184" cy="91" r="39" fill="none" stroke="#a78bfa" stroke-opacity=".2" stroke-width="3"/>
+  <circle cx="184" cy="91" r="19" fill="#38bdf8" fill-opacity=".12"/>
+  <rect x="38" y="49" width="124" height="158" rx="24" fill="#111827" fill-opacity=".94" stroke="#94a3b8" stroke-opacity=".2" stroke-width="2"/>
+  <rect x="52" y="71" width="93" height="24" rx="9" fill="#1e293b"/>
+  <rect x="52" y="106" width="93" height="34" rx="11" fill="url(#focus)" fill-opacity=".2" stroke="#67e8f9" stroke-width="2"/>
+  <rect x="52" y="151" width="93" height="24" rx="9" fill="#1e293b"/>
+  <rect x="56" y="113" width="4" height="20" rx="2" fill="#67e8f9"/>
+  <path d="M70 83h55M70 123h46M70 163h55" stroke="#e2e8f0" stroke-linecap="round" stroke-width="6"/>
+</svg>

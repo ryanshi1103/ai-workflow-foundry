@@ -4,14 +4,14 @@
 
 # AI Workspace Manager
 
-A local-first launcher and project maintenance system for Claude, DeepSeek, and
-OpenAI Codex. It keeps one real project root across tools, provides explicit
-permission modes, records recoverable AI sessions, and performs cautious
-maintenance of a `~/Projects` workspace.
+A local-first launcher and project maintenance system for Claude, DeepSeek,
+OpenAI Codex, and the official Grok Build CLI. It keeps one real project root
+across tools, provides explicit permission modes, records recoverable AI
+sessions, and performs cautious maintenance of a `~/Projects` workspace.
 
-中文说明：这是一个统一管理 AI 编程项目的本地工具。它让 Claude、DeepSeek 和
-Codex 使用同一个真实项目目录，提供清晰的权限选择、会话恢复、自动命名、项目
-盘点和定期维护，并把危险操作限制在明确的项目根目录内。
+中文说明：这是一个统一管理 AI 编程项目的本地工具。它让 Claude、DeepSeek、
+Codex 和官方 Grok Build CLI 使用同一个真实项目目录，提供清晰的权限选择、会话
+恢复、自动命名、项目盘点和定期维护，并把危险操作限制在明确的项目根目录内。
 
 ## FlowFoundry AI relationship
 
@@ -23,12 +23,24 @@ foundation.
 
 ## Components
 
-- `cc`: interactive project/tool/permission launcher.
+- `cc`: interactive project/tool/permission launcher. Its default Auto row
+  delegates goals to FlowFoundry after one session permission-ceiling choice;
+  Claude, DeepSeek, Codex, and Grok Build remain direct launch choices. Grok is
+  handed the selected project and a per-launch native permission profile; its
+  own CLI retains control of authentication, TUI, and session resume.
 - `aiproj`: project creation, selection, session tracking, finalization and recovery.
 - `cc-projects-maintain`: quick/deep workspace inspection, indexing, duplicate
-  review and retention-aware quarantine maintenance.
-- `ai_project_manager`: Python modules for hooks, redaction, transcripts,
-  recovery, auto-naming and safe filesystem operations.
+  review and retention-aware quarantine maintenance. Deep scans only suggest
+  quarantine candidates; moving a project requires an explicit command. The
+  daily purge timer requires an intact recorded file manifest and at least
+  14 days of retention.
+
+Deploy only the quarantine timer after reviewing it with
+`bash scripts/deploy-maintenance-timer.sh --dry-run`; apply with `--apply`.
+- `flowfoundry.workspace`: canonical Python runtime for lifecycle, providers,
+  hooks, redaction, transcripts, recovery, auto-naming and safe filesystem
+  operations. Public command names remain compatible and import the canonical
+  subpackages directly.
 - systemd user timers and Codex profile templates for repeatable deployment.
 
 ## Safety properties
@@ -72,13 +84,17 @@ The maintenance configuration example intentionally uses
 ## Project layout
 
 ```text
-bin/                    launchers and command entry points
-src/ai_project_manager/ Python implementation
-config/codex/           permission/profile templates
-config/systemd/         user timers and services
-scripts/                backup-first deployment
-tests/                  shell and Python regressions
-docs/                   architecture and installation notes
+core/workspace-manager/bin/       compatibility command entry points
+src/flowfoundry/workspace/cli/    interactive and project CLI logic
+src/flowfoundry/workspace/providers/ portable provider/profile policy
+src/flowfoundry/workspace/lifecycle/ stable project and shared launch API
+src/flowfoundry/workspace/sessions/ stable hooks, transcripts, recovery API
+src/flowfoundry/workspace/sessions/finalization/ composable finalize stages
+src/flowfoundry/workspace/policy/  redaction and local-state boundaries
+src/flowfoundry/workspace/maintenance/ inventory and retention operations
+core/workspace-manager/config/    portable profiles and systemd examples
+core/workspace-manager/scripts/   backup-first deployment
+core/workspace-manager/tests/     shell and Python regressions
 ```
 
 ## Scope of this public snapshot

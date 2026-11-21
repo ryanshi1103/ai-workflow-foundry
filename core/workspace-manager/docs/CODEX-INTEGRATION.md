@@ -7,6 +7,7 @@ OpenAI Codex GPT-5.6 Sol is the third native tool in the `cc` launcher, alongsid
 ```
 cc launcher
 ├── Project Selection (shared)
+├── Auto: FlowFoundry goal routing with one session permission ceiling
 ├── Tool Menu: c=Claude, d=DeepSeek, o=Codex, q=quit
 │   └── Codex → Permission Menu: m/p/a/b
 │       ├── m: Manual      → approval=on-request, sandbox=workspace-write
@@ -14,6 +15,10 @@ cc launcher
 │       ├── a: Auto        → approval=never,      sandbox=workspace-write
 │       └── b: Full access → approval=never,      sandbox=danger-full-access
 ```
+
+The top-level Auto row and the Codex provider's `a` profile are intentionally
+different. Top-level Auto runs the existing FlowFoundry capability/evaluation
+path; choosing Codex directly preserves the native Codex profile experience.
 
 ## Profiles
 

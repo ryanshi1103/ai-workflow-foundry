@@ -2,13 +2,17 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TEST_ROOT="$(mktemp -d)"
+MONOREPO_ROOT="$(cd "$PROJECT_ROOT/../.." && pwd)"
+TEST_TMP_BASE="$MONOREPO_ROOT/.test-tmp"
+mkdir -p "$TEST_TMP_BASE"
+TEST_ROOT="$(mktemp -d -p "$TEST_TMP_BASE")"
 TEST_HOME="$TEST_ROOT/home"
 TEST_STATE="$TEST_ROOT/state"
 OUTPUT="$TEST_ROOT/deploy-output"
 
 cleanup() {
     rm -rf "$TEST_ROOT"
+    rmdir "$TEST_TMP_BASE" 2>/dev/null || true
 }
 trap cleanup EXIT
 

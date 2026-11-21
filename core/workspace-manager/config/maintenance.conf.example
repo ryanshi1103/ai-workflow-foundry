@@ -1,7 +1,7 @@
 # cc-projects maintenance configuration
 # Edit this file to customize behavior.
 
-PROJECTS_ROOT="/home/ryan/Projects"
+PROJECTS_ROOT="$HOME/Projects"
 QUARANTINE_DAYS=14
 AUTO_RENAME_PLACEHOLDERS=true
 AUTO_MERGE_DUPLICATES=true

@@ -76,12 +76,12 @@ def dispatch_project(cmd: str, args: argparse.Namespace) -> int:
 
     # --- launch (Python cc launcher) ---
     if cmd == "launch":
-        from flowfoundry.workspace.cc_launcher import main as cc_main
+        from flowfoundry.workspace.cli.launcher import main as cc_main
         return cc_main()
 
     # --- maintain ---
     if cmd == "maintain":
-        from flowfoundry.workspace.maintain_cli import run_maintenance_cli
+        from flowfoundry.workspace.cli.maintenance import run_maintenance_cli
         return run_maintenance_cli(args)
 
     return 1  # unknown subcommand
